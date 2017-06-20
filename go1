@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -e
+#set -x
+
+PROCS=30
+TEST_FLAGS='--enable-coverage'
+#TEST_FLAGS+=' --enable-ompt'
+#TEST_FLAGS+=' --enable-overhead'
+TEST_FLAGS+=' --enable-debug'
+
+GEOPM_PATH=${BIN_PATH}/geopm
+
+# Create the full path to the geopm build dir
+if [ ! -d "${GEOPM_PATH}" ]; then
+    mkdir -p ${GEOPM_PATH}
+fi
+
+if [ -n "${FORCE_DEFAULTS}" ]; then
+    # module purge
+    # module load gnu mvapich2 autotools
+    ./autogen.sh
+    ./configure --prefix=${GEOPM_PATH} ${TEST_FLAGS}
+fi
+
+if [ -n "${FORCE_INTEL}" ]; then
+    # module purge
+    # module load intel mvapich2 autotools
+    ./autogen.sh
+    CC=icc CXX=icpc FC=ifort F77=ifort ./configure --prefix=${GEOPM_PATH} ${TEST_FLAGS}
+fi
+
+if [ -n "${MAKE_CLEAN}" ]; then
+    make clean
+    rm -fr ${GEOPM_PATH}
+fi
+
+make -j${PROCS}
+make install
+make -j${PROCS} checkprogs
+
+if [ -n "${RUN_TESTS}" ]; then
+    make check
+fi

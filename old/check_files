@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -x
+
+pdsh -w mr-fusion[$1-$2] 'ls -la /tmp/.geopm* 2> /dev/null' 2> /dev/null
+pdsh -w mr-fusion[$1-$2] 'ls -la /dev/shm/brg-* 2> /dev/null' 2> /dev/null
+pdsh -w mr-fusion[$1-$2] 'ls -la /dev/shm/geopm-* 2> /dev/null' 2> /dev/null

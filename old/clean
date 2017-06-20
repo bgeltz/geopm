@@ -1,0 +1,4 @@
+#!/bin/bash
+
+#rm -fr /dev/shm/byobu-bgeltz*
+rm -fr /dev/shm/brg*
