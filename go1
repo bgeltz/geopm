@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# set -e
+# set -x
+
+PROCS=30
+TEST_FLAGS=
+# TEST_FLAGS='--enable-ompt' # Do not enable until the OMPT integration tests works with IMPI.
+if [ ! -d "${BIN_PATH}/geopm" ]; then
+    mkdir -p ${BIN_PATH}/geopm
+fi
+
+if [ -n "${FORCE_DEFAULTS}" ]; then
+    # module purge
+    # module load gnu mvapich2 autotools
+    TEST_FLAGS='--enable-coverage'
+    ./autogen.sh
+    ./configure --prefix=${BIN_PATH}/geopm --enable-debug ${TEST_FLAGS}
+fi
+
+if [ -n "${FORCE_INTEL}" ]; then
+    module purge
+    module load intel mvapich2 autotools
+    ./autogen.sh
+    CC=icc CXX=icpc FC=ifort F77=ifort ./configure --prefix=${BIN_PATH}/geopm --enable-debug ${TEST_FLAGS}
+fi
+
+if [ -n "${MAKE_CLEAN}" ]; then
+    make clean
+    rm -fr ${BIN_PATH}/geopm
+fi
+
+make -j${PROCS}
+# make install
+make -j${PROCS} checkprogs
+
+if [ -n "${RUN_TESTS}" ]; then
+    make check
+    cd test_integration
+    ./geopm_test_integration.py -v
+fi
+

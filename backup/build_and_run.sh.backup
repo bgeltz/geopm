@@ -1,0 +1,18 @@
+#!/bin/bash
+
+GEOPM_PATH=${HOME}/geopm
+module purge && module load intel mvapich2 autotools
+
+cd ${GEOPM_PATH}
+git fetch --all
+git reset --hard origin/dev
+git clean -fdx
+
+# Intel Toolchain
+${HOME}/bin/go -ic
+cd test_integration
+./geopm_test_loop.sh
+
+# GNU Toolchain
+# go -dc
+
