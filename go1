@@ -4,8 +4,8 @@
 # set -x
 
 PROCS=30
-TEST_FLAGS=
-# TEST_FLAGS='--enable-ompt' # Do not enable until the OMPT integration tests works with IMPI.
+TEST_FLAGS='--enable-debug'
+TEST_FLAGS+=' --enable-ompt' # Do not enable until the OMPT integration tests works with IMPI.
 if [ ! -d "${BIN_PATH}/geopm" ]; then
     mkdir -p ${BIN_PATH}/geopm
 fi
@@ -13,16 +13,16 @@ fi
 if [ -n "${FORCE_DEFAULTS}" ]; then
     # module purge
     # module load gnu mvapich2 autotools
-    TEST_FLAGS='--enable-coverage'
+    TEST_FLAGS+=' --enable-coverage'
     ./autogen.sh
-    ./configure --prefix=${BIN_PATH}/geopm --enable-debug ${TEST_FLAGS}
+    ./configure --prefix=${BIN_PATH}/geopm ${TEST_FLAGS}
 fi
 
 if [ -n "${FORCE_INTEL}" ]; then
-    module purge
-    module load intel mvapich2 autotools
+    # module purge
+    # module load intel mvapich2 autotools
     ./autogen.sh
-    CC=icc CXX=icpc FC=ifort F77=ifort ./configure --prefix=${BIN_PATH}/geopm --enable-debug ${TEST_FLAGS}
+    CC=icc CXX=icpc FC=ifort F77=ifort ./configure --prefix=${BIN_PATH}/geopm ${TEST_FLAGS}
 fi
 
 if [ -n "${MAKE_CLEAN}" ]; then
@@ -31,7 +31,7 @@ if [ -n "${MAKE_CLEAN}" ]; then
 fi
 
 make -j${PROCS}
-# make install
+# make install # Moved this to build_and_run.sh so that when running for coverage, the in-tree binaries are used.
 make -j${PROCS} checkprogs
 
 if [ -n "${RUN_TESTS}" ]; then

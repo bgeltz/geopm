@@ -29,6 +29,7 @@ mkdir -p ${TEST_DIR}
 
 # GNU Toolchain - Runs unit tests, then integration tests, then generates coverage report
 module purge && module load gnu impi autotools
+export LD_LIBRARY_PATH=${GEOPM_PATH}/openmp/lib:${LD_LIBRARY_PATH}
 
 cd ${GEOPM_PATH}
 git fetch origin
