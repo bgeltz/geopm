@@ -43,9 +43,12 @@ go -dc > >(tee -a build_${LOG_FILE}) 2>&1
 lcov --capture --initial --directory src --directory plugin --directory test --output-file base_coverage.info --rc lcov_branch_coverage=1 --no-external > >(tee -a coverage_${LOG_FILE}) 2>&1
 
 # Run integration tests
-pushd test_integration
-GEOPM_PLUGIN_PATH=${HOME}/geopm/.libs LD_LIBRARY_PATH=/opt/ohpc/pub/compiler/gcc/5.3.0/lib64:${HOME}/geopm/.libs:${LD_LIBRARY_PATH} ./geopm_test_integration.py -v > >(tee -a integration_${LOG_FILE}) 2>&1
-popd
+sbatch integration_batch.sh
+echo "Integration tests launched via sbatch.  Sleeping..."
+while [ ! -f ${GEOPM_PATH}/test_integration/.tests_complete ]; do
+    sleep 5
+done
+echo "Integration tests complete."
 
 # Run unit tests
 make check > >(tee -a check_${LOG_FILE}) 2>&1
