@@ -3,7 +3,6 @@
 #SBATCH -N 4
 #SBATCH --export=ALL
 #SBATCH -t 01:00:00
-set -e
 
 LOG_FILE=test_output.log
 GEOPM_PATH=${HOME}/geopm
