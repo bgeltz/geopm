@@ -1,0 +1,46 @@
+#!/bin/bash
+
+set -e
+set -x
+
+PROCS=22
+#TEST_FLAGS='--enable-debug --enable-coverage --disable-fortran'
+#TEST_FLAGS='--enable-debug --disable-fortran'
+TEST_FLAGS='--enable-debug --enable-ompt --disable-fortran --disable-doc'
+
+if [ ! -d "${BIN_PATH}/geopm" ]; then
+    mkdir -p ${BIN_PATH}/geopm
+fi
+
+libtoolize
+
+if [ -n "${FORCE_DEFAULTS}" ]; then
+#    module purge
+#    module load gnu mvapich2 autotools
+    TEST_FLAGS+=' --enable-coverage'
+    ./autogen.sh
+    #CXX="g++-4.8" CC="gcc-4.8" ./configure --prefix=${BIN_PATH}/geopm ${TEST_FLAGS}
+    #./configure --prefix=${BIN_PATH}/geopm ${TEST_FLAGS} --with-mpi-bin=${HOME}/build/mvapich2-2.3a/bin
+    ./configure --prefix=${BIN_PATH}/geopm ${TEST_FLAGS}
+fi
+
+if [ -n "${FORCE_INTEL}" ]; then
+    #module purge
+    #module load intel mvapich2 autotools
+    ./autogen.sh
+    CC=icc CXX=icpc FC=ifort F77=ifort ./configure --prefix=${BIN_PATH}/geopm ${TEST_FLAGS}
+    #CC='icc -qoverride-limits'  CXX='icpc -qoverride-limits'  FC=ifort F77=ifort ./configure --prefix=${BIN_PATH}/geopm ${TEST_FLAGS}
+fi
+
+if [ -n "${MAKE_CLEAN}" ]; then
+    make clean
+    rm -fr ${BIN_PATH}/geopm
+fi
+
+make -j${PROCS}
+#make install # Do NOT install if generating coverage reports.
+make -j${PROCS} checkprogs
+
+if [ -n "${RUN_TESTS}" ]; then
+    make check
+fi
