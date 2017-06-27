@@ -1,0 +1,5 @@
+#!/bin/bash
+
+#rm -fr /dev/shm/byobu-bgeltz*
+rm -fr /dev/shm/geopm-shm-sample
+rm -fr /dev/shm/brg*

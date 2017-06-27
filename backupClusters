@@ -1,0 +1,18 @@
+#!/bin/bash
+
+BACKUP_DIR=/home/bgeltz/bin/cluster_backup
+
+# This function will sync the specified folder between MRF and TB.
+# It's setup to only update files that are newer than what is already
+# present at the destination.
+backup(){
+    echo "Backing up ${1}..."
+    rsync -avzhe ssh --delete --update mr-fusion:~/${1%/} ${BACKUP_DIR}
+    #rsync -avzhe ssh --update trailblazer:~/${1%/} ${BACKUP_DIR}
+
+    rsync -avzhe ssh --update ${BACKUP_DIR}/${1} mr-fusion:~/${1}
+    #rsync -avzhe ssh --update ${BACKUP_DIR}/${1} trailblazer:~/${1}
+}
+
+backup bin/
+backup .bash_aliases
