@@ -70,6 +70,7 @@ namespace geopm
         , m_is_initialized(false)
         , M_MSR_SAVE_FILE_PATH("/tmp/geopm-msr-initial-vals-XXXXXX")
     {
+        gethostname(m_hostname, NAME_MAX);
 
     }
 
@@ -93,6 +94,7 @@ namespace geopm
         , m_is_initialized(false)
         , M_MSR_SAVE_FILE_PATH("/tmp/geopm-msr-initial-vals-XXXXXX")
     {
+        gethostname(m_hostname, NAME_MAX);
 
     }
 
@@ -264,6 +266,7 @@ namespace geopm
             throw Exception(message.str(), GEOPM_ERROR_MSR_WRITE, __FILE__, __LINE__);
         }
 
+        printf("Hostname %s | PlatformImp msr_write() for msr %lx | msr_val =  %#18lx\n", m_hostname, msr_offset, value);
         value |= curr_value;
 
         int rv = pwrite(m_cpu_file_desc[device_index], &value, sizeof(value), msr_offset);

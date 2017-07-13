@@ -141,6 +141,8 @@ namespace geopm
             std::vector<double> limit(num_domain);
             std::vector<double> target(num_domain);
             std::vector<double> domain_dram_power(num_domain);
+            char hostname[NAME_MAX];
+            gethostname(hostname, NAME_MAX);
             // Get node limit for epoch set by tree decider
             curr_policy.target(GEOPM_REGION_ID_EPOCH, limit);
             // Get last policy target for the current region
@@ -163,7 +165,13 @@ namespace geopm
                 if (dram_power < lower_limit || dram_power > upper_limit) {
                     m_last_dram_power = dram_power;
                     for (int domain_idx = 0; domain_idx < num_domain; ++domain_idx) {
-                        target[domain_idx] = limit[domain_idx] - domain_dram_power[domain_idx];
+                        //target[domain_idx] = limit[domain_idx] - domain_dram_power[domain_idx];
+                        target[domain_idx] = limit[domain_idx];
+                        //target[domain_idx] = 145.0;
+                        //target[domain_idx] = 150.0;
+                        printf("Hostname: %s | Region: %lu | Limit: %f | Domain DRAM: %f | Target: %f\n",
+                               hostname, region_id, limit[domain_idx], domain_dram_power[domain_idx], target[domain_idx]);
+                        printf("\tLower limit: %f | Upper limit: %f\n", lower_limit, upper_limit);
                     }
                     curr_policy.update(region_id, target);
                     is_target_updated = true;

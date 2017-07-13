@@ -467,19 +467,23 @@ class TestIntegration(unittest.TestCase):
         name = 'test_power_consumption'
         report_path = name + '.report'
         trace_path = name + '.trace'
-        num_node = 4
-        num_rank = 16
-        loop_count = 500
+        num_node = 1
+        num_rank = 4
+        loop_count = 50
         app_conf = geopmpy.io.AppConf(name + '_app.config')
         self._tmp_files.append(app_conf.get_path())
-        app_conf.append_region('dgemm', 8.0)
+        app_conf.append_region('dgemm-unmarked', 160.0)
+        # app_conf.append_region('stream', 2.0)
         app_conf.set_loop_count(loop_count)
-        self._options['power_budget'] = 150
+        # self._options['power_budget'] = 205
+        self._options['power_budget'] = int(os.getenv('BRG_POWER_LIMIT'))
         ctl_conf = geopmpy.io.CtlConf(name + '_ctl.config', self._mode, self._options)
         self._tmp_files.append(ctl_conf.get_path())
+        # launcher = geopm_test_launcher.TestLauncher(app_conf, ctl_conf, report_path, trace_path, time_limit=900, region_barrier=True)
         launcher = geopm_test_launcher.TestLauncher(app_conf, ctl_conf, report_path, trace_path, time_limit=900)
         launcher.set_num_node(num_node)
         launcher.set_num_rank(num_rank)
+        # launcher.set_pmpi_ctl('pthread')
         launcher.write_log(name, 'Power cap = {}W'.format(self._options['power_budget']))
         launcher.run(name)
 

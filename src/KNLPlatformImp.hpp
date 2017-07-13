@@ -110,6 +110,7 @@ namespace geopm
             ///@brief Vector of MSR data containing pairs of offsets and write masks.
             std::vector<std::pair<off_t, unsigned long> > m_control_msr_pair;
             uint64_t m_pkg_power_limit_static;
+            char m_hostname[NAME_MAX];
 
             ///Constants
             const unsigned int M_BOX_FRZ_EN;

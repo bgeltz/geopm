@@ -79,6 +79,7 @@ namespace geopm
         , M_MODEL_NAME("Knights Landing")
         , M_TRIGGER_NAME("PKG_ENERGY_STATUS")
     {
+        gethostname(m_hostname, NAME_MAX);
 
     }
 
@@ -382,6 +383,12 @@ namespace geopm
         uint64_t msr_val = 0;
         uint64_t msr_pl1_val = 0;
         uint64_t msr_pl2_val = 0;
+        static bool wrote_once = false;
+
+        if (wrote_once == true) {
+            return;
+        }
+        wrote_once = true;
 
         switch (signal_type) {
             case GEOPM_TELEMETRY_TYPE_PKG_ENERGY:
@@ -400,6 +407,9 @@ namespace geopm
                 msr_pl2_val = ((uint64_t)(value * m_power_units_inv)) << 32;
 
                 msr_val = msr_pl1_val | msr_pl2_val | m_pkg_power_limit_static;
+
+                printf("Hostname %s | About to write to RAPL_PKG_LIMIT target = %f\n", m_hostname, value);
+                printf("Hostname %s | msr_val =  %#18lx\n", m_hostname, msr_val);
                 msr_write(device_type, device_index, m_control_msr_pair[M_RAPL_PKG_LIMIT].first,
                           m_control_msr_pair[M_RAPL_PKG_LIMIT].second,  msr_val);
                 break;
@@ -499,6 +509,8 @@ namespace geopm
         // Manual Volume 3 (3A, 3B, 3C & 3D): System Programming Guide
 
         uint64_t tmp;
+        char hostname[NAME_MAX];
+        gethostname(hostname, NAME_MAX);
 
         //Make sure units are consistent between packages
         tmp = msr_read(GEOPM_DOMAIN_PACKAGE, 0, "RAPL_POWER_UNIT");
@@ -540,7 +552,8 @@ namespace geopm
 
         tmp = msr_read(GEOPM_DOMAIN_PACKAGE, 0, "PKG_POWER_LIMIT");
         // Set time window 1 to the minimum time window of 15 msec
-        double tau = 0.015;
+        //double tau = 0.015;
+        double tau = 1.000;
         uint64_t pkg_time_window_y = (uint64_t)std::log2(tau/time_units);
         uint64_t pkg_time_window_z = (uint64_t)(4.0 * ((tau / ((double)(1 << pkg_time_window_y) * time_units)) - 1.0));
         if ((pkg_time_window_z >> 2) != 0 || (pkg_time_window_y >> 5) != 0) {
@@ -554,11 +567,16 @@ namespace geopm
                             GEOPM_ERROR_LOGIC, __FILE__, __LINE__);
         }
 
+        printf("RAPL init (%s): Desired tau = %f, Y = %ld, Z = %ld\n", m_hostname, tau, pkg_time_window_y, pkg_time_window_z);
+
         pkg_time_window_y = pkg_time_window_y << 17;
         pkg_time_window_z = pkg_time_window_z << 22;
+        printf("RAPL init (%s): Initial PKG_POWER_LIMIT value = %18lx\n", m_hostname, tmp);
         m_pkg_power_limit_static = (tmp & 0xFFFE0000FF000000) | pkg_time_window_y | pkg_time_window_z;
         // enable pl1 and pl2 limits
         m_pkg_power_limit_static |= (0x3ULL << 47) | (0x3ULL << 15);
+
+        printf("RAPL init (%s): PKG_POWER_LIMIT static bits = %#18lx\n", m_hostname, m_pkg_power_limit_static);
 
         for (int i = 1; i < m_num_package; i++) {
             tmp = msr_read(GEOPM_DOMAIN_PACKAGE, i, "PKG_POWER_INFO");
