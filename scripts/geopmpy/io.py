@@ -41,6 +41,7 @@ import numpy
 import glob
 import json
 import sys
+import code
 from natsort import natsorted
 from geopmpy import __version__
 
@@ -867,6 +868,8 @@ class Trace(object):
         filtered_df = tmp_df.filter(regex=column_regex)
         filtered_df['elapsed_time'] = tmp_df['seconds']
         filtered_df = filtered_df.diff()
+        filtered_df['region_id'] = tmp_df['region_id']
+
         # The following drops all 0's and the negative sample when traversing between 2 trace files.
         filtered_df = filtered_df.loc[(filtered_df > 0).all(axis=1)]
 
@@ -883,7 +886,7 @@ class Trace(object):
         return pandas.concat(traces_list)
 
     @staticmethod
-    def get_median_df(trace_df, column_regex, config):
+    def get_median_df(trace_df, column_regex, config, epoch=True):
         """Extract the median experiment iteration.
 
         This logic calculates the sum of elapsed times for all of the
@@ -898,6 +901,7 @@ class Trace(object):
             column_regex: A string representing the regex search
                           pattern for the column names to diff.
             config: The TraceConfig object being used presently.
+            epoch: A flag to set whether or not to focus solely on epoch regions.
 
         Returns:
             pandas.DataFrame: Containing a single experiment iteration.

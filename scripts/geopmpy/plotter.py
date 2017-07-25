@@ -470,10 +470,10 @@ def generate_bar_plot(report_df, config):
     plt.close()
 
 
-def generate_power_plot(trace_df, config):
+def generate_combined_power_plot(trace_df, config):
     """Plots the power consumed per node at each sample.
 
-    This function will plot the power used at each sample for every node.  Specifying the 'analyze' option in the
+    This function will plot the power used at each epoch sample for every node.  Specifying the 'analyze' option in the
     config object will also plot the power cap and aggregate power for all nodes.  Specifying the 'normalize' option
     in the config object will use the uniform node names in the plot's legend.
 
@@ -503,7 +503,7 @@ def generate_power_plot(trace_df, config):
         raise LookupError('No data remains after filtering.  Please check your datasets and filtering options.')
 
     # Do not include node_name, iteration or index in the groupby clause; The median iteration is extracted and used
-    # below for every node togther in a group.  The index must be preserved to ensure the DFs stay in order.
+    # below for every node together in a group.  The index must be preserved to ensure the DFs stay in order.
     if config.verbose:
         sys.stdout.write('Grouping data...\n')
         sys.stdout.flush()
@@ -609,6 +609,114 @@ def generate_power_plot(trace_df, config):
             code.interact(local=dict(globals(), **locals()))
 
         plt.close()
+
+
+def generate_per_node_power_plot(trace_df, config):
+    """Plots the power consumed per node at each sample.
+
+    This function will produce a plot for the power used at each sample for every node.  Specifying the 'analyze'
+    option in the config object will also plot the least squared filtered socket power.  Specifying the 'normalize'
+    option in the config object will use the uniform node names in the plot's legend.
+
+    Args:
+        trace_df: The multiindexed DataFrame with all the trace data parsed from the
+            AppOutput class.
+        config: The object specifying the plotting and analysis parameters.
+
+    Raises:
+        LookupError: If the reference or target plugin was not found in the DataFrame.
+
+    Todo:
+        * Resample the median_df to ensure all nodes have the same number of samples.  This can be a source of
+            minor error for especially long running apps.
+    """
+    config.check_plugins(trace_df)
+    idx = pandas.IndexSlice
+
+    # Select only the data we care about
+    if config.verbose:
+        sys.stdout.write('Filtering data...\n')
+        sys.stdout.flush()
+    trace_df = trace_df.loc[idx[config.tgt_version:config.tgt_version, config.tgt_profile_name:config.tgt_profile_name,
+                                config.min_drop:config.max_drop, config.tgt_plugin:config.tgt_plugin],]
+
+    if len(trace_df) == 0:
+        raise LookupError('No data remains after filtering.  Please check your datasets and filtering options.')
+
+    for (version, name, power_budget, tree_decider, leaf_decider), df in \
+        trace_df.groupby(level=['version', 'name', 'power_budget', 'tree_decider', 'leaf_decider']):
+
+        # Diff the energy counters and determine the median iteration (if multiple runs)
+        median_df = geopmpy.io.Trace.get_median_df(df, 'energy', config, False)
+        # If focusing on epochs is desired, comment out dropping the data before the first one below.
+        # median_df = geopmpy.io.Trace.get_median_df(df, 'energy', config, True)
+
+        # Calculate power from the diffed counters
+        pkg_energy_cols = [s for s in median_df.keys() if 'pkg_energy' in s]
+        dram_energy_cols = [s for s in median_df.keys() if 'dram_energy' in s]
+        median_df['socket_power'] = median_df[pkg_energy_cols].sum(axis=1) / median_df['elapsed_time']
+        median_df['dram_power'] = median_df[dram_energy_cols].sum(axis=1) / median_df['elapsed_time']
+        median_df['combined_power'] = median_df['socket_power'] + median_df['dram_power']
+
+        # Begin plot setup
+        node_names = df.index.get_level_values('node_name').unique().tolist()
+        node_dict = config.get_node_dict(node_names)
+
+        for node_name in natsorted(node_names):
+            node_df = median_df.loc[idx[:, :, :, :, :, node_name],]
+
+            plt.rcParams.update({'figure.figsize': (7.7, 6)}) # HACK REMOVEME
+
+            f, ax = plt.subplots()
+
+            epoch_rid = '9223372036854775808'
+
+            # Drop everything before the first epoch
+            first_epoch_index = node_df.loc[ node_df['region_id'] == epoch_rid ][:1].index[0]
+            node_df = node_df[first_epoch_index:]
+
+            node_df = node_df.reset_index()
+
+            # Calculate the sampling rate based on the diff'd data
+            sampling_rate = int(numpy.around(node_df['elapsed_time'].mean(), 3) * 1000)
+
+            # Line plot per socket, DRAM, and Socket(s) + DRAM
+            node_df['combined_power'].plot(label='Socket+DRAM')
+            node_df['socket_power'].plot(label='Socket')
+            # TODO If --analyze, do least squares line on socket
+            # node_df['least_squares'].plot(label='PY Least Squares')
+            node_df['dram_power'].plot(label='DRAM')
+
+            ax.set_ylabel('Power (W)')
+            ax.set_xlabel('Samples')
+            ax.set_ylim(0, 250)
+
+            plt.axhline(power_budget, linewidth=2, color='orange', label='Cap')
+            plt.title('{} @ {}W, {}ms sampling'.format(config.profile_name.lower().replace(' ', '_'), power_budget,
+                      sampling_rate), y=1.02)
+            plt.legend(shadow=True, fancybox=True, loc='lower right', fontsize=config.legend_fontsize)
+
+            file_name = '{}_per_node_power_{}_{}_{}'.format(config.profile_name.lower().replace(' ', '_'), power_budget, tree_decider, node_name)
+
+            if config.verbose:
+                sys.stdout.write('Writing:\n')
+
+            # TODO If --analyze, print describe() stats.
+
+            for ext in config.output_types:
+                full_path = os.path.join(config.output_dir, '{}.{}'.format(file_name, ext))
+                plt.savefig(full_path)
+                if config.verbose:
+                    sys.stdout.write('    {}\n'.format(full_path))
+            sys.stdout.flush()
+
+            if config.show:
+                plt.show(block=config.block)
+
+            if config.shell:
+                code.interact(local=dict(globals(), **locals()))
+
+            plt.close()
 
 
 def generate_epoch_plot(trace_df, config):
@@ -895,7 +1003,7 @@ def generate_freq_plot(trace_df, config):
 
 def main(argv):
     report_plots = {'debug', 'box', 'bar'}
-    trace_plots = {'debug', 'power', 'epoch', 'freq'}
+    trace_plots = {'debug', 'combined_power', 'per_node_power', 'epoch', 'freq'}
 
     _, os.environ['COLUMNS'] = subprocess.check_output(['stty', 'size']).split() # Ensures COLUMNS is set so text wraps
     pandas.set_option('display.width', int(os.environ['COLUMNS']))               # Same tweak for Pandas
