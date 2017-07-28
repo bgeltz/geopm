@@ -665,7 +665,7 @@ def generate_per_node_power_plot(trace_df, config):
         for node_name in natsorted(node_names):
             node_df = median_df.loc[idx[:, :, :, :, :, node_name],]
 
-            plt.rcParams.update({'figure.figsize': (7.7, 6)}) # HACK REMOVEME
+            # plt.rcParams.update({'figure.figsize': (7.7, 6)}) # HACK REMOVEME
 
             f, ax = plt.subplots()
 
@@ -681,20 +681,35 @@ def generate_per_node_power_plot(trace_df, config):
             sampling_rate = int(numpy.around(node_df['elapsed_time'].mean(), 3) * 1000)
 
             # Line plot per socket, DRAM, and Socket(s) + DRAM
-            node_df['combined_power'].plot(label='Socket+DRAM')
-            node_df['socket_power'].plot(label='Socket')
+            plt.plot(pandas.Series(numpy.arange(float(len(node_df))) / (len(node_df) - 1) * 100),
+                     node_df['combined_power'],
+                     label='Socket+DRAM',
+                     color='blue',
+                     zorder=9)
+
+            plt.plot(pandas.Series(numpy.arange(float(len(node_df))) / (len(node_df) - 1) * 100),
+                     node_df['socket_power'],
+                     label='Socket',
+                     color='green',
+                     zorder=10)
+
+            plt.plot(pandas.Series(numpy.arange(float(len(node_df))) / (len(node_df) - 1) * 100),
+                     node_df['dram_power'],
+                     label='DRAM',
+                     color='teal',
+                     zorder=10)
+
             # TODO If --analyze, do least squares line on socket
             # node_df['least_squares'].plot(label='PY Least Squares')
-            node_df['dram_power'].plot(label='DRAM')
 
             ax.set_ylabel('Power (W)')
-            ax.set_xlabel('Samples')
+            ax.set_xlabel('Samples (Normalized to 0-100% progress)')
             ax.set_ylim(0, 250)
 
-            plt.axhline(power_budget, linewidth=2, color='orange', label='Cap')
-            plt.title('{} @ {}W, {}ms sampling'.format(config.profile_name.lower().replace(' ', '_'), power_budget,
+            plt.axhline(power_budget, linewidth=2, color='orange', label='Cap', zorder=11)
+            plt.title('{}\n@ {}W, {}ms sampling'.format(config.profile_name.lower().replace(' ', '_'), power_budget,
                       sampling_rate), y=1.02)
-            plt.legend(shadow=True, fancybox=True, loc='lower right', fontsize=config.legend_fontsize)
+            plt.legend(shadow=True, fancybox=True, loc='lower right', fontsize=config.legend_fontsize).set_zorder(99)
 
             file_name = '{}_per_node_power_{}_{}_{}'.format(config.profile_name.lower().replace(' ', '_'), power_budget, tree_decider, node_name)
 
@@ -943,7 +958,10 @@ def generate_freq_plot(trace_df, config):
                              node_data.rolling(window=config.smooth, center=True).mean(),
                              label=node_dict[node_name])
 
-            ax.set_xlabel('Iteration # (Normalized)')
+            if config.epoch_only:
+                ax.set_xlabel('Iteration # (Normalized to o-100% progress)')
+            else:
+                ax.set_xlabel('Samples (Normalized to 0-100% progress)')
             if config.base_clock:
                 ylabel = 'Frequency (GHz)'
             else:
