@@ -6,10 +6,11 @@ set -x
 PROCS=9
 #TEST_FLAGS='--enable-debug --enable-coverage --disable-fortran'
 #TEST_FLAGS='--enable-debug --disable-fortran'
-#TEST_FLAGS='--disable-fortran'
 TEST_FLAGS=''
-#TEST_FLAGS+=' --enable-fortran'
 TEST_FLAGS+=' --enable-debug'
+#TEST_FLAGS+=' --enable-fortran'
+TEST_FLAGS+=' --disable-fortran'
+#TEST_FLAGS+=' --disable-doc'
 
 if [ ! -d "${BIN_PATH}/geopm" ]; then
     mkdir -p ${BIN_PATH}/geopm
