@@ -9,13 +9,43 @@ module purge && module load intel mvapich2 autotools
 cd ${GEOPM_PATH}
 git fetch --all
 git reset --hard origin/dev
+# FIXME Remove this when the patch is merged
+git fetch https://review.gerrithub.io/geopm/geopm refs/changes/92/372592/1 && git cherry-pick FETCH_HEAD
 git clean -fdx
 
 # Intel Toolchain - Runs integration tests 10 times
 ${HOME}/bin/go -ic
 make install
-cd test_integration
-./geopm_test_loop.sh
+
+# Run the integration test SBATCH script
+TIMESTAMP=$(date +\%F_\%H\%M)
+TEST_DIR=${HOME}/public_html/cron_runs/${TIMESTAMP}
+
+sbatch integration_batch.sh intel loop
+echo "Integration tests launched via sbatch.  Sleeping..."
+while [ ! -f ${GEOPM_PATH}/test_integration/.tests_complete ]; do
+    sleep 5
+done
+echo "Integration tests complete."
+
+# Move the files into the TEST_DIR
+echo "Moving files to ${TEST_DIR}..."
+mkdir -p ${TEST_DIR}
+for f in $(git ls-files --others --exclude-standard);
+do
+    mv ${f} ${TEST_DIR}
+done
+
+# Send mail if there was a test failure.
+if [ -f ${TEST_DIR}/.tests_failed ]; then
+    ERR_MSG="The integration tests have failed.  Please see the output for more information:\nhttp://$(hostname -i)/~test/cron_runs/${TIMESTAMP}"
+
+    echo -e ${ERR_MSG} | mail -r "do-not-reply" -s "Integration test failure : ${TIMESTAMP}" brad.geltz@intel.com,christopher.m.cantalupo@intel.com,steve.s.sylvester@intel.com,brandon.baker@intel.com
+
+    echo "Email sent."
+    exit 1
+fi
+
 # End integration test run
 #############################
 
@@ -43,7 +73,7 @@ go -dc > >(tee -a build_${LOG_FILE}) 2>&1
 lcov --capture --initial --directory src --directory plugin --directory test --output-file base_coverage.info --rc lcov_branch_coverage=1 --no-external > >(tee -a coverage_${LOG_FILE}) 2>&1
 
 # Run integration tests
-sbatch integration_batch.sh
+sbatch integration_batch.sh gnu once
 echo "Integration tests launched via sbatch.  Sleeping..."
 while [ ! -f ${GEOPM_PATH}/test_integration/.tests_complete ]; do
     sleep 5

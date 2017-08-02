@@ -5,7 +5,7 @@
 
 PROCS=30
 TEST_FLAGS='--enable-debug'
-TEST_FLAGS+=' --enable-ompt' # Do not enable until the OMPT integration tests works with IMPI.
+#TEST_FLAGS+=' --enable-ompt' # Do not enable until the OMPT integration tests works with IMPI.
 if [ ! -d "${BIN_PATH}/geopm" ]; then
     mkdir -p ${BIN_PATH}/geopm
 fi

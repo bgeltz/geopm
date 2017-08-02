@@ -54,5 +54,5 @@ ln -sf ${BIN_PATH}/build_logs/build.${TIMESTAMP}.log ${BIN_PATH}/build_latest.lo
 # . script -ec go1 ${BIN_PATH}/build_logs/build.${TIMESTAMP}.log
 # . go1 > >(tee -a ${BIN_PATH}/build_logs/build.${TIMESTAMP}.log) 2>&1
 echo $(script -ec go1 ${BIN_PATH}/build_logs/build.${TIMESTAMP}.log)
-# script -ec go1 ${BIN_PATH}/build_logs/build.${TIMESTAMP}.log
+#script -ec go1 ${BIN_PATH}/build_logs/build.${TIMESTAMP}.log
 
