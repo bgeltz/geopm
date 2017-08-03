@@ -4,14 +4,20 @@ GEOPM_PATH=${HOME}/geopm
 
 ##############################
 # Nightly integration test run
+cherrypick(){
+    # FIXME Remove this when the patch is merged
+    git fetch https://review.gerrithub.io/geopm/geopm refs/changes/92/372592/1 && git cherry-pick FETCH_HEAD
+}
+
+echo "Starting integration test run..."
+
 module purge && module load intel mvapich2 autotools
 
 cd ${GEOPM_PATH}
 git fetch --all
 git reset --hard origin/dev
-# FIXME Remove this when the patch is merged
-git fetch https://review.gerrithub.io/geopm/geopm refs/changes/92/372592/1 && git cherry-pick FETCH_HEAD
 git clean -fdx
+cherrypick
 
 # Intel Toolchain - Runs integration tests 10 times
 ${HOME}/bin/go -ic
@@ -65,6 +71,7 @@ cd ${GEOPM_PATH}
 git fetch origin
 git reset --hard origin/dev
 git clean -fdx
+cherrypick
 export MPIEXEC="srun --cpu_bind=v,mask_cpu:0x2,0x1FFFC,0xFFFE0000,0x7FFF00000000,0x3FFF800000000000 -N4"
 
 go -dc > >(tee -a build_${LOG_FILE}) 2>&1
