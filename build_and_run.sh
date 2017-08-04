@@ -2,13 +2,11 @@
 
 GEOPM_PATH=${HOME}/geopm
 
-##############################
-# Nightly integration test run
 cherrypick(){
-    # FIXME Remove this when the patch is merged
-    git fetch https://review.gerrithub.io/geopm/geopm refs/changes/92/372592/1 && git cherry-pick FETCH_HEAD
 }
 
+##############################
+# Nightly integration test run
 echo "Starting integration test run..."
 
 module purge && module load intel mvapich2 autotools
@@ -64,7 +62,7 @@ LOG_FILE=test_output.log
 mkdir -p ${TEST_DIR}
 
 # GNU Toolchain - Runs unit tests, then integration tests, then generates coverage report
-module purge && module load gnu impi autotools
+module purge && module load gnu mvapich2 autotools
 export LD_LIBRARY_PATH=${GEOPM_PATH}/openmp/lib:${LD_LIBRARY_PATH}
 
 cd ${GEOPM_PATH}

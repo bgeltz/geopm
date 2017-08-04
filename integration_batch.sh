@@ -9,7 +9,7 @@ GEOPM_PATH=${HOME}/geopm
 PATH=${GEOPM_PATH}/.libs:${PATH}
 
 if [ "${1}" == "gnu" ]; then
-    module purge && module load gnu impi autotools
+    module purge && module load gnu mvapich2 autotools
 elif [ "${1}" == "intel" ]; then
     module purge && module load intel mvapich2 autotools
 else
