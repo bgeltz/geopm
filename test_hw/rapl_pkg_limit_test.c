@@ -84,12 +84,16 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     const off_t pkg_power_unit_off = 0x606;
     const off_t pkg_power_limit_off = 0x610;
     const off_t pkg_energy_status_off = 0x611;
+    const off_t core_therm_status_off = 0x19c;
+    const off_t pkg_therm_status_off = 0x1b1;
+    const off_t temp_target_off = 0x1a2;
     int err = 0;
     int num_core_per_socket = 0;
     int num_socket = 0;
     int socket = 0;
     double power_units = 0.0;
     double energy_units = 0.0;
+    int tjmax = 0;
     double total_time = 0.0;
     uint64_t msr_value = 0;
     size_t num_read = 0;
@@ -110,6 +114,8 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     uint64_t new_limit[MAX_NUM_SOCKET] = {0};
     uint64_t begin_energy[MAX_NUM_SOCKET] = {0};
     uint64_t end_energy[MAX_NUM_SOCKET] = {0};
+    uint64_t begin_temperature[MAX_NUM_SOCKET] = {0};
+    uint64_t end_temperature[MAX_NUM_SOCKET] = {0};
     FILE *outfile = NULL;
     FILE *lscpu_fid = NULL;
 
@@ -217,6 +223,32 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
         }
     }
     if (!err) {
+        /* Read MSR_TEMPERATURE_TARGET */
+        errno = 0;
+        num_byte = pread(msr_fd[0], &msr_value, sizeof(uint64_t), temp_target_off);
+        if (num_byte != sizeof(uint64_t)) {
+            err = errno ? errno : -1;
+        }
+    }
+    if (!err) {
+        tjmax = (msr_value >> 16) & 0xFF;
+        fprintf(outfile, "TjMAX (degrees C): %d\n", tjmax);
+    }
+    for (socket = 0; !err && socket < num_socket; ++socket) {
+        if (!err) {
+            /* Read IA32_THERM_STATUS */
+            errno = 0;
+            num_byte = pread(msr_fd[socket], &msr_value, sizeof(uint64_t), core_therm_status_off);
+            if (num_byte != sizeof(uint64_t)) {
+                err = errno ? errno : -1;
+            }
+        }
+        if (!err) {
+            begin_temperature[socket] = tjmax - ((msr_value >> 16) & 0x7F);
+            fprintf(outfile, "Start temp socket %d (degrees C): %d\n", socket, begin_temperature[socket]);
+        }
+    }
+    if (!err) {
         /* Read RAPL_POWER_UNIT */
         errno = 0;
         num_byte = pread(msr_fd[0], &msr_value, sizeof(uint64_t), pkg_power_unit_off);
@@ -307,6 +339,21 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
                 end_energy[socket] += 0xFFFFFFFF;
             }
             power_used[socket] = energy_units * (end_energy[socket] - begin_energy[socket]) / total_time;
+        }
+    }
+
+    for (socket = 0; !err && socket < num_socket; ++socket) {
+        if (!err) {
+            /* Read IA32_THERM_STATUS */
+            errno = 0;
+            num_byte = pread(msr_fd[socket], &msr_value, sizeof(uint64_t), core_therm_status_off);
+            if (num_byte != sizeof(uint64_t)) {
+                err = errno ? errno : -1;
+            }
+        }
+        if (!err) {
+            end_temperature[socket] = tjmax - ((msr_value >> 16) & 0x7F);
+            fprintf(outfile, "End temp socket %d (degrees C): %d\n", socket, end_temperature[socket]);
         }
     }
 
