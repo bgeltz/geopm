@@ -74,6 +74,26 @@ int dgemm_(char *transa, char *transb, int *m, int *n, int *k,
            double *alpha, double *a, int *lda, double *b, int *ldb,
            double *beta, double *c, int *ldc);
 
+int read_temperature(int msr_fd, uint64_t *msr_value, int tjmax);
+
+int read_temperature(int msr_fd, uint64_t *msr_value, int tjmax) {
+    int err = 0;
+    ssize_t num_byte = 0;
+    const off_t pkg_therm_status_off = 0x1b1;
+
+    /* Read IA32_PACKAGE_THERM_STATUS */
+    errno = 0;
+    num_byte = pread(msr_fd, msr_value, sizeof(uint64_t), pkg_therm_status_off);
+    if (num_byte != sizeof(uint64_t)) {
+        err = errno ? errno : -1;
+    }
+    if (!err) {
+        *msr_value = tjmax - ((*msr_value >> 16) & 0x7F);
+    }
+
+    return err;
+}
+
 int rapl_pkg_limit_test(double power_limit, int num_rep);
 
 int rapl_pkg_limit_test(double power_limit, int num_rep)
@@ -235,17 +255,10 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
         fprintf(outfile, "TjMAX (degrees C): %d\n", tjmax);
     }
     for (socket = 0; !err && socket < num_socket; ++socket) {
+        err = read_temperature(msr_fd[socket], &msr_value, tjmax);
+        begin_temperature[socket] = msr_value;
         if (!err) {
-            /* Read IA32_THERM_STATUS */
-            errno = 0;
-            num_byte = pread(msr_fd[socket], &msr_value, sizeof(uint64_t), core_therm_status_off);
-            if (num_byte != sizeof(uint64_t)) {
-                err = errno ? errno : -1;
-            }
-        }
-        if (!err) {
-            begin_temperature[socket] = tjmax - ((msr_value >> 16) & 0x7F);
-            fprintf(outfile, "Start temp socket %d (degrees C): %d\n", socket, begin_temperature[socket]);
+            fprintf(outfile, "Start socket %d temp (degrees C): %d\n", socket, begin_temperature[socket]);
         }
     }
     if (!err) {
@@ -315,6 +328,13 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
         for (int i = 0; i < num_rep; ++i) {
             dgemm_(&transa, &transb, &M, &N, &K, &alpha,
                    aa, &LDA, bb, &LDB, &beta, cc, &LDC);
+            for (socket = 0; !err && socket < num_socket; ++socket) {
+                err = read_temperature(msr_fd[socket], &msr_value, tjmax);
+                end_temperature[socket] = msr_value;
+                if (!err) {
+                    fprintf(outfile, "Iteration %d socket %d temp (degrees C): %d\n", i, socket, begin_temperature[socket]);
+                }
+            }
         }
     }
     if (!err) {
@@ -343,17 +363,10 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     }
 
     for (socket = 0; !err && socket < num_socket; ++socket) {
+        err = read_temperature(msr_fd[socket], &msr_value, tjmax);
+        end_temperature[socket] = msr_value;
         if (!err) {
-            /* Read IA32_THERM_STATUS */
-            errno = 0;
-            num_byte = pread(msr_fd[socket], &msr_value, sizeof(uint64_t), core_therm_status_off);
-            if (num_byte != sizeof(uint64_t)) {
-                err = errno ? errno : -1;
-            }
-        }
-        if (!err) {
-            end_temperature[socket] = tjmax - ((msr_value >> 16) & 0x7F);
-            fprintf(outfile, "End temp socket %d (degrees C): %d\n", socket, end_temperature[socket]);
+            fprintf(outfile, "End socket %d temp (degrees C): %d\n", socket, begin_temperature[socket]);
         }
     }
 
