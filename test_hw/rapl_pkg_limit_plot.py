@@ -34,6 +34,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 import glob
+import code
 
 def rapl_pkg_limit_plot(file_name_prefix):
     """Usage: rapl_pkg_limit_plot.py PREFIX
@@ -50,9 +51,11 @@ def rapl_pkg_limit_plot(file_name_prefix):
         limit_key = 'Power limit (Watts): '
         time_key = 'Total time (seconds): '
         meas_key = 'Average power '
+        temp_key = 'temp (degrees C):'
         limit_list = []
         time_list = []
         meas_list = []
+        temps_list = []
         with open(file_name) as fid:
             for line in fid.readlines():
                 if line.startswith(limit_key):
@@ -61,6 +64,9 @@ def rapl_pkg_limit_plot(file_name_prefix):
                     time_list.append(float(line.split(':')[1]))
                 elif line.startswith(meas_key):
                     meas_list.append(float(line.split(':')[1]))
+                elif temp_key in line:
+                    temps_list.append(float(line.split(':')[1]))
+
 
         if (len(limit_list) != len(time_list) or
             (len(limit_list) != len(meas_list) and len(limit_list) * 2 != len(meas_list))
@@ -70,13 +76,15 @@ def rapl_pkg_limit_plot(file_name_prefix):
         # If data is generated from a dual socket system, duplicate the elements in
         # the limit_list for proper plotting.
         if len(limit_list) * 2 == len(meas_list):
-            limit_list = [val for val in limit_list for _ in (0, 1)]
+            limit_list = [val for val in limit_list for _ in range(2)]
 
         limit_uniq = sorted(list(set(limit_list)))
         base_name = os.path.splitext(os.path.basename(file_name))[0]
         if base_name.startswith('rapl_pkg_limit_test_'):
             base_name = base_name[len('rapl_pkg_limit_test_'):]
-        out_name = os.path.splitext(file_name)[0] + '.png'
+
+        # Power plot
+        out_name = os.path.splitext(file_name)[0] + '_power.png'
         plt.plot(limit_uniq, limit_uniq, '-')
         plt.plot(limit_list, meas_list, '.')
         plt.title(base_name)
@@ -84,6 +92,19 @@ def rapl_pkg_limit_plot(file_name_prefix):
         plt.ylabel('RAPL power measured (Watts)')
         plt.savefig(out_name)
         plt.close()
+
+        # Temperature plot
+        out_name = os.path.splitext(file_name)[0] + '_temp.png'
+        # code.interact(local=dict(globals(), **locals()))
+        limit_list = [val for val in limit_list for _ in range(12)]
+        # code.interact(local=dict(globals(), **locals()))
+        plt.plot(limit_list, temps_list, '.')
+        plt.title(base_name)
+        plt.xlabel('RAPL setting (Watts)')
+        plt.ylabel('Package Temperature (degrees C)')
+        plt.savefig(out_name)
+        plt.close()
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2 or sys.argv[1] == '--help' or sys.argv[1] == '-h':
