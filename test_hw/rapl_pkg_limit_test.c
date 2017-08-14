@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <omp.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include "geopm_time.h"
 
@@ -59,6 +60,7 @@
 #endif
 
 #define MAX_NUM_SOCKET 16
+#define MAX_NUM_CORE 72
 
 static volatile unsigned g_is_popen_complete = 0;
 static struct sigaction g_popen_complete_signal_action;
@@ -74,16 +76,13 @@ int dgemm_(char *transa, char *transb, int *m, int *n, int *k,
            double *alpha, double *a, int *lda, double *b, int *ldb,
            double *beta, double *c, int *ldc);
 
-int read_temperature(int msr_fd, uint64_t *msr_value, int tjmax);
-
-int read_temperature(int msr_fd, uint64_t *msr_value, int tjmax) {
+int read_temperature(int msr_fd, const off_t offset, int tjmax, uint64_t *msr_value);
+int read_temperature(int msr_fd, const off_t offset, int tjmax, uint64_t *msr_value) {
     int err = 0;
     ssize_t num_byte = 0;
-    const off_t pkg_therm_status_off = 0x1b1;
 
-    /* Read IA32_PACKAGE_THERM_STATUS */
     errno = 0;
-    num_byte = pread(msr_fd, msr_value, sizeof(uint64_t), pkg_therm_status_off);
+    num_byte = pread(msr_fd, msr_value, sizeof(uint64_t), offset);
     if (num_byte != sizeof(uint64_t)) {
         err = errno ? errno : -1;
     }
@@ -92,6 +91,148 @@ int read_temperature(int msr_fd, uint64_t *msr_value, int tjmax) {
     }
 
     return err;
+}
+
+int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outfile);
+
+int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outfile) {
+    const off_t temp_target_off = 0x1a2;
+    const off_t core_therm_status_off = 0x19c;
+    const off_t pkg_therm_status_off = 0x1b1;
+    ssize_t num_byte = 0;
+    uint64_t msr_value = 0;
+    int err = 0;
+    int socket = 0;
+    int core = 0;
+    int tjmax = 0;
+    int min_temp = 0;
+    int max_temp = 0;
+    int mean_temp = 0;
+    static int one_time = 1;
+
+    /* Get TjMAX */
+    if (!err) {
+        /* Read MSR_TEMPERATURE_TARGET */
+        errno = 0;
+        num_byte = pread(msr_fd[0], &msr_value, sizeof(uint64_t), temp_target_off);
+        if (num_byte != sizeof(uint64_t)) {
+            err = errno ? errno : -1;
+        }
+    }
+    if (!err) {
+        tjmax = (msr_value >> 16) & 0xFF;
+        if (one_time == 1){
+            fprintf(outfile, "Sampling thread - TjMAX (degrees C): %d\n", tjmax);
+            one_time = 0;
+        }
+    }
+
+    /* Print PKG TEMPS */
+    for (socket = 0; !err && socket < num_socket; ++socket) {
+        err = read_temperature(msr_fd[socket * num_core_per_socket], pkg_therm_status_off, tjmax, &msr_value);
+        if (!err) {
+            fprintf(outfile, "Sampling thread - Socket %d PKG temp (degrees C): %d\n", socket, msr_value);
+        }
+    }
+
+    /* Print CPU TEMPS */
+    for (socket = 1; !err && socket <= num_socket; ++socket) {
+        for (core = 0; !err && core < num_core_per_socket; ++core) {
+            err = read_temperature(msr_fd[socket * core], core_therm_status_off, tjmax, &msr_value);
+            if (!err) {
+                if (core % num_core_per_socket == 0) {
+                    min_temp = msr_value;
+                    max_temp = msr_value;
+                    mean_temp += msr_value;
+                }
+                else {
+                    if (msr_value < min_temp) {min_temp = msr_value;}
+                    if (msr_value > max_temp) {max_temp = msr_value;}
+                    mean_temp += msr_value;
+                }
+            }
+        }
+
+        mean_temp /= num_core_per_socket;
+
+        if (!err) {
+            fprintf(outfile, "Sampling thread - Socket %d CPU temp MIN/MAX/AVG (degrees C): %d/%d/%d\n",
+                    (socket - 1), min_temp, max_temp, mean_temp);
+            mean_temp = 0;
+        }
+    }
+
+    return err;
+}
+
+struct sample_thread_args {
+    FILE *outfile;
+    int num_core_per_socket;
+    int num_socket;
+    int exit;
+};
+
+void *sampling_thread_main(void *ptr);
+
+void *sampling_thread_main(void *ptr) {
+    struct sample_thread_args *args = (struct sample_thread_args *) ptr;
+    struct timespec delay;
+    double seconds = 0;
+    FILE *outfile = args->outfile;
+    int msr_fd[MAX_NUM_CORE] = {0};
+    int core = 0;
+    int socket = 0;
+    int err=0;
+    char msr_path[NAME_MAX] = {0};
+    ssize_t num_byte = 0;
+
+    fprintf(outfile, "Sampling thread - Detected %d socket(s) %d cores\n", args->num_socket, args->num_core_per_socket);
+
+    /* Open MSR FDs for every real core (what about HT?) */
+    for (socket = 1; !err && socket <= args->num_socket; ++socket) {
+        for (core = 0; !err && core < args->num_core_per_socket; ++core){
+            /* Open msr device, try to use msr_safe if available */
+            snprintf(msr_path, NAME_MAX, "/dev/cpu/%d/msr_safe", socket * core);
+            msr_fd[socket * core] = open(msr_path, O_RDONLY);
+            if (msr_fd[socket * core] == -1) {
+                snprintf(msr_path, NAME_MAX, "/dev/cpu/%d/msr", socket * core);
+                errno = 0;
+                msr_fd[socket * core] = open(msr_path, O_RDONLY);
+            }
+            if (msr_fd[socket * core] == -1) {
+                err = errno ? errno : -1;
+            }
+        }
+    }
+
+    /* Print initial temps */
+    if (!err){
+        err = print_temps(args->num_socket, args->num_core_per_socket, msr_fd, outfile);
+    }
+
+    /* Sample the temperature regularly until the end of execution  */
+    seconds = 0.5;
+    delay.tv_sec = (time_t)(seconds);
+    delay.tv_nsec = (long)((seconds - (time_t)(seconds)) * 1E9);
+    fprintf(outfile, "Sampling thread - Sampling period: %f seconds\n", seconds);
+
+    while(!err && !args->exit) {
+        err = print_temps(args->num_socket, args->num_core_per_socket, msr_fd, outfile);
+        err = clock_nanosleep(CLOCK_REALTIME, 0, &delay, NULL);
+    }
+
+    /* Close the FDs */
+    for (socket = 1; !err && socket <= args->num_socket; ++socket) {
+        for (core = 0; !err && core < args->num_core_per_socket; ++core){
+            if (msr_fd[socket * core] > 0){
+                close(msr_fd[socket * core]);
+            }
+        }
+    }
+
+    if (err != -2) {
+        fprintf(outfile, "Sampling Thread Error: %d %s\n", err, strerror(err));
+    }
 }
 
 int rapl_pkg_limit_test(double power_limit, int num_rep);
@@ -104,16 +245,12 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     const off_t pkg_power_unit_off = 0x606;
     const off_t pkg_power_limit_off = 0x610;
     const off_t pkg_energy_status_off = 0x611;
-    const off_t core_therm_status_off = 0x19c;
-    const off_t pkg_therm_status_off = 0x1b1;
-    const off_t temp_target_off = 0x1a2;
     int err = 0;
     int num_core_per_socket = 0;
     int num_socket = 0;
     int socket = 0;
     double power_units = 0.0;
     double energy_units = 0.0;
-    int tjmax = 0;
     double total_time = 0.0;
     uint64_t msr_value = 0;
     size_t num_read = 0;
@@ -134,10 +271,10 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     uint64_t new_limit[MAX_NUM_SOCKET] = {0};
     uint64_t begin_energy[MAX_NUM_SOCKET] = {0};
     uint64_t end_energy[MAX_NUM_SOCKET] = {0};
-    uint64_t begin_temperature[MAX_NUM_SOCKET] = {0};
-    uint64_t end_temperature[MAX_NUM_SOCKET] = {0};
     FILE *outfile = NULL;
     FILE *lscpu_fid = NULL;
+    pthread_t sampling_thread;
+    struct sample_thread_args thread_args;
 
     if (!err) {
         /* Get hostname to insert in output file name */
@@ -204,6 +341,16 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
             err = errno ? errno : -1;
         }
     }
+
+    if (!err) {
+        /* Setup the sampling thread */
+        thread_args.outfile = outfile;
+        thread_args.num_core_per_socket = num_core_per_socket;
+        thread_args.num_socket = num_socket;
+        thread_args.exit = 0;
+        err = pthread_create(&sampling_thread, NULL, sampling_thread_main, (void*) &thread_args);
+    }
+
     if (!err) {
         fprintf(outfile, "###############################################################################\n");
         fprintf(outfile, "Power limit (Watts): %f\n", power_limit);
@@ -240,25 +387,6 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
         }
         if (msr_fd[socket] == -1) {
             err = errno ? errno : -1;
-        }
-    }
-    if (!err) {
-        /* Read MSR_TEMPERATURE_TARGET */
-        errno = 0;
-        num_byte = pread(msr_fd[0], &msr_value, sizeof(uint64_t), temp_target_off);
-        if (num_byte != sizeof(uint64_t)) {
-            err = errno ? errno : -1;
-        }
-    }
-    if (!err) {
-        tjmax = (msr_value >> 16) & 0xFF;
-        fprintf(outfile, "TjMAX (degrees C): %d\n", tjmax);
-    }
-    for (socket = 0; !err && socket < num_socket; ++socket) {
-        err = read_temperature(msr_fd[socket], &msr_value, tjmax);
-        begin_temperature[socket] = msr_value;
-        if (!err) {
-            fprintf(outfile, "Start socket %d temp (degrees C): %d\n", socket, begin_temperature[socket]);
         }
     }
     if (!err) {
@@ -328,13 +456,6 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
         for (int i = 0; i < num_rep; ++i) {
             dgemm_(&transa, &transb, &M, &N, &K, &alpha,
                    aa, &LDA, bb, &LDB, &beta, cc, &LDC);
-            for (socket = 0; !err && socket < num_socket; ++socket) {
-                err = read_temperature(msr_fd[socket], &msr_value, tjmax);
-                end_temperature[socket] = msr_value;
-                if (!err) {
-                    fprintf(outfile, "Iteration %d socket %d temp (degrees C): %d\n", i, socket, begin_temperature[socket]);
-                }
-            }
         }
     }
     if (!err) {
@@ -362,14 +483,6 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
         }
     }
 
-    for (socket = 0; !err && socket < num_socket; ++socket) {
-        err = read_temperature(msr_fd[socket], &msr_value, tjmax);
-        end_temperature[socket] = msr_value;
-        if (!err) {
-            fprintf(outfile, "End socket %d temp (degrees C): %d\n", socket, begin_temperature[socket]);
-        }
-    }
-
     for (socket = 0; socket < num_socket; ++socket) {
 
         /* Verify current MSR value matches value written at startup */
@@ -394,6 +507,11 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
             close(msr_fd[socket]);
         }
     }
+
+    /* Tear down sampling thread */
+    thread_args.exit = 1;
+    err = pthread_join(sampling_thread, NULL);
+
     if (!err) {
         /* Print results. */
         fprintf(outfile, "Total time (seconds): %f\n", total_time);

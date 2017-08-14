@@ -30,7 +30,7 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-CFLAGS_EXTRA = -std=c99 -D_POSIX_C_SOURCE=200809L -O3 -lrt -mkl=parallel
+CFLAGS_EXTRA = -std=c99 -D_POSIX_C_SOURCE=200809L -O3 -lrt -lpthread -mkl=parallel
 
 rapl_pkg_limit_test: rapl_pkg_limit_test.c
 	icc $(CFLAGS_EXTRA) $(CFLAGS) $(LDFLAGS) $(LIBS) -qopenmp $^ -o $@
