@@ -93,9 +93,13 @@ int read_temperature(int msr_fd, const off_t offset, int tjmax, uint64_t *msr_va
     return err;
 }
 
-int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outfile);
+int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outfile, int *total_samples_core,
+                int *threshold_samples_core, int *total_samples_pkg, int *threshold_samples_pkg,
+                int *max_observed_temperature);
 
-int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outfile) {
+int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outfile, int *total_samples_core,
+                int *threshold_samples_core, int *total_samples_pkg, int *threshold_samples_pkg,
+                int *max_observed_temperature) {
     const off_t temp_target_off = 0x1a2;
     const off_t core_therm_status_off = 0x19c;
     const off_t pkg_therm_status_off = 0x1b1;
@@ -130,8 +134,11 @@ int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outf
     /* Print PKG TEMPS */
     for (socket = 0; !err && socket < num_socket; ++socket) {
         err = read_temperature(msr_fd[socket * num_core_per_socket], pkg_therm_status_off, tjmax, &msr_value);
+        (*total_samples_pkg)++;
         if (!err) {
-            fprintf(outfile, "Sampling thread - Socket %d PKG temp (degrees C): %d\n", socket, msr_value);
+            /*fprintf(outfile, "Sampling thread - Socket %d PKG temp (degrees C): %d\n", socket, msr_value);*/
+            if (msr_value >= 45) {(*threshold_samples_pkg)++;}
+            if (msr_value > *max_observed_temperature) {*max_observed_temperature = msr_value;}
         }
     }
 
@@ -139,6 +146,7 @@ int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outf
     for (socket = 1; !err && socket <= num_socket; ++socket) {
         for (core = 0; !err && core < num_core_per_socket; ++core) {
             err = read_temperature(msr_fd[socket * core], core_therm_status_off, tjmax, &msr_value);
+            (*total_samples_core)++;
             if (!err) {
                 if (core % num_core_per_socket == 0) {
                     min_temp = msr_value;
@@ -149,6 +157,8 @@ int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outf
                     if (msr_value < min_temp) {min_temp = msr_value;}
                     if (msr_value > max_temp) {max_temp = msr_value;}
                     mean_temp += msr_value;
+                    if (msr_value >= 45) {(*threshold_samples_core)++;}
+                    if (msr_value > *max_observed_temperature) {*max_observed_temperature = msr_value;}
                 }
             }
         }
@@ -156,8 +166,8 @@ int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outf
         mean_temp /= num_core_per_socket;
 
         if (!err) {
-            fprintf(outfile, "Sampling thread - Socket %d CPU temp MIN/MAX/AVG (degrees C): %d/%d/%d\n",
-                    (socket - 1), min_temp, max_temp, mean_temp);
+            /*fprintf(outfile, "Sampling thread - Socket %d CPU temp MIN/MAX/AVG (degrees C): %d/%d/%d\n",*/
+            /*        (socket - 1), min_temp, max_temp, mean_temp);*/
             mean_temp = 0;
         }
     }
@@ -177,12 +187,18 @@ void *sampling_thread_main(void *ptr);
 void *sampling_thread_main(void *ptr) {
     struct sample_thread_args *args = (struct sample_thread_args *) ptr;
     struct timespec delay;
+    int sample_hz = 0;
     double seconds = 0;
     FILE *outfile = args->outfile;
     int msr_fd[MAX_NUM_CORE] = {0};
     int core = 0;
     int socket = 0;
-    int err=0;
+    int err = 0;
+    int total_samples_core = 0;
+    int threshold_samples_core = 0;
+    int total_samples_pkg = 0;
+    int threshold_samples_pkg = 0;
+    int max_observed_temperature = 0;
     char msr_path[NAME_MAX] = {0};
     ssize_t num_byte = 0;
 
@@ -207,19 +223,30 @@ void *sampling_thread_main(void *ptr) {
 
     /* Print initial temps */
     if (!err){
-        err = print_temps(args->num_socket, args->num_core_per_socket, msr_fd, outfile);
+        err = print_temps(args->num_socket, args->num_core_per_socket, msr_fd, outfile, &total_samples_core,
+                          &threshold_samples_core, &total_samples_pkg, &threshold_samples_pkg, &max_observed_temperature);
     }
 
     /* Sample the temperature regularly until the end of execution  */
-    seconds = 0.5;
+    sample_hz = 500;
+    seconds = (float)1 / sample_hz;
     delay.tv_sec = (time_t)(seconds);
     delay.tv_nsec = (long)((seconds - (time_t)(seconds)) * 1E9);
     fprintf(outfile, "Sampling thread - Sampling period: %f seconds\n", seconds);
 
     while(!err && !args->exit) {
-        err = print_temps(args->num_socket, args->num_core_per_socket, msr_fd, outfile);
+        err = print_temps(args->num_socket, args->num_core_per_socket, msr_fd, outfile, &total_samples_core,
+                          &threshold_samples_core, &total_samples_pkg, &threshold_samples_pkg, &max_observed_temperature);
         err = clock_nanosleep(CLOCK_REALTIME, 0, &delay, NULL);
     }
+
+    fprintf(outfile, "Sampling thread - PKG samples >= 45 C: %f%% (%d of %d)\n",
+            ((float)threshold_samples_pkg / (float)total_samples_pkg) * 100, threshold_samples_pkg, total_samples_pkg);
+
+    fprintf(outfile, "Sampling thread - CPU samples >= 45 C: %f%% (%d of %d)\n",
+            ((float)threshold_samples_core / (float)total_samples_core) * 100, threshold_samples_core, total_samples_core);
+
+    fprintf(outfile, "Sampling thread - Max observed temperature (degrees C): %d\n", max_observed_temperature);
 
     /* Close the FDs */
     for (socket = 1; !err && socket <= args->num_socket; ++socket) {
@@ -528,8 +555,8 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     /* Detect if over limit and print */
     for (socket = 0; socket < num_socket; ++socket) {
         if (power_used[socket] > power_limit) {
-            fprintf(outfile, "Error: socket %d exceeded limit by %f Watts\n",
-                    socket, power_used[socket] - power_limit);
+            fprintf(outfile, "Error: socket %d exceeded limit by %f Watts (%f%% overage)\n",
+                    socket, power_used[socket] - power_limit, (((power_used[socket] / power_limit) - 1) * 100 ));
             err = -2;
         }
     }
