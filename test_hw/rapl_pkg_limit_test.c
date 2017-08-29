@@ -87,6 +87,11 @@ int read_temperature(int msr_fd, const off_t offset, int tjmax, uint64_t *msr_va
         err = errno ? errno : -1;
     }
     if (!err) {
+        // If Bit 1 is set for either of the THERM_STATUS MSRs, return a unique error code to denote thermal throttling
+        if (*msr_value & 0x2 == 2) {
+           err = -99;
+        }
+
         *msr_value = tjmax - ((*msr_value >> 16) & 0x7F);
     }
 
@@ -135,7 +140,11 @@ int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outf
     for (socket = 0; !err && socket < num_socket; ++socket) {
         err = read_temperature(msr_fd[socket * num_core_per_socket], pkg_therm_status_off, tjmax, &msr_value);
         (*total_samples_pkg)++;
-        if (!err) {
+        if (err == -99) {
+            fprintf(outfile, "Sampling thread - WARNING: PKG %d thermal throttling detected!!\n", socket);
+            err = 0;
+        }
+        else if (!err) {
             /*fprintf(outfile, "Sampling thread - Socket %d PKG temp (degrees C): %d\n", socket, msr_value);*/
             if (msr_value >= 45) {(*threshold_samples_pkg)++;}
             if (msr_value > *max_observed_temperature) {*max_observed_temperature = msr_value;}
@@ -147,6 +156,10 @@ int print_temps(int num_socket, int num_core_per_socket, int *msr_fd, FILE *outf
         for (core = 0; !err && core < num_core_per_socket; ++core) {
             err = read_temperature(msr_fd[socket * core], core_therm_status_off, tjmax, &msr_value);
             (*total_samples_core)++;
+            if (err == -99) {
+                err = 0;
+                fprintf(outfile, "Sampling thread - WARNING: CPU %d thermal throttling detected!!\n", core);
+            }
             if (!err) {
                 if (core % num_core_per_socket == 0) {
                     min_temp = msr_value;
@@ -272,6 +285,7 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     const off_t pkg_power_unit_off = 0x606;
     const off_t pkg_power_limit_off = 0x610;
     const off_t pkg_energy_status_off = 0x611;
+    const off_t pkg_therm_status_off = 0x1b1;
     int err = 0;
     int num_core_per_socket = 0;
     int num_socket = 0;
@@ -298,6 +312,7 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     uint64_t new_limit[MAX_NUM_SOCKET] = {0};
     uint64_t begin_energy[MAX_NUM_SOCKET] = {0};
     uint64_t end_energy[MAX_NUM_SOCKET] = {0};
+    uint64_t begin_throttle[MAX_NUM_SOCKET] = {0};
     FILE *outfile = NULL;
     FILE *lscpu_fid = NULL;
     pthread_t sampling_thread;
@@ -429,12 +444,38 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
         energy_units = pow(2.0, -1.0 * ((msr_value >> 8) & 0x1F));
     }
     for (socket = 0; !err && socket < num_socket; ++socket) {
-        /* Read RAPL_PKG_POWER_LIMIT to use for restore */
         errno = 0;
-        num_byte = pread(msr_fd[socket], &msr_value, sizeof(uint64_t), pkg_power_limit_off);
+
+        /* Read IA32_PACKAGE_THERM_STATUS for throttling info */
+        num_byte = pread(msr_fd[socket], &msr_value, sizeof(uint64_t), pkg_therm_status_off);
         if (num_byte != sizeof(uint64_t)) {
             err = errno ? errno : -1;
         }
+
+        if (!err) {
+            begin_throttle[socket] = msr_value & 0x0000000000000003;
+            if (begin_throttle[socket] & 0x2 == 2) {
+                fprintf(outfile, "WARNING: Thottling detected on socket %d from previous run!  Resetting bit...\n", socket);
+
+                msr_value &= 0xFFFFFFFFFFFFFFFD; // Clear bit 1
+                errno = 0;
+                num_byte = pwrite(msr_fd[socket], &msr_value, sizeof(uint64_t), pkg_therm_status_off);
+                if (num_byte != sizeof(uint64_t)) {
+                    err = errno ? errno : -1;
+                }
+            }
+        }
+
+        errno = 0;
+
+        /* Read RAPL_PKG_POWER_LIMIT to use for restore */
+        if(!err) {
+            num_byte = pread(msr_fd[socket], &msr_value, sizeof(uint64_t), pkg_power_limit_off);
+            if (num_byte != sizeof(uint64_t)) {
+                err = errno ? errno : -1;
+            }
+        }
+
         if (!err) {
             fprintf(outfile, "Initial value socket %d MSR %#05lx PKG_POWER_LIMIT: %#018lx\n",
                     socket, pkg_power_limit_off, msr_value);
@@ -528,8 +569,28 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
 
         if (save_limit && msr_fd[socket] > 0) {
             /* Restore original settings */
-            pwrite(msr_fd[socket], &save_limit, sizeof(uint64_t), pkg_power_limit_off);
+            errno = 0;
+            num_byte = pwrite(msr_fd[socket], &save_limit, sizeof(uint64_t), pkg_power_limit_off);
         }
+        if (num_byte != sizeof(uint64_t)) {
+            err = errno ? errno : -1;
+        }
+
+        /* Read IA32_PACKAGE_THERM_STATUS for throttling info */
+        if (!err){
+            errno = 0;
+            num_byte = pread(msr_fd[socket], &msr_value, sizeof(uint64_t), pkg_therm_status_off);
+            if (num_byte != sizeof(uint64_t)) {
+                err = errno ? errno : -1;
+            }
+        }
+
+        if (!err) {
+            if (msr_value & 0x2 == 2) {
+                fprintf(outfile, "WARNING: Thermal thottling detected on socket %d during run!\n", socket);
+            }
+        }
+
         if (msr_fd[socket] > 0) {
             close(msr_fd[socket]);
         }
