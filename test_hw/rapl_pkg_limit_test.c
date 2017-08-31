@@ -47,10 +47,12 @@
 #include "geopm_time.h"
 
 #ifndef MATRIX_SIZE
-#define MATRIX_SIZE 10240ULL
+#define MATRIX_SIZE 20000ULL
+/*#define MATRIX_SIZE 10240ULL*/
 #endif
 #ifndef PAD_SIZE
-#define PAD_SIZE 128ULL
+#define PAD_SIZE 88ULL
+/*#define PAD_SIZE 128ULL*/
 #endif
 #ifndef NUM_REP
 #define NUM_REP 10
@@ -317,6 +319,10 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     FILE *lscpu_fid = NULL;
     pthread_t sampling_thread;
     struct sample_thread_args thread_args;
+    double gflops = 0;
+    int M = 0;
+    int N = 0;
+    int K = 0;
 
     if (!err) {
         /* Get hostname to insert in output file name */
@@ -402,20 +408,25 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     }
     /* Allocate some memory */
     if (!err) {
-        err = posix_memalign((void **)&aa, 64, num_elements * sizeof(double));
+        /*err = posix_memalign((void **)&aa, 4096, num_elements * sizeof(double));*/
+        aa = _mm_malloc(num_elements * sizeof(double), 4096);
     }
     if (!err) {
-        err = posix_memalign((void **)&bb, 64, num_elements * sizeof(double));
+        /*err = posix_memalign((void **)&bb, 4096, num_elements * sizeof(double));*/
+        bb = _mm_malloc(num_elements * sizeof(double), 4096);
     }
     if (!err) {
-        err = posix_memalign((void **)&cc, 64, num_elements * sizeof(double));
+        /*err = posix_memalign((void **)&cc, 4096, num_elements * sizeof(double));*/
+        cc = _mm_malloc(num_elements * sizeof(double), 4096);
     }
     if (!err) {
         /* setup matrix values */
         memset(cc, 0, num_elements * sizeof(double));
         for (int i = 0; i < num_elements; ++i) {
-            aa[i] = 1.0;
-            bb[i] = 2.0;
+            /*aa[i] = 1.0;*/
+            /*bb[i] = 2.0;*/
+            aa[i] = (double) rand() / RAND_MAX;
+            bb[i] = (double) rand() / RAND_MAX;
         }
     }
     for (socket = 0; !err && socket < num_socket; ++socket) {
@@ -510,17 +521,17 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     }
     if (!err) {
         /* Run dgemm in a loop */
-        int M = matrix_size;
-        int N = matrix_size;
-        int K = matrix_size;
+        M = matrix_size;
+        N = matrix_size;
+        K = 1920;
         int P = pad_size;
         int LDA = matrix_size + pad_size;
-        int LDB = matrix_size + pad_size;
+        int LDB = 1928;
         int LDC = matrix_size + pad_size;
-        double alpha = 2.0;
-        double beta = 3.0;
-        char transa = 'n';
-        char transb = 'n';
+        double alpha = 1.0;
+        double beta = 1.0;
+        char transa = 'N';
+        char transb = 'N';
         for (int i = 0; i < num_rep; ++i) {
             dgemm_(&transa, &transb, &M, &N, &K, &alpha,
                    aa, &LDA, bb, &LDB, &beta, cc, &LDC);
@@ -607,6 +618,10 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
             fprintf(outfile, "Average power socket %d (Watts): %f\n",
                     socket, power_used[socket]);
         }
+
+        gflops = 2.0 * (double)M * (double)N * (double)K * num_rep / (double)total_time;
+        gflops *= 1.0e-9;
+        fprintf(outfile, "GFLOPS: %f\n", gflops);
     }
     /* Pipe error messages to standard error if they occured before
        the outfile was opened. */

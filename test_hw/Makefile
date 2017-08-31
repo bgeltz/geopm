@@ -30,10 +30,13 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-CFLAGS_EXTRA = -std=c99 -D_POSIX_C_SOURCE=200809L -O3 -lrt -lpthread -mkl=parallel
+MKL_DIRS = $(MKLROOT)/lib/intel64
+MKL_LIBS	 = -Wl,--start-group $(MKL_DIRS)/libmkl_intel_lp64.a $(MKL_DIRS)/libmkl_intel_thread.a $(MKL_DIRS)/libmkl_core.a  -Wl,--end-group -liomp5 -lpthread -lm -ldl
+
+CFLAGS_EXTRA = -std=c99 -D_POSIX_C_SOURCE=200809L -O3 -lrt -lpthread $(MKL_LIBS)
 
 rapl_pkg_limit_test: rapl_pkg_limit_test.c
-	icc $(CFLAGS_EXTRA) $(CFLAGS) $(LDFLAGS) $(LIBS) -qopenmp $^ -o $@
+	icc $^ $(CFLAGS_EXTRA) $(CFLAGS) $(LDFLAGS) $(LIBS) -o $@
 
 check: rapl_pkg_limit_test
 	./rapl_pkg_limit_test 150
