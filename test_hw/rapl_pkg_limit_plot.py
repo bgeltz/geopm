@@ -94,16 +94,16 @@ def rapl_pkg_limit_plot(file_name_prefix):
         plt.close()
 
         # Temperature plot
-        out_name = os.path.splitext(file_name)[0] + '_temp.png'
-        # code.interact(local=dict(globals(), **locals()))
-        limit_list = [val for val in limit_list for _ in range(12)]
-        # code.interact(local=dict(globals(), **locals()))
-        plt.plot(limit_list, temps_list, '.')
-        plt.title(base_name)
-        plt.xlabel('RAPL setting (Watts)')
-        plt.ylabel('Package Temperature (degrees C)')
-        plt.savefig(out_name)
-        plt.close()
+        # out_name = os.path.splitext(file_name)[0] + '_temp.png'
+        # # code.interact(local=dict(globals(), **locals()))
+        # limit_list = [val for val in limit_list for _ in range(12)]
+        # # code.interact(local=dict(globals(), **locals()))
+        # plt.plot(limit_list, temps_list, '.')
+        # plt.title(base_name)
+        # plt.xlabel('RAPL setting (Watts)')
+        # plt.ylabel('Package Temperature (degrees C)')
+        # plt.savefig(out_name)
+        # plt.close()
 
 
 if __name__ == '__main__':

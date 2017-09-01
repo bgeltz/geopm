@@ -30,6 +30,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "common.h"
+#include "bmcommon.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -422,12 +425,14 @@ int rapl_pkg_limit_test(double power_limit, int num_rep)
     if (!err) {
         /* setup matrix values */
         memset(cc, 0, num_elements * sizeof(double));
-        for (int i = 0; i < num_elements; ++i) {
-            /*aa[i] = 1.0;*/
-            /*bb[i] = 2.0;*/
-            aa[i] = (double) rand() / RAND_MAX;
-            bb[i] = (double) rand() / RAND_MAX;
-        }
+        /*for (int i = 0; i < num_elements; ++i) {*/
+        /*    [>aa[i] = 1.0;<]*/
+        /*    [>bb[i] = 2.0;<]*/
+        /*    aa[i] = (double) rand() / RAND_MAX;*/
+        /*    bb[i] = (double) rand() / RAND_MAX;*/
+        /*}*/
+        genrandom(aa,  num_elements);
+        genrandom(bb,  num_elements);
     }
     for (socket = 0; !err && socket < num_socket; ++socket) {
         /* Open msr device, try to use msr_safe if available */
