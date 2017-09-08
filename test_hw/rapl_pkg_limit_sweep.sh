@@ -47,3 +47,7 @@ for limit in ${limit_list[@]}; do
         echo -ne "Done.\n"
     done
 done
+
+echo "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" >> rapl_pkg_limit_test_$(hostname).out
+grep microcode /proc/cpuinfo | uniq >> rapl_pkg_limit_test_$(hostname).out
+lscpu | grep "Model name" >> rapl_pkg_limit_test_$(hostname).out
