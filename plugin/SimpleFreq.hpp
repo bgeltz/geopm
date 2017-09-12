@@ -40,12 +40,12 @@ namespace geopm
 {
 
     /// @brief Simple implementation of a binary frequency decider.
-    /// 
-    /// This frequency decider uses the geopm_hint interface to determine 
-    /// wether we are in a compute or memory bound region and choose 
-    /// the maximum frequency and a fraction of the minimal possible frequency 
-    /// repsectively. 
-    /// 
+    ///
+    /// This frequency decider uses the geopm_hint interface to determine
+    /// wether we are in a compute or memory bound region and choose
+    /// the maximum frequency and a fraction of the minimal possible frequency
+    /// repsectively.
+    ///
     /// This is a leaf decider.
     class SimpleFreq : public Decider
     {

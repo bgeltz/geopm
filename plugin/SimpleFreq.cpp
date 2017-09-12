@@ -68,8 +68,6 @@ int geopm_plugin_register(int plugin_type, struct geopm_factory_c *factory, void
     return err;
 }
 
-int geopm_ctl_cpu_freq(int cpu_idx, double freq){return -1;} //Throw this out! #include "geopm_ctl.h" gives include <mpi.h> error though...
-
 double max_freq(){ //This should be read from MSR/CSR not cpuinfo!
   std::string s1;
   std::string s2="model name";
@@ -91,7 +89,7 @@ double max_freq(){ //This should be read from MSR/CSR not cpuinfo!
 }
 
 double min_freq(){
-  return(800000);//check 
+  return(800000);//check
 }
 double current_freq(){
   double aperf=40000;//msr_read(GEOPM_DOMAIN_CPU,0,IA32_APERF;//msr
@@ -101,11 +99,13 @@ double current_freq(){
 
 namespace geopm
 {
+    void ctl_cpu_freq(std::vector<double> freq);
+
     SimpleFreq::SimpleFreq()
         : m_name("simple_freq")
         , m_last_freq(current_freq())
-        , m_min_freq(min_freq())     
-        , m_max_freq(max_freq())     
+        , m_min_freq(min_freq())
+        , m_max_freq(max_freq())
         , m_num_cores(std::thread::hardware_concurrency()) // Logical cores! //check if ok or physical cores needed.
     {
 
@@ -152,7 +152,7 @@ namespace geopm
     }
 
     bool SimpleFreq::update_policy(const struct geopm_policy_message_s &policy_msg, IPolicy &curr_policy)
-    { 
+    {
       // Never receiving a new power budget via geopm_policy_message_s, since we set according to frequencies.
         bool result = false;
         return result;
@@ -189,15 +189,14 @@ namespace geopm
             break;
           default: break;
         }
-        
+
         if ( freq != m_last_freq){
-          for(unsigned int i=0; i<=m_num_cores ; i++){
-            geopm_ctl_cpu_freq(i,freq); 
-          }
+          std::vector<double> freq_vec(m_num_cores, freq);
+          geopm::ctl_cpu_freq(freq_vec);
           is_updated = true; //This is irrelevant since only power is traversed up or down the tree.
         }
-                                                                               
-        
+
+
         // Don't do anything since we never get a new policy.
         return is_updated;
     }
