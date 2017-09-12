@@ -37,19 +37,14 @@
 #include "geopm.h"
 #include "geopm_message.h"
 #include "geopm_plugin.h"
-//#include "geopm_ctl.h"
 
-#include "SimpleFreq.hpp"
+#include "SimpleFreqDecider.hpp"
+#include "GoverningDecider.hpp"
 #include "Exception.hpp"
 #include <fstream>
 #include <string>
 
 #include "Region.hpp"
-
-//#include <iostream>
-//#include "MSRIO.hpp"
-//#include "Platform.hpp"
-//#include "PlatformTopology.hpp"
 
 int geopm_plugin_register(int plugin_type, struct geopm_factory_c *factory, void *dl_ptr)
 {
@@ -57,7 +52,7 @@ int geopm_plugin_register(int plugin_type, struct geopm_factory_c *factory, void
 
     try {
         if (plugin_type == GEOPM_PLUGIN_TYPE_DECIDER) {
-            geopm::IDecider *decider = new geopm::SimpleFreq;
+            geopm::IDecider *decider = new geopm::SimpleFreqDecider;
             geopm_factory_register(factory, decider, dl_ptr);
         }
     }
@@ -91,104 +86,75 @@ double max_freq()  //This should be read from MSR/CSR not cpuinfo!
 
 double min_freq()
 {
-    return(800000);//check
+    double percent = 0.5;
+    return(max_freq() * percent); //check Should creturn minimum frequency as readable from register.
 }
 double current_freq()
 {
-    double aperf = 40000;//msr_read(GEOPM_DOMAIN_CPU,0,IA32_APERF;//msr
-    double mperf = 30000;//msr_read(GEOPM_DOMAIN_CPU,0,IA32_MPERF;//msr
-    return (max_freq() * aperf / mperf);
+    // Use as soon as msr_read is working and return: return (max_freq() * aperf / mperf);
+    // double aperf = 40000;//msr_read(GEOPM_DOMAIN_CPU,0,IA32_APERF;//msr
+    // double mperf = 30000;//msr_read(GEOPM_DOMAIN_CPU,0,IA32_MPERF;//msr
+    // return (max_freq() * aperf / mperf);
+    return max_freq();
 }
 
 namespace geopm
 {
     void ctl_cpu_freq(std::vector<double> freq);
 
-    SimpleFreq::SimpleFreq()
-        : m_name("simple_freq")
-        , m_last_freq(current_freq())
-        , m_min_freq(min_freq())
-        , m_max_freq(max_freq())
-        , m_num_cores(std::thread::hardware_concurrency()) // Logical cores! //check if ok or physical cores needed.
+    SimpleFreqDecider::SimpleFreqDecider()
+        : GoverningDecider()
+          , m_name("simple_freq")
+          , m_last_freq(current_freq())
+          , m_min_freq(min_freq())
+          , m_max_freq(max_freq())
+          , m_num_cores(std::thread::hardware_concurrency()) // Logical cores! //check if ok or physical cores needed.
     {
 
     }
 
-    SimpleFreq::SimpleFreq(const SimpleFreq &other)
-        : Decider(other)
-        , m_name(other.m_name)
-        , m_last_freq(other.m_last_freq)
-        , m_min_freq(other.m_min_freq)
-        , m_max_freq(other.m_max_freq)
-        , m_num_cores(other.m_num_cores)
+    SimpleFreqDecider::SimpleFreqDecider(const SimpleFreqDecider &other)
+        : GoverningDecider(other)
+          , m_name(other.m_name)
+          , m_last_freq(other.m_last_freq)
+          , m_min_freq(other.m_min_freq)
+          , m_max_freq(other.m_max_freq)
+          , m_num_cores(other.m_num_cores)
     {
 
     }
 
-    SimpleFreq::~SimpleFreq()
+    SimpleFreqDecider::~SimpleFreqDecider()
     {
 
     }
 
-    IDecider *SimpleFreq::clone(void) const
-    {
-        return (IDecider*)(new SimpleFreq(*this));
-    }
-
-    bool SimpleFreq::decider_supported(const std::string &description)
-    {
-        return (description == m_name);
-    }
-
-    const std::string& SimpleFreq::name(void) const
-    {
-        return m_name;
-    }
-
-    //For Frequency this is p-state bound accroding to Reference. Should this be actual frequencies? (max/min?)
-    void SimpleFreq::bound(double upper_bound, double lower_bound)
-    {
-        m_upper_bound = upper_bound ;
-        //m_max_freq=upper_bound;
-        m_lower_bound = lower_bound ;
-        //m_min_freq=lower_bound;
-    }
-
-    bool SimpleFreq::update_policy(const struct geopm_policy_message_s &policy_msg, IPolicy &curr_policy)
-    {
-        // Never receiving a new power budget via geopm_policy_message_s, since we set according to frequencies.
-        bool result = false;
-        return result;
-    }
-
-    bool SimpleFreq::update_policy(IRegion &curr_region, IPolicy &curr_policy)
+    bool SimpleFreqDecider::update_policy(IRegion &curr_region, IPolicy &curr_policy)
     {
         // Never receiving a new policy power budget via geopm_policy_message_s, since we set according to frequencies, not policy.
         bool is_updated = false;
+        is_updated = GoverningDecider::update_policy(curr_region, curr_policy);
+
         double freq=m_last_freq;
         switch(curr_region.hint()) {
-            case GEOPM_REGION_HINT_UNKNOWN:
-                break;
+
+            // Hints for maximum CPU frequency
             case GEOPM_REGION_HINT_COMPUTE:
-                freq=m_max_freq;
-                break;
-            case GEOPM_REGION_HINT_MEMORY:
-                freq=m_min_freq;
-                break;
-            case GEOPM_REGION_HINT_NETWORK:
-                freq=m_min_freq;
-                break;
-            case GEOPM_REGION_HINT_IO:
-                freq=m_min_freq;
-                break;
             case GEOPM_REGION_HINT_SERIAL:
-                freq=m_max_freq;
-                break;
             case GEOPM_REGION_HINT_PARALLEL:
                 freq=m_max_freq;
                 break;
-            case GEOPM_REGION_HINT_IGNORE:
+
+                // Hints for low CPU frequency
+            case GEOPM_REGION_HINT_MEMORY:
+            case GEOPM_REGION_HINT_NETWORK:
+            case GEOPM_REGION_HINT_IO:
+                freq=m_min_freq;
                 break;
+
+                // Hint Inconclusive
+            case GEOPM_REGION_HINT_UNKNOWN:
+            case GEOPM_REGION_HINT_IGNORE:
             default:
                 break;
         }

@@ -30,11 +30,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SIMPLE_FREQ_HPP_INCLUDE
-#define SIMPLE_FREQ_HPP_INCLUDE
+#ifndef SIMPLE_FREQ_DECIDER_HPP_INCLUDE
+#define SIMPLE_FREQ_DECIDER_HPP_INCLUDE
 
 #include "Decider.hpp"
 #include "geopm_plugin.h"
+#include "GoverningDecider.hpp"
 
 namespace geopm
 {
@@ -47,20 +48,17 @@ namespace geopm
     /// repsectively.
     ///
     /// This is a leaf decider.
-    class SimpleFreq : public Decider
+
+    class SimpleFreqDecider : public GoverningDecider
     {
         public:
-            /// @ brief SimpleFreq default constructor.
-            SimpleFreq();
-            SimpleFreq(const SimpleFreq &other);
-            /// @brief BalancinDecider destructor, virtual.
-            virtual ~SimpleFreq();
-            virtual IDecider *clone(void) const;
-            virtual void bound(double upper_bound, double lower_bound);
-            virtual bool update_policy(const struct geopm_policy_message_s &policy_msg, IPolicy &curr_policy);
+            /// @ brief SimpleFreqDecider default constructor.
+            SimpleFreqDecider();
+            SimpleFreqDecider(const SimpleFreqDecider &other);
+            /// @brief SimpleFreqDecider destructor, virtual.
+            virtual ~SimpleFreqDecider();
+            // @brief Actual method altering GoverningDecider behavior
             virtual bool update_policy(IRegion &curr_region, IPolicy &curr_policy);
-            virtual bool decider_supported(const std::string &descripton);
-            virtual const std::string& name(void) const;
         private:
             const std::string m_name;
             double m_last_freq;
