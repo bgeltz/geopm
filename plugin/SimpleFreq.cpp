@@ -61,40 +61,43 @@ int geopm_plugin_register(int plugin_type, struct geopm_factory_c *factory, void
             geopm_factory_register(factory, decider, dl_ptr);
         }
     }
-    catch(...) {
+    catch (...) {
         err = geopm::exception_handler(std::current_exception());
     }
 
     return err;
 }
 
-double max_freq(){ //This should be read from MSR/CSR not cpuinfo!
-  std::string s1;
-  std::string s2="model name";
-  double out;
-  std::ifstream cpuinfoFile("/proc/cpuinfo");
-  if (cpuinfoFile.is_open()){
-    while(!cpuinfoFile.eof()){
-      getline(cpuinfoFile,s1);
-      if(s1.find(s2) != std::string::npos ){
-        s2=s1.substr(s1.find("@")+1);
-        s1=s2.substr(0,s2.find("GHz"));
-        out = std::stod(s1)*1000000;
-        break;
-      }
+double max_freq()  //This should be read from MSR/CSR not cpuinfo!
+{
+    std::string s1;
+    std::string s2 = "model name";
+    double out;
+    std::ifstream cpuinfoFile("/proc/cpuinfo");
+    if (cpuinfoFile.is_open()) {
+        while (!cpuinfoFile.eof()) {
+            getline(cpuinfoFile,s1);
+            if (s1.find(s2) != std::string::npos) {
+                s2=s1.substr(s1.find("@")+1);
+                s1=s2.substr(0, s2.find("GHz"));
+                out = std::stod(s1) * 1000000;
+                break;
+            }
+        }
     }
-  }
-  cpuinfoFile.close();
-  return out;
+    cpuinfoFile.close();
+    return out;
 }
 
-double min_freq(){
-  return(800000);//check
+double min_freq()
+{
+    return(800000);//check
 }
-double current_freq(){
-  double aperf=40000;//msr_read(GEOPM_DOMAIN_CPU,0,IA32_APERF;//msr
-  double mperf=30000;//msr_read(GEOPM_DOMAIN_CPU,0,IA32_MPERF;//msr
-  return (max_freq()*aperf/mperf);
+double current_freq()
+{
+    double aperf = 40000;//msr_read(GEOPM_DOMAIN_CPU,0,IA32_APERF;//msr
+    double mperf = 30000;//msr_read(GEOPM_DOMAIN_CPU,0,IA32_MPERF;//msr
+    return (max_freq() * aperf / mperf);
 }
 
 namespace geopm
@@ -153,7 +156,7 @@ namespace geopm
 
     bool SimpleFreq::update_policy(const struct geopm_policy_message_s &policy_msg, IPolicy &curr_policy)
     {
-      // Never receiving a new power budget via geopm_policy_message_s, since we set according to frequencies.
+        // Never receiving a new power budget via geopm_policy_message_s, since we set according to frequencies.
         bool result = false;
         return result;
     }
@@ -163,37 +166,37 @@ namespace geopm
         // Never receiving a new policy power budget via geopm_policy_message_s, since we set according to frequencies, not policy.
         bool is_updated = false;
         double freq=m_last_freq;
-        switch(curr_region.hint())
-        {
-          case GEOPM_REGION_HINT_UNKNOWN:
-            break;
-          case GEOPM_REGION_HINT_COMPUTE:
-            freq=m_max_freq;
-            break;
-          case GEOPM_REGION_HINT_MEMORY:
-            freq=m_min_freq;
-            break;
-          case GEOPM_REGION_HINT_NETWORK:
-            freq=m_min_freq;
-            break;
-          case GEOPM_REGION_HINT_IO:
-            freq=m_min_freq;
-            break;
-          case GEOPM_REGION_HINT_SERIAL:
-            freq=m_max_freq;
-            break;
-          case GEOPM_REGION_HINT_PARALLEL:
-            freq=m_max_freq;
-            break;
-          case GEOPM_REGION_HINT_IGNORE:
-            break;
-          default: break;
+        switch(curr_region.hint()) {
+            case GEOPM_REGION_HINT_UNKNOWN:
+                break;
+            case GEOPM_REGION_HINT_COMPUTE:
+                freq=m_max_freq;
+                break;
+            case GEOPM_REGION_HINT_MEMORY:
+                freq=m_min_freq;
+                break;
+            case GEOPM_REGION_HINT_NETWORK:
+                freq=m_min_freq;
+                break;
+            case GEOPM_REGION_HINT_IO:
+                freq=m_min_freq;
+                break;
+            case GEOPM_REGION_HINT_SERIAL:
+                freq=m_max_freq;
+                break;
+            case GEOPM_REGION_HINT_PARALLEL:
+                freq=m_max_freq;
+                break;
+            case GEOPM_REGION_HINT_IGNORE:
+                break;
+            default:
+                break;
         }
 
-        if ( freq != m_last_freq){
-          std::vector<double> freq_vec(m_num_cores, freq);
-          geopm::ctl_cpu_freq(freq_vec);
-          is_updated = true; //This is irrelevant since only power is traversed up or down the tree.
+        if (freq != m_last_freq) {
+            std::vector<double> freq_vec(m_num_cores, freq);
+            geopm::ctl_cpu_freq(freq_vec);
+            is_updated = true; //This is irrelevant since only power is traversed up or down the tree.
         }
 
 
