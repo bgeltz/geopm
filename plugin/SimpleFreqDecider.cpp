@@ -162,7 +162,7 @@ namespace geopm
         if (freq != m_last_freq) {
             std::vector<double> freq_vec(m_num_cores, freq);
             geopm::ctl_cpu_freq(freq_vec);
-            is_updated = true; //This is irrelevant since only power is traversed up or down the tree.
+        //    is_updated = true; // This is updated accroding to GoverningDecider!
         }
 
 

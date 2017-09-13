@@ -134,6 +134,15 @@ GTEST_TESTS = test/gtest_links/PlatformFactoryTest.platform_register \
               test/gtest_links/SimpleFreqDeciderTest.decider_is_supported \
               test/gtest_links/SimpleFreqDeciderTest.name \
               test/gtest_links/SimpleFreqDeciderTest.clone \
+              test/gtest_links/SimpleFreqDeciderTest.hint_mock \
+              test/gtest_links/SimpleFreqDeciderTest.hint_compute \
+              test/gtest_links/SimpleFreqDeciderTest.hint_serial \
+              test/gtest_links/SimpleFreqDeciderTest.hint_parallel \
+              test/gtest_links/SimpleFreqDeciderTest.hint_memory \
+              test/gtest_links/SimpleFreqDeciderTest.hint_network \
+              test/gtest_links/SimpleFreqDeciderTest.hint_io \
+              test/gtest_links/SimpleFreqDeciderTest.hint_unknown \
+              test/gtest_links/SimpleFreqDeciderTest.hint_ignore \
               test/gtest_links/SharedMemoryTest.invalid_construction \
               test/gtest_links/SharedMemoryTest.share_data \
               test/gtest_links/EnvironmentTest.construction0 \
@@ -212,6 +221,7 @@ test_geopm_test_SOURCES = test/geopm_test.cpp \
                           plugin/GoverningDecider.hpp \
                           test/GoverningDeciderTest.cpp \
                           plugin/SimpleFreqDecider.hpp \
+                          test/MockRegion.hpp \
                           test/SimpleFreqDeciderTest.cpp \
                           test/MockPlatform.hpp \
                           test/MockPlatformImp.hpp \
