@@ -852,6 +852,25 @@ class AppConf(object):
         self._hostname = []
         self._imbalance = []
 
+    def __repr__(self):
+        template = """\
+path      : {path}
+regions   : {regions}
+big-o     : {big_o}
+loop count: {loops}
+hostnames : {hosts}
+imbalance : {imbalance}
+"""
+        return template.format(path=self._path,
+                               regions=self._region,
+                               big_o=self._big_o,
+                               loops=self._loop_count,
+                               hosts=self._hostname,
+                               imbalance=self._imbalance)
+
+    def __str__(self):
+        return self.__repr__()
+
     def set_loop_count(self, loop_count):
         self._loop_count = loop_count
 
