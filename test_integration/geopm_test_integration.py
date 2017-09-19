@@ -746,10 +746,11 @@ class TestIntegration(unittest.TestCase):
         report_path = name + '_static_policy_plugin.report'
         trace_path = name + '_static_policy_plugin.trace'
         self._options['power_budget'] = 250 # Run at TDP to ensure RAPL does not win.
-        self._options['tree_decider'] = 'static_policy'
+        # self._options['leaf_decider'] = 'static_policy'
         ctl_conf = geopmpy.io.CtlConf(name + '_static_policy_ctl.config', self._mode, self._options)
         self._tmp_files.append(ctl_conf.get_path())
         launcher = geopm_test_launcher.TestLauncher(app_conf, ctl_conf, report_path, trace_path, time_limit=900, region_barrier=True)
+        launcher.write_log(name, '\nCtl config -\n{}'.format(ctl_conf))
         launcher.set_num_node(num_node)
         launcher.set_num_rank(num_rank)
         launcher.set_node_list(','.join(random_nodes))
@@ -758,10 +759,11 @@ class TestIntegration(unittest.TestCase):
         # Setup the simple freq run
         report_path = name + '_simple_freq_plugin.report'
         trace_path = name + '_simple_freq_plugin.trace'
-        self._options['tree_decider'] = 'simple_freq'
+        self._options['leaf_decider'] = 'simple_freq'
         ctl_conf = geopmpy.io.CtlConf(name + '_simple_freq_ctl.config', self._mode, self._options)
         self._tmp_files.append(ctl_conf.get_path())
         launcher = geopm_test_launcher.TestLauncher(app_conf, ctl_conf, report_path, trace_path, time_limit=900, region_barrier=True)
+        launcher.write_log(name, '\nCtl config -\n{}'.format(ctl_conf))
         launcher.set_num_node(num_node)
         launcher.set_num_rank(num_rank)
         launcher.set_node_list(','.join(random_nodes))
@@ -809,7 +811,7 @@ class TestIntegration(unittest.TestCase):
         print 'Simple freq stream unique frequency values : {}'.format(stream_samples_freq['frequency-0'].unique())
 
         print '=' * 60
-        # code.interact(local=dict(globals(), **locals()))
+        code.interact(local=dict(globals(), **locals()))
 
     @unittest.skipUnless(False, 'Not implemented')
     def test_variable_end_time(self):

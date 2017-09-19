@@ -57,10 +57,10 @@ namespace geopm
             SimpleFreqDecider(const SimpleFreqDecider &other);
             /// @brief SimpleFreqDecider destructor, virtual.
             virtual ~SimpleFreqDecider();
+            virtual IDecider *clone(void) const;
             // @brief Actual method altering GoverningDecider behavior
             virtual bool update_policy(IRegion &curr_region, IPolicy &curr_policy);
         private:
-            const std::string m_name;
             double m_last_freq;
             double m_min_freq;
             double m_max_freq;

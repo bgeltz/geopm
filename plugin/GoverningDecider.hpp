@@ -59,7 +59,7 @@ namespace geopm
             virtual bool decider_supported(const std::string &descripton);
             virtual const std::string& name(void) const;
         protected:
-            const std::string m_name;
+            std::string m_name;
             const unsigned m_min_num_converged;
             double m_last_power_budget;
             double m_last_dram_power;

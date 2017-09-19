@@ -44,6 +44,8 @@ libgeopmpi_simplefreq_la_SOURCES = plugin/SimpleFreqDecider.cpp \
                                    plugin/SimpleFreqDecider.hpp \
                                    # end
 
+libgeopmpi_simplefreq_la_LIBADD = libgeopmpi_governing.la
+
 # -module required to force .so generation of plugin.
 libgeopmpi_governing_la_LDFLAGS = $(AM_LDFLAGS) -module
 libgeopmpi_balancing_la_LDFLAGS = $(AM_LDFLAGS) -module

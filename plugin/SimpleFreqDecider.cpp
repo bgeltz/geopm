@@ -106,22 +106,20 @@ namespace geopm
 
     SimpleFreqDecider::SimpleFreqDecider()
         : GoverningDecider()
-          , m_name("simple_freq")
-          , m_last_freq(current_freq())
-          , m_min_freq(min_freq())
-          , m_max_freq(max_freq())
-          , m_num_cores(std::thread::hardware_concurrency()) // Logical cores! //check if ok or physical cores needed.
+        , m_last_freq(current_freq())
+        , m_min_freq(min_freq())
+        , m_max_freq(max_freq())
+        , m_num_cores(std::thread::hardware_concurrency()) // Logical cores! //check if ok or physical cores needed.
     {
-
+        m_name = "simple_freq";
     }
 
     SimpleFreqDecider::SimpleFreqDecider(const SimpleFreqDecider &other)
         : GoverningDecider(other)
-          , m_name(other.m_name)
-          , m_last_freq(other.m_last_freq)
-          , m_min_freq(other.m_min_freq)
-          , m_max_freq(other.m_max_freq)
-          , m_num_cores(other.m_num_cores)
+        , m_last_freq(other.m_last_freq)
+        , m_min_freq(other.m_min_freq)
+        , m_max_freq(other.m_max_freq)
+        , m_num_cores(other.m_num_cores)
     {
 
     }
@@ -129,6 +127,11 @@ namespace geopm
     SimpleFreqDecider::~SimpleFreqDecider()
     {
 
+    }
+
+    IDecider *SimpleFreqDecider::clone(void) const
+    {
+        return (IDecider*)(new SimpleFreqDecider(*this));
     }
 
     bool SimpleFreqDecider::update_policy(IRegion &curr_region, IPolicy &curr_policy)
@@ -163,7 +166,7 @@ namespace geopm
 
         if (freq != m_last_freq) {
             std::vector<double> freq_vec(m_num_cores, freq);
-            geopm::ctl_cpu_freq(freq_vec);
+            curr_policy.ctl_cpu_freq(freq_vec);
             
             std::cout << "Freq = " << freq << "; ";
             for (std::vector<double>::const_iterator i = freq_vec.begin();i != freq_vec.end(); ++i)
