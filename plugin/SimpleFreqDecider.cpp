@@ -46,6 +46,8 @@
 
 #include "Region.hpp"
 
+#include <iostream>
+
 int geopm_plugin_register(int plugin_type, struct geopm_factory_c *factory, void *dl_ptr)
 {
     int err = 0;
@@ -86,7 +88,7 @@ double max_freq()  //This should be read from MSR/CSR not cpuinfo!
 
 double min_freq()
 {
-    double percent = 0.5;
+    double percent = 0.75;
     return(max_freq() * percent); //check Should creturn minimum frequency as readable from register.
 }
 double current_freq()
@@ -162,7 +164,13 @@ namespace geopm
         if (freq != m_last_freq) {
             std::vector<double> freq_vec(m_num_cores, freq);
             geopm::ctl_cpu_freq(freq_vec);
+            
+            std::cout << "Freq = " << freq << "; ";
+            for (std::vector<double>::const_iterator i = freq_vec.begin();i != freq_vec.end(); ++i)
+                std::cout << *i << ' ';
         //    is_updated = true; // This is updated accroding to GoverningDecider!
+            std::cout << "\n";
+            std::cout << "Hint = " << curr_region.hint() << "\n";
         }
 
 
