@@ -931,6 +931,20 @@ class CtlConf(object):
         self._mode = mode
         self._options = options
 
+    def __repr__(self):
+        template = """\
+path    : {path}
+mode    : {mode}
+options : {options}
+"""
+        return template.format(path=self._path,
+                               mode=self._mode,
+                               options=self._options)
+
+    def __str__(self):
+        return self.__repr__()
+
+
     def set_tree_decider(self, decider):
         self._options['tree_decider'] = decider
 
