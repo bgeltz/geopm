@@ -776,42 +776,43 @@ class TestIntegration(unittest.TestCase):
         trace_df = self._output.get_trace_df()
 
         # Get the report data for the epoch regions from each plugin
-        static_policy_df = report_df.loc[idx[:, :, :, 'static_policy', :, :, :, 'epoch'], ]
-        simple_freq_df = report_df.loc[idx[:, :, :, 'simple_freq', :, :, :, 'epoch'], ]
+        power_governing_df = report_df.loc[idx[:, :, :, :, 'power_governing', :, :, 'epoch'], ]
+        simple_freq_df = report_df.loc[idx[:, :, :, :, 'simple_freq', :, :, 'epoch'], ]
 
         # Write report stats to the log
         launcher.write_log(name, '\nApp config -\n{}'.format(app_conf))
-        launcher.write_log(name, 'Static Policy decider -\n{}'.format(static_policy_df.reset_index(drop=True).T))
+        launcher.write_log(name, 'Power Governing leaf decider -\n{}'.format(power_governing_df.reset_index(drop=True).T))
         launcher.write_log(name, 'Simple Freq decider -\n{}'.format(simple_freq_df.reset_index(drop=True).T))
 
         # TODO - Remove these prints to stdout before merge
         print
+        print 'Node list : {}'.format(random_nodes)
         print '{}'.format(app_conf)
-        print 'Static Policy decider :\n{}\n'.format(static_policy_df.reset_index(drop=True).T)
+        print 'Power Governing leaf decider :\n{}\n'.format(power_governing_df.reset_index(drop=True).T)
         print 'Simple Freq decider :\n{}\n'.format(simple_freq_df.reset_index(drop=True).T)
 
         # Get the trace data for each of the plugins
-        static_policy_trace_df = trace_df.loc[idx[:, :, :, 'static_policy', :, :, :], ]
-        simple_freq_trace_df = trace_df.loc[idx[:, :, :, 'simple_freq', :, :, :], ]
+        power_governing_trace_df = trace_df.loc[idx[:, :, :, :, 'power_governing', :, :], ]
+        simple_freq_trace_df = trace_df.loc[idx[:, :, :, :, 'simple_freq', :, :], ]
 
         # Drop the multiindex to make the df more readable
-        static_policy_trace_df = static_policy_trace_df.reset_index(drop=True)
+        power_governing_trace_df = power_governing_trace_df.reset_index(drop=True)
         simple_freq_trace_df = simple_freq_trace_df.reset_index(drop=True)
 
-        dgemm_samples_static = static_policy_trace_df.loc[static_policy_trace_df['region_id'] == '11396693813']
-        stream_samples_static = static_policy_trace_df.loc[static_policy_trace_df['region_id'] == '20779751936']
+        dgemm_samples_governing = power_governing_trace_df.loc[power_governing_trace_df['region_id'] == '11396693813']
+        stream_samples_governing = power_governing_trace_df.loc[power_governing_trace_df['region_id'] == '20779751936']
 
         dgemm_samples_freq = simple_freq_trace_df.loc[simple_freq_trace_df['region_id'] == '11396693813']
         stream_samples_freq = simple_freq_trace_df.loc[simple_freq_trace_df['region_id'] == '20779751936']
 
         # TODO - Remove these prints to stdout before merge
-        print 'Static policy DGEMM unique frequency values : {}'.format(dgemm_samples_static['frequency-0'].unique())
-        print 'Static policy stream unique frequency values : {}'.format(stream_samples_static['frequency-0'].unique())
+        print 'Power governing DGEMM unique frequency values : {}'.format(dgemm_samples_governing['frequency-0'].unique())
+        print 'Power governing stream unique frequency values : {}'.format(stream_samples_governing['frequency-0'].unique())
         print 'Simple freq DGEMM unique frequency values : {}'.format(dgemm_samples_freq['frequency-0'].unique())
         print 'Simple freq stream unique frequency values : {}'.format(stream_samples_freq['frequency-0'].unique())
 
         print '=' * 60
-        code.interact(local=dict(globals(), **locals()))
+        # code.interact(local=dict(globals(), **locals()))
 
     @unittest.skipUnless(False, 'Not implemented')
     def test_variable_end_time(self):
