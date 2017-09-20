@@ -43,6 +43,7 @@
 #include "Exception.hpp"
 #include <fstream>
 #include <string>
+#include <cmath>
 
 #include "Region.hpp"
 
@@ -77,7 +78,7 @@ double max_freq()  //This should be read from MSR/CSR not cpuinfo!
             if (s1.find(s2) != std::string::npos) {
                 s2=s1.substr(s1.find("@")+1);
                 s1=s2.substr(0, s2.find("GHz"));
-                out = std::stod(s1) * 1000000;
+                out = std::stod(s1) * 1e9;
                 break;
             }
         }
@@ -88,8 +89,12 @@ double max_freq()  //This should be read from MSR/CSR not cpuinfo!
 
 double min_freq()
 {
-    double percent = 0.75;
-    return(max_freq() * percent); //check Should creturn minimum frequency as readable from register.
+    //double percent = 0.75;
+    //return(max_freq() * percent); //check Should creturn minimum frequency as readable from register.
+    //return 1.2e9;
+
+    // FIXME Remove this hack when we're sure setting the frequency is working correctly.
+    return max_freq();
 }
 double current_freq()
 {
@@ -106,7 +111,7 @@ namespace geopm
 
     SimpleFreqDecider::SimpleFreqDecider()
         : GoverningDecider()
-        , m_last_freq(current_freq())
+        , m_last_freq(NAN)
         , m_min_freq(min_freq())
         , m_max_freq(max_freq())
         , m_num_cores(std::thread::hardware_concurrency()) // Logical cores! //check if ok or physical cores needed.
@@ -165,17 +170,13 @@ namespace geopm
         }
 
         if (freq != m_last_freq) {
-            std::vector<double> freq_vec(m_num_cores, freq);
-            curr_policy.ctl_cpu_freq(freq_vec);
-            
-            std::cout << "Freq = " << freq << "; ";
-            for (std::vector<double>::const_iterator i = freq_vec.begin();i != freq_vec.end(); ++i)
-                std::cout << *i << ' ';
-        //    is_updated = true; // This is updated accroding to GoverningDecider!
-            std::cout << "\n";
             std::cout << "Hint = " << curr_region.hint() << "\n";
-        }
+            std::cout << "Freq = " << freq << "\n";
+            std::vector<double> freq_vec(m_num_cores, freq);
 
+            curr_policy.ctl_cpu_freq(freq_vec);
+            m_last_freq = freq;
+        }
 
         // Don't do anything since we never get a new policy.
         return is_updated;

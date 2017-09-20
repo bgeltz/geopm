@@ -304,6 +304,9 @@ namespace geopm
 
     void PlatformIO::adjust(const std::vector<double> &setting)
     {
+        printf("Entry 0 in setting vector = %f\n", setting.front());
+        //printf("Entry 0 in setting vector = %f\n", *(setting.begin()));
+
         if (!m_is_active) {
             activate();
         }

@@ -205,6 +205,8 @@ namespace geopm
 
     void MSRIO::write_batch(const std::vector<uint64_t> &raw_value)
     {
+        printf("In %s:%d raw value is %#018lx\n", __FILE__, __LINE__, raw_value.front());
+
         if (raw_value.size() < m_write_batch.numops) {
             throw Exception("MSRIO::write_batch(): input vector smaller than configured number of operations",
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);

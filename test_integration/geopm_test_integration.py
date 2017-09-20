@@ -743,18 +743,18 @@ class TestIntegration(unittest.TestCase):
         random_nodes = random.sample(idle_nodes, num_node)
 
         # Setup the static policy run
-        report_path = name + '_static_policy_plugin.report'
-        trace_path = name + '_static_policy_plugin.trace'
-        self._options['power_budget'] = 250 # Run at TDP to ensure RAPL does not win.
-        # self._options['leaf_decider'] = 'static_policy'
-        ctl_conf = geopmpy.io.CtlConf(name + '_static_policy_ctl.config', self._mode, self._options)
-        self._tmp_files.append(ctl_conf.get_path())
-        launcher = geopm_test_launcher.TestLauncher(app_conf, ctl_conf, report_path, trace_path, time_limit=900, region_barrier=True)
-        launcher.write_log(name, '\nCtl config -\n{}'.format(ctl_conf))
-        launcher.set_num_node(num_node)
-        launcher.set_num_rank(num_rank)
-        launcher.set_node_list(','.join(random_nodes))
-        launcher.run(name)
+        # report_path = name + '_static_policy_plugin.report'
+        # trace_path = name + '_static_policy_plugin.trace'
+        # self._options['power_budget'] = 250 # Run at TDP to ensure RAPL does not win.
+        # # self._options['leaf_decider'] = 'static_policy'
+        # ctl_conf = geopmpy.io.CtlConf(name + '_static_policy_ctl.config', self._mode, self._options)
+        # self._tmp_files.append(ctl_conf.get_path())
+        # launcher = geopm_test_launcher.TestLauncher(app_conf, ctl_conf, report_path, trace_path, time_limit=900, region_barrier=True)
+        # launcher.write_log(name, '\nCtl config -\n{}'.format(ctl_conf))
+        # launcher.set_num_node(num_node)
+        # launcher.set_num_rank(num_rank)
+        # launcher.set_node_list(','.join(random_nodes))
+        # launcher.run(name)
 
         # Setup the simple freq run
         report_path = name + '_simple_freq_plugin.report'
