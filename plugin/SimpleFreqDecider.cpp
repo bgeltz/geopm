@@ -89,12 +89,12 @@ double max_freq()  //This should be read from MSR/CSR not cpuinfo!
 
 double min_freq()
 {
-    //double percent = 0.75;
-    //return(max_freq() * percent); //check Should creturn minimum frequency as readable from register.
+    //double percent = 0.95; // Looks OK.  Got some savings.
+    //double percent = 0.62; // Results in min freq getting clipped to 1.0 GHz
+    //double percent = 0.86; // Energy gain halved, runtime loss improved
+    double percent = 0.94;
+    return(max_freq() * percent); //check Should creturn minimum frequency as readable from register.
     //return 1.2e9;
-
-    // FIXME Remove this hack when we're sure setting the frequency is working correctly.
-    return max_freq();
 }
 double current_freq()
 {
@@ -148,24 +148,22 @@ namespace geopm
         double freq=m_last_freq;
         switch(curr_region.hint()) {
 
-            // Hints for maximum CPU frequency
-            case GEOPM_REGION_HINT_COMPUTE:
-            case GEOPM_REGION_HINT_SERIAL:
-            case GEOPM_REGION_HINT_PARALLEL:
-                freq=m_max_freq;
-                break;
-
-                // Hints for low CPU frequency
+            // Hints for low CPU frequency
             case GEOPM_REGION_HINT_MEMORY:
             case GEOPM_REGION_HINT_NETWORK:
             case GEOPM_REGION_HINT_IO:
                 freq=m_min_freq;
                 break;
 
-                // Hint Inconclusive
-            case GEOPM_REGION_HINT_UNKNOWN:
-            case GEOPM_REGION_HINT_IGNORE:
+            // Hints for maximum CPU frequency
+            //case GEOPM_REGION_HINT_COMPUTE:
+            //case GEOPM_REGION_HINT_SERIAL:
+            //case GEOPM_REGION_HINT_PARALLEL:
+            // Hint Inconclusive
+            //case GEOPM_REGION_HINT_UNKNOWN:
+            //case GEOPM_REGION_HINT_IGNORE:
             default:
+                freq=m_max_freq;
                 break;
         }
 
