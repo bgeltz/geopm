@@ -48,6 +48,7 @@
 #include "Region.hpp"
 
 #include <iostream>
+#include <stdlib.h>
 
 int geopm_plugin_register(int plugin_type, struct geopm_factory_c *factory, void *dl_ptr)
 {
@@ -68,6 +69,11 @@ int geopm_plugin_register(int plugin_type, struct geopm_factory_c *factory, void
 
 double max_freq()  //This should be read from MSR/CSR not cpuinfo!
 {
+    const char* env_cpu_freq_max_hz = getenv("GEOPM_SIMPLE_FREQ_MAX");
+    if (env_cpu_freq_max_hz){
+        return std::stod(env_cpu_freq_max_hz);
+    }
+
     std::string s1;
     std::string s2 = "model name";
     double out;
@@ -89,13 +95,18 @@ double max_freq()  //This should be read from MSR/CSR not cpuinfo!
 
 double min_freq()
 {
+    const char* env_cpu_freq_min_hz = getenv("GEOPM_SIMPLE_FREQ_MIN");
+    if(env_cpu_freq_min_hz){
+        return std::stod(env_cpu_freq_min_hz);
+    }
+
     //double percent = 0.95; // Looks OK.  Got some savings.
     //double percent = 0.62; // Results in min freq getting clipped to 1.0 GHz
     //double percent = 0.86; // Energy gain halved, runtime loss improved
     double percent = 0.94;
     return(max_freq() * percent); //check Should creturn minimum frequency as readable from register.
-    //return 1.2e9;
 }
+
 double current_freq()
 {
     // Use as soon as msr_read is working and return: return (max_freq() * aperf / mperf);
