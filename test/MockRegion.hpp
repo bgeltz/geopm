@@ -30,11 +30,58 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Region.hpp"
+namespace geopm {
 
-class MockRegion : public geopm::Region {
-    public:
-        MOCK_METHOD1(hint,
-                void(int));//int(void));
-//        MOCK_CONST_METHOD2()
-};
+    class MockIRegion : public IRegion {
+        public:
+            MOCK_METHOD0(entry,
+                    void(void));
+            MOCK_METHOD0(num_entry,
+                    int(void));
+            MOCK_METHOD1(insert,
+                    void(std::vector<struct geopm_telemetry_message_s> &telemetry));
+            MOCK_METHOD1(insert,
+                    void(const std::vector<struct geopm_sample_message_s> &sample));
+            MOCK_METHOD0(clear,
+                    void(void));
+            MOCK_CONST_METHOD0(identifier,
+                    uint64_t(void));
+            MOCK_CONST_METHOD0(hint,
+                    uint64_t(void));
+            MOCK_METHOD1(increment_mpi_time,
+                    void(double mpi_increment_amount));
+            MOCK_METHOD1(sample_message,
+                    void(struct geopm_sample_message_s &sample));
+            MOCK_METHOD2(signal,
+                    double(int domain_idx, int signal_type));
+            MOCK_CONST_METHOD2(num_sample,
+                    int(int domain_idx, int signal_type));
+            MOCK_CONST_METHOD2(mean,
+                    double(int domain_idx, int signal_type));
+            MOCK_CONST_METHOD2(median,
+                    double(int domain_idx, int signal_type));
+            MOCK_CONST_METHOD2(std_deviation,
+                    double(int domain_idx, int signal_type));
+            MOCK_CONST_METHOD2(min,
+                    double(int domain_idx, int signal_type));
+            MOCK_CONST_METHOD2(max,
+                    double(int domain_idx, int signal_type));
+            MOCK_METHOD2(derivative,
+                    double(int domain_idx, int signal_type));
+            MOCK_CONST_METHOD4(integral,
+                    double(int domain_idx, int signal_type, double &delta_time, double &integral));
+            MOCK_CONST_METHOD3(report,
+                    void(std::ostringstream &string_stream, const std::string &name, int rank_per_node));
+            MOCK_METHOD1(thread_progress,
+                    void(std::vector<double> &progress));
+    };
+
+}  // namespace geopm
+
+namespace geopm {
+
+    class MockRegion : public Region {
+        public:
+    };
+
+}  // namespace geopm

@@ -143,6 +143,7 @@ GTEST_TESTS = test/gtest_links/PlatformFactoryTest.platform_register \
               test/gtest_links/SimpleFreqDeciderTest.hint_io \
               test/gtest_links/SimpleFreqDeciderTest.hint_unknown \
               test/gtest_links/SimpleFreqDeciderTest.hint_ignore \
+              test/gtest_links/SimpleFreqDeciderTest.8_domains \
               test/gtest_links/SharedMemoryTest.invalid_construction \
               test/gtest_links/SharedMemoryTest.share_data \
               test/gtest_links/EnvironmentTest.construction0 \
@@ -222,6 +223,7 @@ test_geopm_test_SOURCES = test/geopm_test.cpp \
                           test/GoverningDeciderTest.cpp \
                           plugin/SimpleFreqDecider.hpp \
                           test/MockRegion.hpp \
+                          test/MockPolicy.hpp \
                           test/SimpleFreqDeciderTest.cpp \
                           test/MockPlatform.hpp \
                           test/MockPlatformImp.hpp \
