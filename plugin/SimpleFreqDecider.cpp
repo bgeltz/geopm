@@ -164,14 +164,16 @@ namespace geopm
                 break;
 
             // Hints for maximum CPU frequency
-            //case GEOPM_REGION_HINT_COMPUTE:
-            //case GEOPM_REGION_HINT_SERIAL:
-            //case GEOPM_REGION_HINT_PARALLEL:
+            case GEOPM_REGION_HINT_COMPUTE:
+            case GEOPM_REGION_HINT_SERIAL:
+            case GEOPM_REGION_HINT_PARALLEL:
+                freq=m_max_freq;
+                break;
             // Hint Inconclusive
             //case GEOPM_REGION_HINT_UNKNOWN:
             //case GEOPM_REGION_HINT_IGNORE:
             default:
-                freq=m_max_freq;
+                freq=m_min_freq;
                 break;
         }
 
