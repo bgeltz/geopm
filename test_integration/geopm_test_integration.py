@@ -721,8 +721,8 @@ class TestIntegration(unittest.TestCase):
             gemm_region = [key for key in region_names if key.lower().find('gemm') != -1]
             self.assertLessEqual(1, len(gemm_region))
 
-    @unittest.skipUnless(geopm_test_launcher.resource_manager() == "SLURM" and os.getenv('SLURM_NODELIST') is None,
-                         'Requires non-sbatch SLURM session for alloc\'d and idle nodes.')
+    # @unittest.skipUnless(geopm_test_launcher.resource_manager() == "SLURM" and os.getenv('SLURM_NODELIST') is None,
+    #                      'Requires non-sbatch SLURM session for alloc\'d and idle nodes.')
     @unittest.skipUnless(os.getenv('GEOPM_RUN_LONG_TESTS') is not None,
                          "Define GEOPM_RUN_LONG_TESTS in your environment to run this test.")
     def test_plugin_simple_freq(self):
@@ -741,12 +741,12 @@ class TestIntegration(unittest.TestCase):
         # Get an idle node;  Necessary to ensure all the runs happen on the same node
         # idle_nodes = natsorted(geopm_test_launcher.TestLauncher.get_idle_nodes())
         # random_nodes = random.sample(idle_nodes, num_node)
-        random_nodes = ['mr-fusion3']
+        # random_nodes = ['mr-fusion3']
 
         # Setup the static policy run
         report_path = name + '_static_policy_plugin.report'
         trace_path = name + '_static_policy_plugin.trace'
-        self._options['power_budget'] = 250 # Run at TDP to ensure RAPL does not win.
+        self._options['power_budget'] = 290 # Run at TDP to ensure RAPL does not win.
         # self._options['leaf_decider'] = 'static_policy'
         ctl_conf = geopmpy.io.CtlConf(name + '_static_policy_ctl.config', self._mode, self._options)
         self._tmp_files.append(ctl_conf.get_path())
@@ -754,7 +754,7 @@ class TestIntegration(unittest.TestCase):
         launcher.write_log(name, '\nCtl config -\n{}'.format(ctl_conf))
         launcher.set_num_node(num_node)
         launcher.set_num_rank(num_rank)
-        launcher.set_node_list(','.join(random_nodes))
+        # launcher.set_node_list(','.join(random_nodes))
         launcher.run(name)
 
         # Setup the simple freq run
@@ -767,7 +767,7 @@ class TestIntegration(unittest.TestCase):
         launcher.write_log(name, '\nCtl config -\n{}'.format(ctl_conf))
         launcher.set_num_node(num_node)
         launcher.set_num_rank(num_rank)
-        launcher.set_node_list(','.join(random_nodes))
+        # launcher.set_node_list(','.join(random_nodes))
         launcher.run(name)
 
         # Gather the output from both runs
@@ -789,7 +789,7 @@ class TestIntegration(unittest.TestCase):
 
         # TODO - Remove these prints to stdout before merge
         print
-        print 'Node list : {}'.format(random_nodes)
+        # print 'Node list : {}'.format(random_nodes)
         print '{}'.format(app_conf)
         print 'Power Governing leaf decider :\n{}\n'.format(power_governing_df.T)
         print 'Simple Freq decider :\n{}\n'.format(simple_freq_df.T)
