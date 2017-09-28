@@ -75,19 +75,11 @@ double max_freq()  //This should be read from MSR/CSR not cpuinfo!
     }
 
     std::string s1;
-    std::string s2 = "model name";
     double out;
-    std::ifstream cpuinfoFile("/proc/cpuinfo");
+    std::ifstream cpuinfoFile("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq");
     if (cpuinfoFile.is_open()) {
-        while (!cpuinfoFile.eof()) {
-            getline(cpuinfoFile,s1);
-            if (s1.find(s2) != std::string::npos) {
-                s2=s1.substr(s1.find("@")+1);
-                s1=s2.substr(0, s2.find("GHz"));
-                out = std::stod(s1) * 1e9;
-                break;
-            }
-        }
+        getline(cpuinfoFile,s1); // in KHz
+        out = std::stod(s1) * 1e3; // in Hz
     }
     cpuinfoFile.close();
     return out;
@@ -100,11 +92,16 @@ double min_freq()
         return std::stod(env_cpu_freq_min_hz);
     }
 
-    //double percent = 0.95; // Looks OK.  Got some savings.
-    //double percent = 0.62; // Results in min freq getting clipped to 1.0 GHz
-    //double percent = 0.86; // Energy gain halved, runtime loss improved
-    double percent = 0.94;
-    return(max_freq() * percent); //check Should creturn minimum frequency as readable from register.
+    std::string s1;
+    double out;
+    std::ifstream cpuinfoFile("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq");
+    if (cpuinfoFile.is_open()) {
+        getline(cpuinfoFile,s1); // in KHz
+        out = std::stod(s1) * 1e3; // in Hz
+    }
+    cpuinfoFile.close();
+    return out; // These are absolute min values possible
+    // This is not the desireable for efficiency.
 }
 
 double current_freq()
