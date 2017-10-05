@@ -53,7 +53,7 @@ init(){
     # Use rdmsr to examine IA32_PERF_CTL 0x199
     printf '%.0s!' {1..80} && echo
     echo "init() - Unique frequency values from IA32_PERF_CTL - 0x199:"
-    rdmsr 0x199 -af 15:0 | cut -f2 -d':' | sort -u | uniq
+    rdmsr 0x199 -af 15:0 | tee ${OUTPUT_DIR}/core_freqs_startup_$(date +%H%M_%S).txt | cut -f2 -d':' | sort -u | uniq
     printf '%.0s!' {1..80} && echo
 
     # Force these parts into the turbo range before the run.
@@ -65,14 +65,14 @@ cleanup(){
 
     printf '%.0s!' {1..80} && echo
     echo "cleanup() before restore - Unique frequency values from IA32_PERF_CTL - 0x199:"
-    rdmsr 0x199 -af 15:0 | cut -f2 -d':' | sort -u | uniq
+    rdmsr 0x199 -af 15:0 | tee ${OUTPUT_DIR}/core_freqs_before_$(date +%H%M_%S).txt | cut -f2 -d':' | sort -u | uniq
     printf '%.0s!' {1..80} && echo
 
     msrsave -r ${MSR_FILE} > /dev/null
 
     printf '%.0s!' {1..80} && echo
     echo "cleanup() after restore - Unique frequency values from IA32_PERF_CTL - 0x199:"
-    rdmsr 0x199 -af 15:0 | cut -f2 -d':' | sort -u | uniq
+    rdmsr 0x199 -af 15:0 | tee ${OUTPUT_DIR}/core_freqs_after_$(date +%H%M_%S).txt | cut -f2 -d':' | sort -u | uniq
     printf '%.0s!' {1..80} && echo
 }
 
@@ -125,13 +125,13 @@ create_policy baseline
 create_policy ee static_policy simple_freq
 
 # Small problem size per the MiniFE Summary v2.0 PDF on the CORAL workloads site
-NX=264
-NY=256
-NZ=256
+# NX=264
+# NY=256
+# NZ=256
 
-# NX=462
-# NY=448
-# NZ=448
+NX=462
+NY=448
+NZ=448
 
 # NX=528
 # NY=512
