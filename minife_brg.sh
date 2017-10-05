@@ -15,15 +15,17 @@ NUM_CORE=43 # App CPU's per rank = NUM_RANK * NUM_CORE
 
 SRC_DIR=${HOME}/apps/miniFE_openmp-2.0-rc3/src
 PROFILE_NAME=${1:-BDX_TEST_RUN}
-OUTPUT_DIR=minife-${NUM_NODE}-node-${PROFILE_NAME}-$(date +%F_%H%M)
+OUTPUT_DIR=$(hostname -s)-minife-${NUM_NODE}-node-${PROFILE_NAME}-$(date +%F_%H%M)
 MSR_FILE=.$(hostname -s).$(date +%F_%H%M).msrs
 
 if [ ! -d "${OUTPUT_DIR}" ]; then
     mkdir ${OUTPUT_DIR}
 fi
 
+pushd ${OUTPUT_DIR}
+
 # Redirect stdout and stderr to an output file
-exec > >(tee -i ${OUTPUT_DIR}/stdouterr.txt)
+exec > >(tee -i stdouterr.txt)
 exec 2>&1
 
 echo "Output will be saved in ${OUTPUT_DIR}/."
@@ -53,26 +55,26 @@ init(){
     # Use rdmsr to examine IA32_PERF_CTL 0x199
     printf '%.0s!' {1..80} && echo
     echo "init() - Unique frequency values from IA32_PERF_CTL - 0x199:"
-    rdmsr 0x199 -af 15:0 | tee ${OUTPUT_DIR}/core_freqs_startup_$(date +%H%M_%S).txt | cut -f2 -d':' | sort -u | uniq
+    rdmsr 0x199 -af 15:0 | tee core_freqs_startup_$(date +%H%M_%S).txt | cut -f2 -d':' | sort -u | uniq
     printf '%.0s!' {1..80} && echo
 
+    # Force parts to max non-turbo (sticker)
+    # wrmsr -a 0x199 0x1600
     # Force these parts into the turbo range before the run.
-    # wrmsr -a 0x199 0x1700
+    wrmsr -a 0x199 0x1700
 }
 
 cleanup(){
-    mv *yaml ${OUTPUT_DIR}
-
     printf '%.0s!' {1..80} && echo
     echo "cleanup() before restore - Unique frequency values from IA32_PERF_CTL - 0x199:"
-    rdmsr 0x199 -af 15:0 | tee ${OUTPUT_DIR}/core_freqs_before_$(date +%H%M_%S).txt | cut -f2 -d':' | sort -u | uniq
+    rdmsr 0x199 -af 15:0 | tee core_freqs_before_$(date +%H%M_%S).txt | cut -f2 -d':' | sort -u | uniq
     printf '%.0s!' {1..80} && echo
 
     msrsave -r ${MSR_FILE} > /dev/null
 
     printf '%.0s!' {1..80} && echo
     echo "cleanup() after restore - Unique frequency values from IA32_PERF_CTL - 0x199:"
-    rdmsr 0x199 -af 15:0 | tee ${OUTPUT_DIR}/core_freqs_after_$(date +%H%M_%S).txt | cut -f2 -d':' | sort -u | uniq
+    rdmsr 0x199 -af 15:0 | tee core_freqs_after_$(date +%H%M_%S).txt | cut -f2 -d':' | sort -u | uniq
     printf '%.0s!' {1..80} && echo
 }
 
@@ -102,8 +104,8 @@ run_app(){
     ${HOME}/build/geopm/bin/geopmsrun \
     --geopm-ctl=process \
     --geopm-policy=${CONFIG}_policy.json \
-    --geopm-report=${OUTPUT_DIR}/${CONFIG}-minife.report \
-    --geopm-trace=${OUTPUT_DIR}/${CONFIG}-minife-trace \
+    --geopm-report=${CONFIG}-minife.report \
+    --geopm-trace=${CONFIG}-minife-trace \
     --geopm-profile=${PROFILE_NAME} \
     -N ${NUM_NODE} \
     -n ${NUM_RANK} \
@@ -145,6 +147,8 @@ run_app baseline ${NX} ${NY} ${NZ}
 
 # Do the SimpleFreq run
 run_app ee ${NX} ${NY} ${NZ}
+
+popd
 
 # Analyze the output data
 ./analyze_minife.py ${OUTPUT_DIR} | tee -a ${OUTPUT_DIR}/stats.txt
