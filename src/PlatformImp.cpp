@@ -482,7 +482,7 @@ namespace geopm
             build_msr_save_string(save_file, GEOPM_DOMAIN_PACKAGE, i, "DRAM_POWER_LIMIT");
         }
 
-        niter = m_num_hw_cpu;
+        niter = m_num_logical_cpu;
 
         //per cpu state
         for (int i = 0; i < niter; i++) {
