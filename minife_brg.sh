@@ -131,13 +131,13 @@ create_policy ee static_policy simple_freq
 # NY=256
 # NZ=256
 
-NX=462
-NY=448
-NZ=448
+# NX=462
+# NY=448
+# NZ=448
 
-# NX=528
-# NY=512
-# NZ=512
+NX=528
+NY=512
+NZ=512
 
 # run_app baseline 693 672 672 # Way too big!  Crashes node.
 # run_app baseline 660 640 640 # Takes 10-20 minutes per run, sometimes hangs for a long time
