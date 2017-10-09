@@ -59,9 +59,9 @@ init(){
     printf '%.0s!' {1..80} && echo
 
     # Force parts to max non-turbo (sticker)
-    # wrmsr -a 0x199 0x1600
+    wrmsr -a 0x199 0x1600
     # Force these parts into the turbo range before the run.
-    wrmsr -a 0x199 0x1700
+    # wrmsr -a 0x199 0x1700
 }
 
 cleanup(){
@@ -88,8 +88,8 @@ run_app(){
     NY=${3:-256}
     NZ=${4:-256}
     MIN_FREQ=${5:-1200000000}
-    MAX_FREQ=${6:-2300000000} # Turbo range
-    # MAX_FREQ=${6:-2200000000} # Max non-turbo
+    # MAX_FREQ=${6:-2300000000} # Turbo range
+    MAX_FREQ=${6:-2200000000} # Max non-turbo
 
     printf '%.0s-' {1..80} && echo
     echo "Running ${CONFIG} config..."
@@ -104,9 +104,9 @@ run_app(){
     ${HOME}/build/geopm/bin/geopmsrun \
     --geopm-ctl=process \
     --geopm-policy=${CONFIG}_policy.json \
-    --geopm-report=${CONFIG}-minife.report \
-    --geopm-trace=${CONFIG}-minife-trace \
-    --geopm-profile=${PROFILE_NAME} \
+    --geopm-report=${CONFIG}-${MIN_FREQ}-minife.report \
+    --geopm-trace=${CONFIG}-${MIN_FREQ}-minife-trace \
+    --geopm-profile=${PROFILE_NAME}-${MIN_FREQ} \
     -N ${NUM_NODE} \
     -n ${NUM_RANK} \
     -ppn ${PPN} \
@@ -145,8 +145,18 @@ NZ=448
 # Do the runs
 run_app baseline ${NX} ${NY} ${NZ}
 
-# Do the SimpleFreq run
-run_app ee ${NX} ${NY} ${NZ}
+# Step through available frequencies
+MIN_START=1200000000
+MIN_STOP=2200000000
+STEP=100000000
+
+for freq in $(seq ${MIN_START} ${STEP} ${MIN_STOP}); do
+    printf '%.0s*' {1..80} && echo
+    echo "*** Starting ${freq} Hz run... ***"
+    printf '%.0s*' {1..80} && echo
+    # Do the SimpleFreq run
+    run_app ee ${NX} ${NY} ${NZ} ${freq}
+done
 
 popd
 
