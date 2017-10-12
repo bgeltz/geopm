@@ -34,8 +34,11 @@ for (_, name, _, tree_decider, leaf_decider), df in \
     energy_savings = (power_governing_df['energy'] - df['energy']) / power_governing_df['energy']
     runtime_savings = (power_governing_df['runtime'] - df['runtime']) / power_governing_df['runtime']
 
-    print 'Energy savings ratio  = {}'.format(energy_savings.item())
-    print 'Runtime savings ratio = {}'.format(runtime_savings.item())
+    print '_' * 60
+    print 'Energy savings = \n{}\n\n{}'.format(energy_savings, energy_savings.describe())
+    print '_' * 60
+    print 'Runtime savings = \n{}\n\n{}'.format(runtime_savings, runtime_savings.describe())
+    print '_' * 60
 
 #Trace file processing
 # power_governing_trace_df = trace_df.loc[idx[:, :, :, :, 'power_governing', :, :], ]
