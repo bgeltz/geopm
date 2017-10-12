@@ -961,20 +961,31 @@ class IMPIExecLauncher(Launcher):
         """
         parser = SubsetOptionParser()
         parser.add_option('-n', dest='num_rank', nargs=1, type='int')
+        parser.add_option('--hosts', dest='node_list', nargs=1, type='string')
+        parser.add_option('-f', '--hostfile', dest='host_file', nargs=1, type='string')
+        parser.add_option('--ppn', dest='rank_per_node', nargs=1, type='int')
 
         opts, self.argv_unparsed = parser.parse_args(self.argv_unparsed)
 
-        self.num_rank = opts.num_rank
-        self.num_node = None
+        if opts.num_rank:
+            self.num_rank = opts.num_rank
+        else:
+            self.num_rank = 1
+        if opts.rank_per_node:
+            self.rank_per_node = opts.rank_per_node
+            self.num_node = int_ceil_div(self.num_rank, opts.rank_per_node)
+        else:
+            self.rank_per_node = self.num_rank
+            self.num_node = 1
+        self.node_list = opts.node_list
+        self.host_file = opts.host_file
         self.cpu_per_rank = None
         self.timeout = None
         self.time_limit = None
         self.job_name = None
-        self.node_list = None
-        self.host_file = None
 
     def num_node_option(self):
-        return []
+        return ['--ppn', str(self.rank_per_node)]
 
     def affinity_option(self, is_geopmctl):
         if self.is_geopm_enabled:
@@ -1016,7 +1027,7 @@ class IMPIExecLauncher(Launcher):
         if self.node_list is None and self.host_file is None:
             result = []
         elif self.node_list is not None:
-            result = ['-hosts', self.node_list]
+            result = ['--hosts', self.node_list]
         elif self.host_file is not None:
             result = ['-f', self.host_file]
         return result
