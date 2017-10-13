@@ -3,14 +3,14 @@
 # set -x
 # set -e
 
-NODE_LIST=it[00-03]
-NUM_NODE=4
+NODE_LIST=it00,it01,it02,it03,it04,it05,it06,it07
+NUM_NODE=8
 
-APP_RANKS_PER_NODE=2
-NUM_CORE=43 # App CPU's per rank : APP_RANKS_PER_NODE * NUM_CORE <= Total number of available cores - 1
+APP_RANKS_PER_NODE=1
+NUM_CORE=86 # App CPU's per rank : APP_RANKS_PER_NODE * NUM_CORE <= Total number of available cores - 1
 
-# APP_RANKS_PER_NODE=1
-# NUM_CORE=86 # App CPU's per rank : APP_RANKS_PER_NODE * NUM_CORE <= Total number of available cores - 1
+# APP_RANKS_PER_NODE=2
+# NUM_CORE=43 # App CPU's per rank : APP_RANKS_PER_NODE * NUM_CORE <= Total number of available cores - 1
 
 NUM_RANK=$((${NUM_NODE} * ${APP_RANKS_PER_NODE})) # Total ranks!! Will be evenly split between nodes.
 
@@ -26,8 +26,8 @@ fi
 pushd ${OUTPUT_DIR}
 
 # Redirect stdout and stderr to an output file
-# exec > >(tee -i stdouterr.txt)
-# exec 2>&1
+exec > >(tee -i stdouterr.txt)
+exec 2>&1
 
 echo "Output will be saved in ${OUTPUT_DIR}/."
 
@@ -87,7 +87,7 @@ run_app(){
 
     init
 
-    PPN=$(( NUM_RANK / NUM_NODE + 1)) # FIXME +1 HACK to workaround launcher bug
+    PPN=$(( NUM_RANK / NUM_NODE ))
     CONFIG=${1:-"baseline"}
     NX=${2:-264}
     NY=${3:-256}
@@ -109,7 +109,6 @@ run_app(){
     GEOPM_REGION_BARRIER=true \
     OMP_NUM_THREADS=${NUM_CORE} \
     GEOPM_RM="IMPI" \
-    python -m pdb \
     ${HOME}/build/geopm/bin/geopmsrun \
     --geopm-ctl=process \
     --geopm-policy=${CONFIG}_policy.json \
@@ -117,7 +116,7 @@ run_app(){
     --geopm-trace=${CONFIG}-${ITERATION}-${MIN_FREQ}-minife-trace \
     --geopm-profile=${PROFILE_NAME}-${MIN_FREQ} \
     -n ${NUM_RANK} \
-    -ppn ${PPN} \
+    --ppn ${PPN} \
     --hosts ${NODE_LIST} \
     ${SRC_DIR}/miniFE.x nx=${NX} ny=${NY} nz=${NZ}
     # ${SRC_DIR}/miniFE.x nx=${NX} ny=${NY} nz=${NZ} verify_solution=1
@@ -154,14 +153,12 @@ NX=700
 NY=700
 NZ=700
 
-# run_app baseline 693 672 672 # Way too big!  Crashes node.
-# run_app baseline 660 640 640 # Takes 10-20 minutes per run, sometimes hangs for a long time
-
 # Do the runs
-LOOPS=1
+LOOPS=10
 for iter in $(seq 1 ${LOOPS}); do
+    echo "*** Starting iteration ${iter} *** "
     run_app baseline ${NX} ${NY} ${NZ} ${iter}
-    # run_app ee ${NX} ${NY} ${NZ} ${iter}
+    run_app ee ${NX} ${NY} ${NZ} ${iter}
 done
 
 popd
