@@ -92,9 +92,10 @@ run_app(){
     NX=${2:-264}
     NY=${3:-256}
     NZ=${4:-256}
-    MIN_FREQ=${5:-1300000000}
-    # MAX_FREQ=${6:-2300000000} # Turbo range
-    MAX_FREQ=${6:-2200000000} # Max non-turbo
+    ITERATION=${5:-1}
+    MIN_FREQ=${6:-1300000000}
+    # MAX_FREQ=${7:-2300000000} # Turbo range
+    MAX_FREQ=${7:-2200000000} # Max non-turbo
 
     print_hr -
     echo "Running ${CONFIG} config..."
@@ -109,8 +110,8 @@ run_app(){
     ${HOME}/build/geopm/bin/geopmsrun \
     --geopm-ctl=process \
     --geopm-policy=${CONFIG}_policy.json \
-    --geopm-report=${CONFIG}-minife.report \
-    --geopm-trace=${CONFIG}-minife-trace \
+    --geopm-report=${CONFIG}-${ITERATION}-${MIN_FREQ}-minife.report \
+    --geopm-trace=${CONFIG}-${ITERATION}-${MIN_FREQ}-minife-trace \
     --geopm-profile=${PROFILE_NAME}-${MIN_FREQ} \
     -n ${NUM_RANK} \
     -ppn ${PPN} \
@@ -140,16 +141,23 @@ create_policy ee static_policy simple_freq
 # NY=448
 # NZ=448
 
-NX=528 # Runs OK on 4 nodes.
-NY=512
-NZ=512
+# NX=528 # Runs OK on 4 nodes.
+# NY=512
+# NZ=512
+
+NX=693
+NY=672
+NZ=672
 
 # run_app baseline 693 672 672 # Way too big!  Crashes node.
 # run_app baseline 660 640 640 # Takes 10-20 minutes per run, sometimes hangs for a long time
 
 # Do the runs
-run_app baseline ${NX} ${NY} ${NZ}
-run_app ee ${NX} ${NY} ${NZ}
+LOOPS=1
+for iter in $(seq 1 ${LOOPS}); do
+    run_app baseline ${NX} ${NY} ${NZ} ${iter}
+    run_app ee ${NX} ${NY} ${NZ} ${iter}
+done
 
 popd
 
