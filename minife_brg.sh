@@ -3,7 +3,7 @@
 # set -x
 # set -e
 
-NODE_LIST=it00,it06,it07,it12
+NODE_LIST=it[00-03]
 NUM_NODE=4
 
 APP_RANKS_PER_NODE=2
@@ -26,8 +26,8 @@ fi
 pushd ${OUTPUT_DIR}
 
 # Redirect stdout and stderr to an output file
-exec > >(tee -i stdouterr.txt)
-exec 2>&1
+# exec > >(tee -i stdouterr.txt)
+# exec 2>&1
 
 echo "Output will be saved in ${OUTPUT_DIR}/."
 
@@ -55,7 +55,7 @@ print_hr(){
 }
 
 init(){
-    msrsave ${MSR_FILE}
+    pdsh -w ${NODE_LIST} "/usr/sbin/msrsave ${MSR_FILE}"
 
     # Use rdmsr to examine IA32_PERF_CTL 0x199
     print_hr !
@@ -75,7 +75,7 @@ cleanup(){
     pdsh -w ${NODE_LIST} "${HOME}/build/msr-tools/bin/rdmsr 0x199 -af 15:0 | cut -f2 -d':' | sort -u | uniq"
     print_hr !
 
-    msrsave -r ${MSR_FILE} > /dev/null
+    pdsh -w ${NODE_LIST} "/usr/sbin/msrsave -r ${MSR_FILE} > /dev/null"
 
     print_hr !
     echo "cleanup() after restore - Unique frequency values from IA32_PERF_CTL - 0x199:"
@@ -101,12 +101,15 @@ run_app(){
     echo "Running ${CONFIG} config..."
     print_hr -
 
+    set -x
+
     GEOPM_SIMPLE_FREQ_MIN=${MIN_FREQ} \
     GEOPM_SIMPLE_FREQ_MAX=${MAX_FREQ} \
     LD_LIBRARY_PATH=${HOME}/build/geopm/lib:${LD_LIBRARY_PATH} \
     GEOPM_REGION_BARRIER=true \
     OMP_NUM_THREADS=${NUM_CORE} \
     GEOPM_RM="IMPI" \
+    python -m pdb \
     ${HOME}/build/geopm/bin/geopmsrun \
     --geopm-ctl=process \
     --geopm-policy=${CONFIG}_policy.json \
@@ -119,12 +122,14 @@ run_app(){
     ${SRC_DIR}/miniFE.x nx=${NX} ny=${NY} nz=${NZ}
     # ${SRC_DIR}/miniFE.x nx=${NX} ny=${NY} nz=${NZ} verify_solution=1
 
+    set +x
+
     cleanup
 }
 
 # Source the startup script to set the path to the Intel toolchain and
 # set up the whitelist.
-source ${HOME}/startup
+pdsh -w ${NODE_LIST} "source ${HOME}/startup"
 
 # Setup baseline config
 create_policy baseline
@@ -145,9 +150,9 @@ create_policy ee static_policy simple_freq
 # NY=512
 # NZ=512
 
-NX=693
-NY=672
-NZ=672
+NX=700
+NY=700
+NZ=700
 
 # run_app baseline 693 672 672 # Way too big!  Crashes node.
 # run_app baseline 660 640 640 # Takes 10-20 minutes per run, sometimes hangs for a long time
@@ -156,7 +161,7 @@ NZ=672
 LOOPS=1
 for iter in $(seq 1 ${LOOPS}); do
     run_app baseline ${NX} ${NY} ${NZ} ${iter}
-    run_app ee ${NX} ${NY} ${NZ} ${iter}
+    # run_app ee ${NX} ${NY} ${NZ} ${iter}
 done
 
 popd
