@@ -6,7 +6,11 @@ import code
 import sys
 import pandas
 import matplotlib.pyplot as plt
+import os
 import code
+
+_, os.environ['COLUMNS'] = os.popen('stty size', 'r').read().split() # Ensures COLUMNS is set so text wraps properly
+pandas.set_option('display.width', int(os.environ['COLUMNS'])) # Same tweak for Pandas
 
 print '=' * 60
 file_path = sys.argv[1]
@@ -20,34 +24,37 @@ idx = pandas.IndexSlice
 
 # Report file processing
 power_governing_df = report_df.loc[idx[:, :, :, :, 'power_governing', :, :, 'epoch'], ]
-power_governing_df = power_governing_df.reset_index(drop=True)
-print 'Power Governing leaf decider :\n{}\n'.format(power_governing_df.T)
-
 simple_freq_df = report_df.loc[idx[:, :, :, :, 'simple_freq', :, :, 'epoch'], ]
-for (_, name, _, tree_decider, leaf_decider), df in \
-    simple_freq_df.groupby(level=['version', 'name', 'power_budget', 'tree_decider', 'leaf_decider']):
 
-    print '-' * 60
-    df = df.reset_index(drop=True)
-    print 'Simple Freq decider ({}):\n{}\n'.format(name, df.T)
+power_governing_node_gp = power_governing_df.groupby(level=['iteration', 'node_name']).mean() # Mean here is a hack to display the groupby object
+power_governing_iteration_gp = power_governing_df.groupby(level=['iteration']).mean()
 
-    energy_savings = (power_governing_df['energy'] - df['energy']) / power_governing_df['energy']
-    runtime_savings = (power_governing_df['runtime'] - df['runtime']) / power_governing_df['runtime']
+with pandas.option_context('display.max_rows', None, 'display.max_columns', 99):
+    print 'Power Governing leaf decider :\n{}\n'.format(power_governing_node_gp)
+    print 'Power Governing leaf decider iteration means :\n{}\n'.format(power_governing_iteration_gp)
 
+simple_freq_node_gp = simple_freq_df.groupby(level=['iteration', 'node_name']).mean() # Mean here is a hack to display the groupby object
+simple_freq_iteration_gp = simple_freq_df.groupby(level=['iteration']).mean()
+
+with pandas.option_context('display.max_rows', None, 'display.max_columns', 99):
+    print 'Simple Freq leaf decider :\n{}\n'.format(simple_freq_node_gp)
+    print 'Simple Freq leaf decider iteration means :\n{}\n'.format(simple_freq_iteration_gp)
+
+energy_savings_per_node = (power_governing_node_gp['energy'] - simple_freq_node_gp['energy']) / power_governing_node_gp['energy']
+energy_savings_per_iteration = (power_governing_iteration_gp['energy'] - simple_freq_iteration_gp['energy']) / power_governing_iteration_gp['energy']
+runtime_savings_per_node = (power_governing_node_gp['runtime'] - simple_freq_node_gp['runtime']) / power_governing_node_gp['runtime']
+runtime_savings_per_iteration = (power_governing_iteration_gp['runtime'] - simple_freq_iteration_gp['runtime']) / power_governing_iteration_gp['runtime']
+
+with pandas.option_context('display.max_rows', None, 'display.max_columns', 99):
     print '_' * 60
-    print 'Energy savings = \n{}\n\n{}'.format(energy_savings, energy_savings.describe())
+    print 'Energy savings per node = \n{}'.format(energy_savings_per_node.groupby('node_name').describe())
     print '_' * 60
-    print 'Runtime savings = \n{}\n\n{}'.format(runtime_savings, runtime_savings.describe())
+    print 'Energy savings  = \n{}'.format(energy_savings_per_node.describe())
     print '_' * 60
-
-#Trace file processing
-# power_governing_trace_df = trace_df.loc[idx[:, :, :, :, 'power_governing', :, :], ]
-# simple_freq_trace_df = trace_df.loc[idx[:, :, :, :, 'simple_freq', :, :], ]
-# power_governing_trace_df = power_governing_trace_df.reset_index(drop=True)
-# simple_freq_trace_df = simple_freq_trace_df.reset_index(drop=True)
-
-# power_governing_trace_df[['region_id', 'frequency-0']].plot.hist()
-# simple_freq_trace_df[['region_id', 'frequency-0']].plot.hist()
+    print 'Runtime savings per node = \n{}'.format(runtime_savings_per_node.groupby('node_name').describe())
+    print '_' * 60
+    print 'Runtime savings  = \n{}'.format(runtime_savings_per_node.describe())
+    print '_' * 60
 
 print '=' * 60
 
