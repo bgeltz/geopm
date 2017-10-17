@@ -1101,10 +1101,10 @@
 
       if (pswitch .eq. 0) then
          ierr = geopm_prof_region(c_char_'AT_PHASE_FFT_1'//c_null_char, &
-                                 GEOPM_REGION_HINT_MEMORY, region_id)
+                                 GEOPM_REGION_HINT_COMPUTE, region_id)
       else
          ierr = geopm_prof_region(c_char_'AT_PHASE_FFT_1_2'//c_null_char, &
-                                 GEOPM_REGION_HINT_MEMORY, region_id)
+                                 GEOPM_REGION_HINT_COMPUTE, region_id)
       endif
       ierr = geopm_prof_enter(region_id)
 !$omp parallel default(shared) private(i,j,k,jj,tid,y)
@@ -1180,7 +1180,7 @@
           chunk_size = 1
       end if
       ierr = geopm_prof_region(c_char_'AT_PHASE_FFT_2'//c_null_char, &
-                              GEOPM_REGION_HINT_MEMORY, region_id)
+                              GEOPM_REGION_HINT_COMPUTE, region_id)
       ierr = geopm_prof_enter(region_id)
 
 !$omp parallel default(shared) private(i,j,k,ii,y,tid)
@@ -1256,7 +1256,7 @@
           chunk_size = 1
       end if
       ierr = geopm_prof_region(c_char_'AT_PHASE_FFT_3'//c_null_char, &
-                              GEOPM_REGION_HINT_MEMORY, region_id)
+                              GEOPM_REGION_HINT_COMPUTE, region_id)
       ierr = geopm_prof_enter(region_id)
 !$omp parallel default(shared) private(i,j,k,ii,y, tid)
       tid = omp_get_thread_num()
