@@ -735,8 +735,8 @@ class TestIntegration(unittest.TestCase):
         app_conf = geopmpy.io.AppConf(name + '_app.config')
         self._tmp_files.append(app_conf.get_path())
         app_conf.set_loop_count(loop_count)
-        app_conf.append_region('dgemm', 12.0)
-        app_conf.append_region('stream', 1.2)
+        app_conf.append_region('dgemm', 20.25)
+        app_conf.append_region('stream', 1.449)
         app_conf.append_region('all2all', 1.0)
 
         # Setup the static policy run
