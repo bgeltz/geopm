@@ -394,6 +394,12 @@ class Launcher(object):
         self.default_handler = signal.getsignal(signal.SIGINT)
         self.num_rank = num_rank
         self.num_node = num_node
+        self.cpu_per_rank = cpu_per_rank
+        self.timeout = timeout
+        self.time_limit = time_limit
+        self.job_name = job_name
+        self.node_list = node_list
+        self.host_file = host_file
         self.argv = argv
         self.argv_unparsed = argv
         try:
