@@ -568,6 +568,9 @@ class Report(dict):
                 line = fid.readline()
             self._offset = fid.tell()
 
+        if found_totals:
+            self['app_totals'] = Region('app_totals', 777, self._total_runtime, self._total_energy, 0, self._total_mpi_runtime, 0)
+
         # Check static vars to see if they were parsed.  if not, use the Report vals
         if self._version is None and Report._version:
             self._version = Report._version
