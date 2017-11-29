@@ -233,6 +233,7 @@ namespace geopm
 
     void PlatformImp::msr_write(int device_type, int device_index, const std::string &msr_name, uint64_t value)
     {
+        return;
         off_t offset = msr_offset(msr_name);
         unsigned long mask = msr_mask(msr_name);
         msr_write(device_type, device_index, offset, mask, value);
@@ -240,6 +241,7 @@ namespace geopm
 
     void PlatformImp::msr_write(int device_type, int device_index, off_t msr_offset, unsigned long msr_mask, uint64_t value)
     {
+        return;
         uint64_t old_value;
         uint64_t curr_value;
 
@@ -276,12 +278,14 @@ namespace geopm
 
     uint64_t PlatformImp::msr_read(int device_type, int device_index, const std::string &msr_name)
     {
+        return 0;
         off_t offset = msr_offset(msr_name);
         return msr_read(device_type, device_index, offset);
     }
 
     uint64_t PlatformImp::msr_read(int device_type, int device_index, off_t msr_offset)
     {
+        return 0;
         uint64_t value;
         int index = device_index;
 
@@ -303,6 +307,7 @@ namespace geopm
 
     void PlatformImp::batch_msr_read(void)
     {
+        return;
         int rv = ioctl(m_msr_batch_desc, X86_IOC_MSR_BATCH, &m_batch);
 
         if (rv) {
@@ -357,6 +362,7 @@ namespace geopm
 
     void PlatformImp::msr_open(int cpu)
     {
+        return;
         int fd;
 
         msr_path(cpu);
@@ -428,6 +434,7 @@ namespace geopm
 
     void PlatformImp::save_msr_state(const char *path)
     {
+        return;
         size_t path_length;
         int niter = m_num_package;
         std::ofstream save_file;
@@ -535,6 +542,7 @@ namespace geopm
 
     void PlatformImp::revert_msr_state(void)
     {
+        return;
         restore_msr_state(m_msr_save_file_path.c_str());
     }
 

@@ -485,6 +485,7 @@ namespace geopm
 
     void KNLPlatformImp::rapl_init()
     {
+        return;
         // RAPL_POWER_UNIT described in Section 14.9.1 of
         // Intel(R) 64 and IA-32 Architectures Software Developer’s
         // Manual Volume 3 (3A, 3B, 3C & 3D): System Programming Guide
