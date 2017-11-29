@@ -219,6 +219,7 @@ namespace geopm
             double m_counter_energy_start;
             MPI_Comm m_ppn1_comm;
             int m_ppn1_rank;
+            struct geopm_time_s m_last_sample_time;
     };
 }
 

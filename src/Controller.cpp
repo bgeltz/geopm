@@ -208,6 +208,7 @@ namespace geopm
         , m_counter_energy_start(0.0)
         , m_ppn1_comm(MPI_COMM_NULL)
         , m_ppn1_rank(-1)
+        , m_last_sample_time({{0,0}})
     {
         int err = 0;
         int num_nodes = 0;
@@ -534,6 +535,7 @@ namespace geopm
         std::vector<struct geopm_sample_message_s> sample_msg(m_tree_comm->num_level());
         std::vector<struct geopm_telemetry_message_s> epoch_telemetry_sample(m_telemetry_sample.size());
         size_t length;
+        struct geopm_time_s tmp_time = {{0,0}};
 
         std::fill(sample_msg.begin(), sample_msg.end(), GEOPM_SAMPLE_INVALID);
 
@@ -563,17 +565,20 @@ namespace geopm
                 }
             }
             else {
-                int update_count = 0;
+                double time_elapsed = 0;
+                struct geopm_time_s tmp_time = {{0,0}};
+
                 do {
-                    if (m_platform->is_updated()) {
-                        ++update_count;
-                    }
+                    geopm_time(&tmp_time);
+                    time_elapsed = geopm_time_diff(&m_last_sample_time, &tmp_time);
                     geopm_signal_handler_check();
 #ifdef GEOPM_HAS_XMMINTRIN
                     _mm_pause();
 #endif
                 }
-                while (update_count < m_update_per_sample);
+                while (time_elapsed <= 0.005);
+
+                m_last_sample_time = tmp_time;
 
                 // Sample from the application, sample from RAPL,
                 // sample from the MSRs and fuse all this data into a
