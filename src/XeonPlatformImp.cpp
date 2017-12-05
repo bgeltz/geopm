@@ -569,6 +569,7 @@ namespace geopm
 
     void XeonPlatformImp::rapl_init()
     {
+        return;
         uint64_t tmp;
 
         //Make sure units are consistent between packages
