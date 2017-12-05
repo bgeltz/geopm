@@ -58,7 +58,7 @@ struct geopm_time_s {
 
 static inline int geopm_time(struct geopm_time_s *time)
 {
-    return clock_gettime(CLOCK_MONOTONIC_RAW, &(time->t));
+    return clock_gettime(CLOCK_MONOTONIC, &(time->t));
 }
 
 static inline double geopm_time_diff(const struct geopm_time_s *begin, const struct geopm_time_s *end)
