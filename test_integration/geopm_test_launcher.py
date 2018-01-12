@@ -56,7 +56,7 @@ class TestLauncher(object):
         self._region_barrier = region_barrier
         self._performance = performance
         self._node_list = None
-        self._pmpi_ctl = 'process'
+        self._pmpi_ctl = 'application'
         self._job_name = 'geopm_int_test'
         self._timeout = 30
         self.set_num_cpu()
@@ -99,6 +99,7 @@ class TestLauncher(object):
                              '--geopm-policy', self._ctl_conf.get_path(),
                              '--geopm-report', self._report_path,
                              '--geopm-profile', test_name]
+            argv.append('--geopm-disable-hyperthreads')
             if self._trace_path is not None:
                 argv.extend(['--geopm-trace', self._trace_path])
             if self._region_barrier:

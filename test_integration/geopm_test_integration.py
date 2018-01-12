@@ -612,7 +612,7 @@ class TestIntegration(unittest.TestCase):
         self._tmp_files.append(app_conf.get_path())
         app_conf.append_region('dgemm', 8.0)
         app_conf.set_loop_count(loop_count)
-        self._options['power_budget'] = 150
+        self._options['power_budget'] = 180
         ctl_conf = geopmpy.io.CtlConf(name + '_ctl.config', self._mode, self._options)
         self._tmp_files.append(ctl_conf.get_path())
         launcher = geopm_test_launcher.TestLauncher(app_conf, ctl_conf, report_path, trace_path, time_limit=900)
