@@ -212,16 +212,28 @@ class FreqSweepAnalysis(Analysis):
         super(FreqSweepAnalysis, self).find_files('_freq_*.report')
 
     def report_process(self, parse_output):
-        return self._region_freq_map(parse_output.get_report_df())
+        output = argparse.Namespace()
+        report_df = parse_output.get_report_df()
+        output.region_freq_map = self._region_freq_map(report_df)
+        output.means_df = self._region_means_df(report_df)
+        return output
+
+    def report(self, process_output):
+        if self._verbose:
+            for region, df in process_output.means_df.groupby('region'):
+                df = df.sort_index(ascending=False)
+                sys.stdout.write('-' * 120 + '\n')
+                sys.stdout.write('Region : {}\n'.format(region))
+                sys.stdout.write('{}\n'.format(df))
+            sys.stdout.write('-' * 120 + '\n')
+
+        region_freq_str = self._region_freq_str(process_output.region_freq_map)
+        sys.stdout.write('Region frequency map: \n    {}\n'.format(region_freq_str.replace(',', '\n    ')))
 
     def plot_process(self, parse_output):
         regions = parse_output.get_report_df().index.get_level_values('region').unique().tolist()
         return {region: self._runtime_energy_sweep(parse_output.get_report_df(), region)
                 for region in regions}
-
-    def report(self, process_output):
-        region_freq_str = self._region_freq_str(process_output)
-        sys.stdout.write('Region frequency map: {}\n'.format(region_freq_str))
 
     def plot(self, process_output):
         for region, df in process_output.iteritems():
@@ -237,11 +249,20 @@ class FreqSweepAnalysis(Analysis):
 
         freq_pname = get_freq_profiles(report_df, self._name)
 
+        skip_turbo = True
         is_once = True
         for freq, profile_name in freq_pname:
+            if skip_turbo:
+                skip_turbo = False
+                continue
+
             region_mean_runtime = report_df.loc[pandas.IndexSlice[:, profile_name, :, :, :, :, :, :], ].groupby(level='region')
             for region, region_df in region_mean_runtime:
+                # if region.startswith('MPI'):
+                #     continue
+
                 runtime = region_df['runtime'].mean()
+
                 if is_once:
                     min_runtime[region] = runtime
                     optimal_freq[region] = freq
@@ -251,6 +272,7 @@ class FreqSweepAnalysis(Analysis):
                 elif min_runtime[region] * (1.0 + self._perf_margin) > runtime:
                     optimal_freq[region] = freq
             is_once = False
+
         return optimal_freq
 
     def _region_freq_str(self, region_freq_map):
@@ -279,6 +301,55 @@ class FreqSweepAnalysis(Analysis):
         return pandas.DataFrame(data,
                                 index=freqs,
                                 columns=['runtime', 'energy'])
+
+    def _region_means_df(self, report_df):
+        idx = pandas.IndexSlice
+
+        profile_name_map = {}
+        names_list = report_df.index.get_level_values('name').unique().tolist()
+        for name in names_list:
+            profile_name_map[name] = int(float(name.split('_freq_')[1]) * 1e-6)
+        report_df = report_df.rename(profile_name_map)
+        report_df.index = report_df.index.set_names('freq_mhz', level='name')
+
+        cols = ['energy', 'runtime', 'mpi_runtime', 'frequency', 'count']
+
+        means_df = report_df.groupby(['region', 'freq_mhz'])[cols].mean()
+        # Define ref_freq to be three steps back from the end of the list.  The end of the list should always be
+        # the turbo frequency.
+        ref_freq = report_df.index.get_level_values('freq_mhz').unique().tolist()[-4]
+
+        # Calculate the energy/runtime comparisons against the ref_freq
+        es = pandas.Series((means_df['energy'] -
+                            means_df.loc[idx[:, ref_freq], ]['energy'].reset_index(level='freq_mhz', drop=True))
+                            / (means_df.loc[idx[:, ref_freq], ]['energy'].reset_index(level='freq_mhz', drop=True))
+                           , name='DCEngVar_%')
+        means_df = pandas.concat([means_df, es], axis=1)
+
+        rs = pandas.Series((means_df['runtime'] -
+                            means_df.loc[idx[:, ref_freq], ]['runtime'].reset_index(level='freq_mhz', drop=True))
+                           / (means_df.loc[idx[:, ref_freq], ]['runtime'].reset_index(level='freq_mhz', drop=True))
+                           , name='TimeVar_%')
+        means_df = pandas.concat([means_df, rs], axis=1)
+
+        bs = pandas.Series(means_df['runtime'] * (1.0 + self._perf_margin), name='runtime_bound')
+        means_df = pandas.concat([means_df, bs], axis=1)
+
+        # Calculate power and kwh
+        p = pandas.Series(means_df['energy'] / means_df['runtime'], name='power')
+        means_df = pandas.concat([means_df, p], axis=1)
+
+        # kwh = pandas.Series((means_df['runtime'] / 3600) * (means_df['power'] / 1000), name='kwh')
+        # means_df = pandas.concat([means_df, kwh], axis=1)
+
+        cols = means_df.columns.tolist()
+        tmp = cols.pop(7)
+        cols.insert(2, tmp)
+
+        # import code
+        # code.interact(local=dict(globals(), **locals()))
+
+        return means_df[cols]
 
 
 def baseline_comparison(parse_output, baseline_name, comp_name):
