@@ -91,9 +91,10 @@ class Analysis(object):
     reports and/or logs. Implementations should define how to launch experiments,
     parse and process the output, and process text reports or graphical plots.
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, verbose=True):
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True):
         self._name = name
         self._output_dir = output_dir
+        self._loops = loops
         self._verbose = verbose
         self._num_rank = num_rank
         self._num_node = num_node
@@ -168,9 +169,10 @@ class FreqSweepAnalysis(Analysis):
     frequency, finds the lowest frequency for each region at which the performance
     will not be degraded by more than a given margin.
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, verbose=True):
-        super(FreqSweepAnalysis, self).__init__(name, output_dir, num_rank, num_node, app_argv, verbose)
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True):
+        super(FreqSweepAnalysis, self).__init__(name, output_dir, num_rank, num_node, app_argv, loops, verbose)
         self._perf_margin = 0.1
+        self._skip_turbo = True
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
         ctl_conf = geopmpy.io.CtlConf(self._name + '_ctl.config',
@@ -184,29 +186,32 @@ class FreqSweepAnalysis(Analysis):
             del os.environ['GEOPM_EFFICIENT_FREQ_RID_MAP']
         if 'GEOPM_EFFICIENT_FREQ_ONLINE' in os.environ:
             del os.environ['GEOPM_EFFICIENT_FREQ_ONLINE']
-        for freq in sys_freq_avail():
-            profile_name = fixed_freq_name(self._name, freq)
-            report_path = os.path.join(self._output_dir, profile_name + '.report')
-            trace_path = os.path.join(self._output_dir, profile_name + '-trace')
-            self._report_paths.append(report_path)
-            if self._app_argv and not os.path.exists(report_path):
-                os.environ['GEOPM_EFFICIENT_FREQ_MIN'] = str(freq)
-                os.environ['GEOPM_EFFICIENT_FREQ_MAX'] = str(freq)
-                argv = ['dummy', '--geopm-ctl', geopm_ctl,
-                                 '--geopm-policy', ctl_conf.get_path(),
-                                 '--geopm-report', report_path,
-                                 '--geopm-trace', trace_path,
-                                 '--geopm-profile', profile_name]
-                if do_geopm_barrier:
-                    argv.append('--geopm-barrier')
-                argv.append('--')
-                argv.extend(self._app_argv)
-                launcher = geopmpy.launcher.factory(argv, self._num_rank, self._num_node)
-                launcher.run()
-            elif os.path.exists(report_path):
-                sys.stderr.write('<geopmpy>: Warning: output file "{}" exists, skipping run.\n'.format(report_path))
-            else:
-                raise RuntimeError('<geopmpy>: output file "{}" does not exist, but no application was specified.\n'.format(report_path))
+
+        freqs = sys_freq_avail()
+        for loop in range(0, self._loops):
+            for freq in freqs:
+                profile_name = fixed_freq_name(self._name, freq)
+                report_path = os.path.join(self._output_dir, profile_name + '_{}_.report'.format(loop))
+                trace_path = os.path.join(self._output_dir, profile_name + '_{}_trace'.format(loop))
+                self._report_paths.append(report_path)
+                if self._app_argv and not os.path.exists(report_path):
+                    os.environ['GEOPM_EFFICIENT_FREQ_MIN'] = str(freq)
+                    os.environ['GEOPM_EFFICIENT_FREQ_MAX'] = str(freq)
+                    argv = ['dummy', '--geopm-ctl', geopm_ctl,
+                                     '--geopm-policy', ctl_conf.get_path(),
+                                     '--geopm-report', report_path,
+                                     '--geopm-trace', trace_path,
+                                     '--geopm-profile', profile_name]
+                    if do_geopm_barrier:
+                        argv.append('--geopm-barrier')
+                    argv.append('--')
+                    argv.extend(self._app_argv)
+                    launcher = geopmpy.launcher.factory(argv, self._num_rank, self._num_node)
+                    launcher.run()
+                elif os.path.exists(report_path):
+                    sys.stderr.write('<geopmpy>: Warning: output file "{}" exists, skipping run.\n'.format(report_path))
+                else:
+                    raise RuntimeError('<geopmpy>: output file "{}" does not exist, but no application was specified.\n'.format(report_path))
 
     def find_files(self):
         super(FreqSweepAnalysis, self).find_files('_freq_*.report')
@@ -249,7 +254,7 @@ class FreqSweepAnalysis(Analysis):
 
         freq_pname = get_freq_profiles(report_df, self._name)
 
-        skip_turbo = True
+        skip_turbo = self._skip_turbo
         is_once = True
         for freq, profile_name in freq_pname:
             if skip_turbo:
@@ -258,10 +263,11 @@ class FreqSweepAnalysis(Analysis):
 
             region_mean_runtime = report_df.loc[pandas.IndexSlice[:, profile_name, :, :, :, :, :, :], ].groupby(level='region')
             for region, region_df in region_mean_runtime:
-                # if region.startswith('MPI'):
-                #     continue
 
                 runtime = region_df['runtime'].mean()
+                # Only set a freq in the map if the runtime is meaningful
+                if runtime <= 1.0 or region.startswith('MPI'):
+                    continue
 
                 if is_once:
                     min_runtime[region] = runtime
@@ -308,7 +314,7 @@ class FreqSweepAnalysis(Analysis):
         profile_name_map = {}
         names_list = report_df.index.get_level_values('name').unique().tolist()
         for name in names_list:
-            profile_name_map[name] = int(float(name.split('_freq_')[1]) * 1e-6)
+            profile_name_map[name] = int(float(name.split('_freq_')[-1]) * 1e-6)
         report_df = report_df.rename(profile_name_map)
         report_df.index = report_df.index.set_names('freq_mhz', level='name')
 
@@ -342,12 +348,10 @@ class FreqSweepAnalysis(Analysis):
         # kwh = pandas.Series((means_df['runtime'] / 3600) * (means_df['power'] / 1000), name='kwh')
         # means_df = pandas.concat([means_df, kwh], axis=1)
 
+        # Modify column order so that runtime bound occurs just after runtime
         cols = means_df.columns.tolist()
         tmp = cols.pop(7)
         cols.insert(2, tmp)
-
-        # import code
-        # code.interact(local=dict(globals(), **locals()))
 
         return means_df[cols]
 
@@ -381,15 +385,16 @@ class OfflineBaselineComparisonAnalysis(Analysis):
     compared.  Uses baseline comparison function to do analysis.
 
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, verbose=True):
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True):
         super(OfflineBaselineComparisonAnalysis, self).__init__(name,
                                                                 output_dir,
                                                                 num_rank,
                                                                 num_node,
                                                                 app_argv,
+                                                                loops,
                                                                 verbose)
         self._sweep_analysis = FreqSweepAnalysis(self._name, output_dir, num_rank,
-                                                 num_node, app_argv, verbose)
+                                                 num_node, app_argv, loops, verbose)
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
         """
@@ -407,35 +412,38 @@ class OfflineBaselineComparisonAnalysis(Analysis):
         self._sweep_analysis.launch(geopm_ctl, do_geopm_barrier)
         parse_output = self._sweep_analysis.parse()
         process_output = self._sweep_analysis.report_process(parse_output)
-        region_freq_str = self._sweep_analysis._region_freq_str(process_output)
+        region_freq_str = self._sweep_analysis._region_freq_str(process_output.region_freq_map)
 
         # Run offline frequency decider
-        os.environ['GEOPM_EFFICIENT_FREQ_RID_MAP'] = region_freq_str
-        if 'GEOPM_EFFICIENT_FREQ_ONLINE' in os.environ:
-            del os.environ['GEOPM_EFFICIENT_FREQ_ONLINE']
-        profile_name = self._name + '_offline'
-        report_path = os.path.join(self._output_dir, profile_name + '.report')
-        self._report_paths.append(report_path)
+        for loop in range(0, self._loops):
+            os.environ['GEOPM_EFFICIENT_FREQ_RID_MAP'] = region_freq_str
+            if 'GEOPM_EFFICIENT_FREQ_ONLINE' in os.environ:
+                del os.environ['GEOPM_EFFICIENT_FREQ_ONLINE']
+            profile_name = self._name + '_offline'
+            report_path = os.path.join(self._output_dir, profile_name + '_{}_.report'.format(loop))
+            trace_path = os.path.join(self._output_dir, profile_name + '_{}_trace'.format(loop))
+            self._report_paths.append(report_path)
 
-        self._min_freq = min(sys_freq_avail())
-        self._max_freq = max(sys_freq_avail())
-        if self._app_argv and not os.path.exists(report_path):
-            os.environ['GEOPM_EFFICIENT_FREQ_MIN'] = str(self._min_freq)
-            os.environ['GEOPM_EFFICIENT_FREQ_MAX'] = str(self._max_freq)
-            argv = ['dummy', '--geopm-ctl', geopm_ctl,
-                             '--geopm-policy', ctl_conf.get_path(),
-                             '--geopm-report', report_path,
-                             '--geopm-profile', profile_name]
-            if do_geopm_barrier:
-                argv.append('--geopm-barrier')
-            argv.append('--')
-            argv.extend(self._app_argv)
-            launcher = geopmpy.launcher.factory(argv, self._num_rank, self._num_node)
-            launcher.run()
-        elif os.path.exists(report_path):
-            sys.stderr.write('<geopmpy>: Warning: output file "{}" exists, skipping run.\n'.format(report_path))
-        else:
-            raise RuntimeError('<geopmpy>: output file "{}" does not exist, but no application was specified.\n'.format(report_path))
+            self._min_freq = min(sys_freq_avail())
+            self._max_freq = max(sys_freq_avail())
+            if self._app_argv and not os.path.exists(report_path):
+                os.environ['GEOPM_EFFICIENT_FREQ_MIN'] = str(self._min_freq)
+                os.environ['GEOPM_EFFICIENT_FREQ_MAX'] = str(self._max_freq)
+                argv = ['dummy', '--geopm-ctl', geopm_ctl,
+                                 '--geopm-policy', ctl_conf.get_path(),
+                                 '--geopm-report', report_path,
+                                 '--geopm-trace', trace_path,
+                                 '--geopm-profile', profile_name]
+                if do_geopm_barrier:
+                    argv.append('--geopm-barrier')
+                argv.append('--')
+                argv.extend(self._app_argv)
+                launcher = geopmpy.launcher.factory(argv, self._num_rank, self._num_node)
+                launcher.run()
+            elif os.path.exists(report_path):
+                sys.stderr.write('<geopmpy>: Warning: output file "{}" exists, skipping run.\n'.format(report_path))
+            else:
+                raise RuntimeError('<geopmpy>: output file "{}" does not exist, but no application was specified.\n'.format(report_path))
 
     def parse(self):
         """Combines reports from the sweep with other reports to be
@@ -487,12 +495,13 @@ class OnlineBaselineComparisonAnalysis(Analysis):
     compared.  Uses baseline comparison class to do analysis.
 
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, verbose=True):
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True):
         super(OnlineBaselineComparisonAnalysis, self).__init__(name,
                                                                output_dir,
                                                                num_rank,
                                                                num_node,
                                                                app_argv,
+                                                               loops,
                                                                verbose)
         self._sweep_analysis = FreqSweepAnalysis(self._name, output_dir, num_rank,
                                                  num_node, app_argv, verbose)
@@ -513,7 +522,7 @@ class OnlineBaselineComparisonAnalysis(Analysis):
         self._sweep_analysis.launch(geopm_ctl, do_geopm_barrier)
         parse_output = self._sweep_analysis.parse()
         process_output = self._sweep_analysis.report_process(parse_output)
-        region_freq_str = self._sweep_analysis._region_freq_str(process_output)
+        region_freq_str = self._sweep_analysis._region_freq_str(process_output.region_freq_map)
 
         # Run online frequency decider
         os.environ['GEOPM_EFFICIENT_FREQ_ONLINE'] = 'yes'
@@ -594,8 +603,8 @@ class StreamDgemmMixAnalysis(Analysis):
        online mode are compared to the run a sticker frequency.
 
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, verbose=True):
-        super(StreamDgemmMixAnalysis, self).__init__(name, output_dir, num_rank, num_node, app_argv, verbose)
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True):
+        super(StreamDgemmMixAnalysis, self).__init__(name, output_dir, num_rank, num_node, app_argv, loops, verbose)
 
         self._sweep_analysis = {}
         self._offline_analysis = {}
@@ -762,6 +771,7 @@ geopmanalysis - Used to run applications and analyze results for specific
   -v, --verbose         Print verbose debugging information.
   --geopm-ctl           launch type for the GEOPM controller.  Available
                         GEOPM_CTL values: process, pthread, or application (default 'process')
+  --loops               Number of experiments to run per analysis type
   --version             show the GEOPM version number and exit
 
 """.format(argv_0=sys.argv[0])
@@ -803,6 +813,8 @@ Copyright (c) 2015, 2016, 2017, 2018, Intel Corporation. All rights reserved.
                         action='store_true', default=False)
     parser.add_argument('--geopm-ctl', dest='geopm_ctl',
                         action='store', default='process')
+    parser.add_argument('--loops',
+                        action='store', default=1, type=int)
     parser.add_argument('-v', '--verbose',
                         action='store_true', default=False)
 
@@ -815,6 +827,7 @@ Copyright (c) 2015, 2016, 2017, 2018, Intel Corporation. All rights reserved.
                                                      args.num_rank,
                                                      args.num_node,
                                                      args.app_argv,
+                                                     args.loops,
                                                      args.verbose)
 
     if args.skip_launch:
