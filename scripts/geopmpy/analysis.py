@@ -520,9 +520,9 @@ class OnlineBaselineComparisonAnalysis(Analysis):
 
         # Run frequency sweep
         self._sweep_analysis.launch(geopm_ctl, do_geopm_barrier)
-        parse_output = self._sweep_analysis.parse()
-        process_output = self._sweep_analysis.report_process(parse_output)
-        region_freq_str = self._sweep_analysis._region_freq_str(process_output.region_freq_map)
+        # parse_output = self._sweep_analysis.parse()
+        # process_output = self._sweep_analysis.report_process(parse_output)
+        # region_freq_str = self._sweep_analysis._region_freq_str(process_output.region_freq_map)
 
         # Run online frequency decider
         os.environ['GEOPM_EFFICIENT_FREQ_ONLINE'] = 'yes'
