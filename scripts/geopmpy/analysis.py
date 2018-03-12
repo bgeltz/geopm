@@ -54,6 +54,7 @@ def sys_freq_avail():
     step_freq = 100e6
     with open('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq') as fid:
         min_freq = 1e3 * float(fid.readline())
+
     with open('/proc/cpuinfo') as fid:
         for line in fid.readlines():
             if line.startswith('model name\t:'):
@@ -169,10 +170,10 @@ class FreqSweepAnalysis(Analysis):
     frequency, finds the lowest frequency for each region at which the performance
     will not be degraded by more than a given margin.
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True):
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, skip_turbo=True):
         super(FreqSweepAnalysis, self).__init__(name, output_dir, num_rank, num_node, app_argv, loops, verbose)
         self._perf_margin = 0.1
-        self._skip_turbo = True
+        self._skip_turbo = skip_turbo
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
         ctl_conf = geopmpy.io.CtlConf(self._name + '_ctl.config',
@@ -385,7 +386,7 @@ class OfflineBaselineComparisonAnalysis(Analysis):
     compared.  Uses baseline comparison function to do analysis.
 
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True):
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, skip_turbo=True):
         super(OfflineBaselineComparisonAnalysis, self).__init__(name,
                                                                 output_dir,
                                                                 num_rank,
@@ -394,7 +395,8 @@ class OfflineBaselineComparisonAnalysis(Analysis):
                                                                 loops,
                                                                 verbose)
         self._sweep_analysis = FreqSweepAnalysis(self._name, output_dir, num_rank,
-                                                 num_node, app_argv, loops, verbose)
+                                                 num_node, app_argv, loops, verbose, skip_turbo)
+        self._skip_turbo = skip_turbo
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
         """
@@ -412,7 +414,12 @@ class OfflineBaselineComparisonAnalysis(Analysis):
         self._sweep_analysis.launch(geopm_ctl, do_geopm_barrier)
         parse_output = self._sweep_analysis.parse()
         process_output = self._sweep_analysis.report_process(parse_output)
+        if self._verbose:
+            self._sweep_analysis.report(process_output)
         region_freq_str = self._sweep_analysis._region_freq_str(process_output.region_freq_map)
+
+        if self._verbose:
+            sys.stdout.write('Region frequency map: \n    {}\n'.format(region_freq_str.replace(',', '\n    ')))
 
         # Run offline frequency decider
         for loop in range(0, self._loops):
@@ -461,8 +468,8 @@ class OfflineBaselineComparisonAnalysis(Analysis):
 
     def report_process(self, parse_output):
         freq_pname = get_freq_profiles(parse_output, self._name)
-
-        baseline_freq, baseline_name = freq_pname[0]
+        freq_idx = 1 if self._skip_turbo else 0
+        baseline_freq, baseline_name = freq_pname[freq_idx]
         comp_name = self._name + '_offline'
         baseline_comp = baseline_comparison(parse_output, baseline_name, comp_name)
         for freq, freq_name in freq_pname:
@@ -474,12 +481,12 @@ class OfflineBaselineComparisonAnalysis(Analysis):
 
     def report(self, process_output):
         name = self._name + '_offline'
-        rs = 'Report for {}\n'.format(name)
+        rs = 'Report for {}\n\n'.format(name)
         rs += 'Energy Decrease: {0:.2f}%\n'.format(process_output.loc[name]['energy'])
-        rs += 'Runtime Increase: {0:.2f}%\n'.format(process_output.loc[name]['runtime'])
-        rs += 'All frequencies:\n'
-        rs += str(process_output)+'\n'
-        sys.stdout.write(rs)
+        rs += 'Runtime Increase: {0:.2f}%\n\n'.format(process_output.loc[name]['runtime'])
+        rs += 'All frequencies (positive numbers are (%) energy saved or (%) increased runtime compared to reference freuency):\n'
+        rs += str(process_output.sort_index(ascending=False)[1:])+'\n'
+        sys.stdout.write(rs + '\n')
 
     def plot_process(self, parse_output):
         pass
