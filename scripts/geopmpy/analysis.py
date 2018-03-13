@@ -52,9 +52,8 @@ def sys_freq_avail():
     Returns a list of the available frequencies on the current platform.
     """
     step_freq = 100e6
-    # with open('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq') as fid:
-    #     min_freq = 1e3 * float(fid.readline())
-    min_freq = 1800000000.0
+    with open('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq') as fid:
+        min_freq = 1e3 * float(fid.readline())
 
     with open('/proc/cpuinfo') as fid:
         for line in fid.readlines():
@@ -365,6 +364,7 @@ class FreqSweepAnalysis(Analysis):
         return means_df[cols]
 
 
+# TODO Remove this once the StreamDgemmMixAnalysis is updated.
 def baseline_comparison(parse_output, baseline_name, comp_name):
     """Used to compare a set of runs for a profile of interest to a baseline profile.
 
@@ -426,8 +426,6 @@ def baseline_comparison(parse_output, comp_name):
     baseline_means_df = pandas.concat([baseline_means_df, rs], axis=1)
 
     return baseline_means_df
-    # import code
-    # code.interact(local=dict(globals(), **locals()))
 
 
 class OfflineBaselineComparisonAnalysis(Analysis):
@@ -447,7 +445,7 @@ class OfflineBaselineComparisonAnalysis(Analysis):
         self._sweep_analysis = FreqSweepAnalysis(self._name, output_dir, num_rank,
                                                  num_node, app_argv, loops, verbose, skip_turbo)
         self._skip_turbo = skip_turbo
-        self._ref_freq = sys_freq_avail()[-2] # Sticker
+        self._ref_freq = sys_freq_avail()[-2] if skip_turbo else sys_freq_avail()[-1]
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
         """
@@ -517,9 +515,6 @@ class OfflineBaselineComparisonAnalysis(Analysis):
         return parse_output
 
     def report_process(self, parse_output):
-        freq_pname = get_freq_profiles(parse_output, self._name)
-        freq_idx = 1 if self._skip_turbo else 0
-        baseline_freq, baseline_name = freq_pname[freq_idx]
         comp_name = self._name + '_offline'
         baseline_comp_df = baseline_comparison(parse_output, comp_name)
         return baseline_comp_df
@@ -537,7 +532,7 @@ class OfflineBaselineComparisonAnalysis(Analysis):
         sys.stdout.write(rs + '\n')
 
         if self._verbose:
-            rs = 'All region data:'
+            rs = 'All region data:\n'
             for region, df in process_output.groupby('region'):
                 df = df.sort_index(ascending=False)
                 rs += '-' * 120 + '\n'
@@ -553,14 +548,14 @@ class OfflineBaselineComparisonAnalysis(Analysis):
         pass
 
 
-# TODO: this only needs to run the sticker freq, not the whole sweep
+# TODO: this only needs to run the reference freq, not the whole sweep
 class OnlineBaselineComparisonAnalysis(Analysis):
     """Compares the energy efficiency plugin in offline mode to the
     baseline at sticker frequency.  Launches freq sweep and run to be
     compared.  Uses baseline comparison class to do analysis.
 
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True):
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, skip_turbo=True):
         super(OnlineBaselineComparisonAnalysis, self).__init__(name,
                                                                output_dir,
                                                                num_rank,
@@ -569,7 +564,8 @@ class OnlineBaselineComparisonAnalysis(Analysis):
                                                                loops,
                                                                verbose)
         self._sweep_analysis = FreqSweepAnalysis(self._name, output_dir, num_rank,
-                                                 num_node, app_argv, verbose)
+                                                 num_node, app_argv, loops, verbose, skip_turbo)
+        self._skip_turbo = skip_turbo
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
         """
@@ -585,38 +581,38 @@ class OnlineBaselineComparisonAnalysis(Analysis):
 
         # Run frequency sweep
         self._sweep_analysis.launch(geopm_ctl, do_geopm_barrier)
-        # parse_output = self._sweep_analysis.parse()
-        # process_output = self._sweep_analysis.report_process(parse_output)
-        # region_freq_str = self._sweep_analysis._region_freq_str(process_output.region_freq_map)
 
         # Run online frequency decider
-        os.environ['GEOPM_EFFICIENT_FREQ_ONLINE'] = 'yes'
-        if 'GEOPM_EFFICIENT_FREQ_RID_MAP' in os.environ:
-            del os.environ['GEOPM_EFFICIENT_FREQ_RID_MAP']
+        for loop in range(0, self._loops):
+            os.environ['GEOPM_EFFICIENT_FREQ_ONLINE'] = 'yes'
+            if 'GEOPM_EFFICIENT_FREQ_RID_MAP' in os.environ:
+                del os.environ['GEOPM_EFFICIENT_FREQ_RID_MAP']
 
-        profile_name = self._name + '_online'
-        report_path = os.path.join(self._output_dir, profile_name + '.report')
-        self._report_paths.append(report_path)
+            profile_name = self._name + '_online'
+            report_path = os.path.join(self._output_dir, profile_name + '_{}_.report'.format(loop))
+            trace_path = os.path.join(self._output_dir, profile_name + '_{}_trace'.format(loop))
+            self._report_paths.append(report_path)
 
-        self._min_freq = min(sys_freq_avail())
-        self._max_freq = max(sys_freq_avail())
-        if self._app_argv and not os.path.exists(report_path):
-            os.environ['GEOPM_EFFICIENT_FREQ_MIN'] = str(self._min_freq)
-            os.environ['GEOPM_EFFICIENT_FREQ_MAX'] = str(self._max_freq)
-            argv = ['dummy', '--geopm-ctl', geopm_ctl,
-                             '--geopm-policy', ctl_conf.get_path(),
-                             '--geopm-report', report_path,
-                             '--geopm-profile', profile_name]
-            if do_geopm_barrier:
-                argv.append('--geopm-barrier')
-            argv.append('--')
-            argv.extend(self._app_argv)
-            launcher = geopmpy.launcher.factory(argv, self._num_rank, self._num_node)
-            launcher.run()
-        elif os.path.exists(report_path):
-            sys.stderr.write('<geopmpy>: Warning: output file "{}" exists, skipping run.\n'.format(report_path))
-        else:
-            raise RuntimeError('<geopmpy>: output file "{}" does not exist, but no application was specified.\n'.format(report_path))
+            freqs = sys_freq_avail()
+            self._min_freq = min(freqs)
+            self._max_freq = freqs[-2] if self._skip_turbo else max(freqs)
+            if self._app_argv and not os.path.exists(report_path):
+                os.environ['GEOPM_EFFICIENT_FREQ_MIN'] = str(self._min_freq)
+                os.environ['GEOPM_EFFICIENT_FREQ_MAX'] = str(self._max_freq)
+                argv = ['dummy', '--geopm-ctl', geopm_ctl,
+                                 '--geopm-policy', ctl_conf.get_path(),
+                                 '--geopm-report', report_path,
+                                 '--geopm-profile', profile_name]
+                if do_geopm_barrier:
+                    argv.append('--geopm-barrier')
+                argv.append('--')
+                argv.extend(self._app_argv)
+                launcher = geopmpy.launcher.factory(argv, self._num_rank, self._num_node)
+                launcher.run()
+            elif os.path.exists(report_path):
+                sys.stderr.write('<geopmpy>: Warning: output file "{}" exists, skipping run.\n'.format(report_path))
+            else:
+                raise RuntimeError('<geopmpy>: output file "{}" does not exist, but no application was specified.\n'.format(report_path))
 
     def parse(self):
         """Combines reports from the sweep with other reports to be
@@ -633,26 +629,31 @@ class OnlineBaselineComparisonAnalysis(Analysis):
         return parse_output
 
     def report_process(self, parse_output):
-        freq_pname = get_freq_profiles(parse_output, self._name)
-
-        baseline_freq, baseline_name = freq_pname[0]
         comp_name = self._name + '_online'
-        baseline_comp = baseline_comparison(parse_output, baseline_name, comp_name)
-        for freq, freq_name in freq_pname:
-            comp = baseline_comparison(parse_output, freq_name, comp_name)
-            comp.index = [freq_name]
-            baseline_comp = baseline_comp.append(comp)
-        baseline_comp.sort_index(ascending=True, inplace=True)
-        return baseline_comp
+        baseline_comp_df = baseline_comparison(parse_output, comp_name)
+        return baseline_comp_df
 
     def report(self, process_output):
         name = self._name + '_online'
-        rs = 'Report for {}\n'.format(name)
-        rs += 'Energy Decrease: {0:.2f}%\n'.format(process_output.loc[name]['energy'])
-        rs += 'Runtime Increase: {0:.2f}%\n'.format(process_output.loc[name]['runtime'])
-        rs += 'All frequencies:\n'
-        rs += str(process_output)+'\n'
-        sys.stdout.write(rs)
+        ref_freq = int(self._ref_freq * 1e-6)
+
+        rs = 'Report for {}\n\n'.format(name)
+        rs += 'Energy Decrease: {0:.2f}%\n'.format(process_output.loc[pandas.IndexSlice['epoch', ref_freq], 'energy_savings'])
+        rs += 'Runtime Decrease: {0:.2f}%\n\n'.format(process_output.loc[pandas.IndexSlice['epoch', ref_freq], 'runtime_savings'])
+        rs += 'Epoch data:\n'
+        rs += str(process_output.loc[pandas.IndexSlice['epoch', :], ].sort_index(ascending=False)) + '\n'
+        rs += '-' * 120 + '\n'
+        sys.stdout.write(rs + '\n')
+
+        if self._verbose:
+            rs = 'All region data:\n'
+            for region, df in process_output.groupby('region'):
+                df = df.sort_index(ascending=False)
+                rs += '-' * 120 + '\n'
+                rs += 'Region : {}\n'.format(region)
+                rs += '{}\n'.format(df)
+            rs += '-' * 120 + '\n'
+            sys.stdout.write(rs)
 
     def plot_process(self, parse_output):
         pass
@@ -909,8 +910,8 @@ Copyright (c) 2015, 2016, 2017, 2018, Intel Corporation. All rights reserved.
                 num_node = len(fid.readlines())
         else:
             num_node = -1
-        # if num_node != args.num_node:
-        #     raise RuntimeError('Launch must be made inside of a job allocation and application must run on all allocated nodes.')
+        if num_node != args.num_node:
+            raise RuntimeError('Launch must be made inside of a job allocation and application must run on all allocated nodes.')
 
         analysis.launch(args.geopm_ctl)
 
@@ -921,3 +922,4 @@ Copyright (c) 2015, 2016, 2017, 2018, Intel Corporation. All rights reserved.
         if args.level > 1:
             process_output = analysis.plot_process(parse_output)
             analysis.plot(process_output)
+
