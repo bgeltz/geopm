@@ -52,8 +52,9 @@ def sys_freq_avail():
     Returns a list of the available frequencies on the current platform.
     """
     step_freq = 100e6
-    with open('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq') as fid:
-        min_freq = 1e3 * float(fid.readline())
+    # with open('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq') as fid:
+    #     min_freq = 1e3 * float(fid.readline())
+    min_freq = 1800000000.0
 
     with open('/proc/cpuinfo') as fid:
         for line in fid.readlines():
@@ -84,6 +85,16 @@ def get_freq_profiles(df, prefix):
 def fixed_freq_name(prefix, freq):
     """Returns the formatted name for fixed frequency runs."""
     return '{}_freq_{}'.format(prefix, freq)
+
+
+def profile_to_freq_mhz(df):
+    profile_name_map = {}
+    names_list = df.index.get_level_values('name').unique().tolist()
+    for name in names_list:
+        profile_name_map[name] = int(float(name.split('_freq_')[-1]) * 1e-6)
+    df = df.rename(profile_name_map)
+    df.index = df.index.set_names('freq_mhz', level='name')
+    return df
 
 
 class Analysis(object):
@@ -226,12 +237,14 @@ class FreqSweepAnalysis(Analysis):
 
     def report(self, process_output):
         if self._verbose:
+            rs = ''
             for region, df in process_output.means_df.groupby('region'):
                 df = df.sort_index(ascending=False)
-                sys.stdout.write('-' * 120 + '\n')
-                sys.stdout.write('Region : {}\n'.format(region))
-                sys.stdout.write('{}\n'.format(df))
-            sys.stdout.write('-' * 120 + '\n')
+                rs += '-' * 120 + '\n'
+                rs += 'Region : {}\n'.format(region)
+                rs += '{}\n'.format(df)
+            rs += '-' * 120 + '\n'
+            sys.stdout.write(rs)
 
         region_freq_str = self._region_freq_str(process_output.region_freq_map)
         sys.stdout.write('Region frequency map: \n    {}\n'.format(region_freq_str.replace(',', '\n    ')))
@@ -312,12 +325,7 @@ class FreqSweepAnalysis(Analysis):
     def _region_means_df(self, report_df):
         idx = pandas.IndexSlice
 
-        profile_name_map = {}
-        names_list = report_df.index.get_level_values('name').unique().tolist()
-        for name in names_list:
-            profile_name_map[name] = int(float(name.split('_freq_')[-1]) * 1e-6)
-        report_df = report_df.rename(profile_name_map)
-        report_df.index = report_df.index.set_names('freq_mhz', level='name')
+        report_df = profile_to_freq_mhz(report_df)
 
         cols = ['energy', 'runtime', 'mpi_runtime', 'frequency', 'count']
 
@@ -364,12 +372,15 @@ def baseline_comparison(parse_output, baseline_name, comp_name):
     frame = parse_output.loc[pandas.IndexSlice[:, comp_name, :, :, :, :, :, :], ]
     baseline_frame = parse_output.loc[pandas.IndexSlice[:, baseline_name, :, :, :, :, :, :], ]
 
+
     index = ['name']
     baseline_frame.reset_index(index, drop=True, inplace=True)
     frame.reset_index(index, drop=True, inplace=True)
 
+    # This will generate the runtime savings column for every iteration.
     runtime_savings = (baseline_frame['runtime'] - frame['runtime']) / baseline_frame['runtime']
     # show runtime as positive percent; we only care about epoch region
+    # The call to mean here is where the seperate iterations of each experiment are reduced.
     runtime_savings = runtime_savings.loc[pandas.IndexSlice[:, :, :, :, :, :, 'epoch'], ].mean() * -100.0
     energy_savings = (baseline_frame['energy'] - frame['energy']) / baseline_frame['energy']
     energy_savings = energy_savings.loc[pandas.IndexSlice[:, :, :, :, :, :, 'epoch'], ].mean() * 100
@@ -378,6 +389,45 @@ def baseline_comparison(parse_output, baseline_name, comp_name):
     result_df = pandas.DataFrame([[energy_savings, runtime_savings]],
                                  index=[comp_name], columns=['energy', 'runtime'])
     return result_df
+
+
+def baseline_comparison(parse_output, comp_name):
+    """Used to compare a set of runs for a progile of interest to a baseline profile including verbose data.
+    """
+    comp_df = parse_output.loc[pandas.IndexSlice[:, comp_name, :, :, :, :, :, :], ]
+    baseline_df = parse_output.loc[parse_output.index.get_level_values('name') != comp_name]
+    baseline_df = profile_to_freq_mhz(baseline_df)
+
+    # Reduce the data
+    cols = ['energy', 'runtime', 'mpi_runtime', 'frequency', 'count']
+    baseline_means_df = baseline_df.groupby(['region', 'freq_mhz'])[cols].mean()
+    comp_means_df = comp_df.groupby(['region', 'name'])[cols].mean()
+
+    # Add power column
+    p = pandas.Series(baseline_means_df['energy'] / baseline_means_df['runtime'], name='power')
+    baseline_means_df = pandas.concat([baseline_means_df, p], axis=1)
+    p = pandas.Series(comp_means_df['energy'] / comp_means_df['runtime'], name='power')
+    comp_means_df = pandas.concat([comp_means_df, p], axis=1)
+
+    # Add kwh column
+    kwh = pandas.Series((baseline_means_df['runtime'] / 3600) * (baseline_means_df['power'] / 1000), name='kwh')
+    baseline_means_df = pandas.concat([baseline_means_df, kwh], axis=1)
+    kwh = pandas.Series((comp_means_df['runtime'] / 3600) * (comp_means_df['power'] / 1000), name='kwh')
+    comp_means_df = pandas.concat([comp_means_df, kwh], axis=1)
+
+    # Calculate energy savings
+    es = pandas.Series((baseline_means_df['energy'] - comp_means_df['energy'].reset_index('name', drop=True))\
+                       / baseline_means_df['energy'], name='energy_savings') * 100
+    baseline_means_df = pandas.concat([baseline_means_df, es], axis=1)
+
+    # Calculate runtime savings
+    rs = pandas.Series((baseline_means_df['runtime'] - comp_means_df['runtime'].reset_index('name', drop=True))\
+                       / baseline_means_df['runtime'], name='runtime_savings') * 100
+    baseline_means_df = pandas.concat([baseline_means_df, rs], axis=1)
+
+    return baseline_means_df
+    # import code
+    # code.interact(local=dict(globals(), **locals()))
 
 
 class OfflineBaselineComparisonAnalysis(Analysis):
@@ -397,6 +447,7 @@ class OfflineBaselineComparisonAnalysis(Analysis):
         self._sweep_analysis = FreqSweepAnalysis(self._name, output_dir, num_rank,
                                                  num_node, app_argv, loops, verbose, skip_turbo)
         self._skip_turbo = skip_turbo
+        self._ref_freq = sys_freq_avail()[-2] # Sticker
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
         """
@@ -418,8 +469,7 @@ class OfflineBaselineComparisonAnalysis(Analysis):
             self._sweep_analysis.report(process_output)
         region_freq_str = self._sweep_analysis._region_freq_str(process_output.region_freq_map)
 
-        if self._verbose:
-            sys.stdout.write('Region frequency map: \n    {}\n'.format(region_freq_str.replace(',', '\n    ')))
+        sys.stdout.write('Region frequency map: \n    {}\n'.format(region_freq_str.replace(',', '\n    ')))
 
         # Run offline frequency decider
         for loop in range(0, self._loops):
@@ -471,22 +521,30 @@ class OfflineBaselineComparisonAnalysis(Analysis):
         freq_idx = 1 if self._skip_turbo else 0
         baseline_freq, baseline_name = freq_pname[freq_idx]
         comp_name = self._name + '_offline'
-        baseline_comp = baseline_comparison(parse_output, baseline_name, comp_name)
-        for freq, freq_name in freq_pname:
-            comp = baseline_comparison(parse_output, freq_name, comp_name)
-            comp.index = [freq_name]
-            baseline_comp = baseline_comp.append(comp)
-        baseline_comp.sort_index(ascending=True, inplace=True)
-        return baseline_comp
+        baseline_comp_df = baseline_comparison(parse_output, comp_name)
+        return baseline_comp_df
 
     def report(self, process_output):
         name = self._name + '_offline'
+        ref_freq = int(self._ref_freq * 1e-6)
+
         rs = 'Report for {}\n\n'.format(name)
-        rs += 'Energy Decrease: {0:.2f}%\n'.format(process_output.loc[name]['energy'])
-        rs += 'Runtime Increase: {0:.2f}%\n\n'.format(process_output.loc[name]['runtime'])
-        rs += 'All frequencies (positive numbers are (%) energy saved or (%) increased runtime compared to reference freuency):\n'
-        rs += str(process_output.sort_index(ascending=False)[1:])+'\n'
+        rs += 'Energy Decrease: {0:.2f}%\n'.format(process_output.loc[pandas.IndexSlice['epoch', ref_freq], 'energy_savings'])
+        rs += 'Runtime Decrease: {0:.2f}%\n\n'.format(process_output.loc[pandas.IndexSlice['epoch', ref_freq], 'runtime_savings'])
+        rs += 'Epoch data:\n'
+        rs += str(process_output.loc[pandas.IndexSlice['epoch', :], ].sort_index(ascending=False)) + '\n'
+        rs += '-' * 120 + '\n'
         sys.stdout.write(rs + '\n')
+
+        if self._verbose:
+            rs = 'All region data:'
+            for region, df in process_output.groupby('region'):
+                df = df.sort_index(ascending=False)
+                rs += '-' * 120 + '\n'
+                rs += 'Region : {}\n'.format(region)
+                rs += '{}\n'.format(df)
+            rs += '-' * 120 + '\n'
+            sys.stdout.write(rs)
 
     def plot_process(self, parse_output):
         pass
@@ -851,8 +909,8 @@ Copyright (c) 2015, 2016, 2017, 2018, Intel Corporation. All rights reserved.
                 num_node = len(fid.readlines())
         else:
             num_node = -1
-        if num_node != args.num_node:
-            raise RuntimeError('Launch must be made inside of a job allocation and application must run on all allocated nodes.')
+        # if num_node != args.num_node:
+        #     raise RuntimeError('Launch must be made inside of a job allocation and application must run on all allocated nodes.')
 
         analysis.launch(args.geopm_ctl)
 
