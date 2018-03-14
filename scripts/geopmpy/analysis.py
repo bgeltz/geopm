@@ -180,10 +180,10 @@ class FreqSweepAnalysis(Analysis):
     frequency, finds the lowest frequency for each region at which the performance
     will not be degraded by more than a given margin.
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, skip_turbo=True):
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, allow_turbo=False):
         super(FreqSweepAnalysis, self).__init__(name, output_dir, num_rank, num_node, app_argv, loops, verbose)
         self._perf_margin = 0.1
-        self._skip_turbo = skip_turbo
+        self._allow_turbo = allow_turbo
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
         ctl_conf = geopmpy.io.CtlConf(self._name + '_ctl.config',
@@ -267,11 +267,11 @@ class FreqSweepAnalysis(Analysis):
 
         freq_pname = get_freq_profiles(report_df, self._name)
 
-        skip_turbo = self._skip_turbo
+        allow_turbo_oneshot = self._allow_turbo
         is_once = True
         for freq, profile_name in freq_pname:
-            if skip_turbo:
-                skip_turbo = False
+            if not allow_turbo_oneshot:
+                allow_turbo_oneshot = True
                 continue
 
             region_mean_runtime = report_df.loc[pandas.IndexSlice[:, profile_name, :, :, :, :, :, :], ].groupby(level='region')
@@ -407,7 +407,7 @@ class OfflineBaselineComparisonAnalysis(Analysis):
     compared.  Uses baseline comparison function to do analysis.
 
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, skip_turbo=True):
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, allow_turbo=False):
         super(OfflineBaselineComparisonAnalysis, self).__init__(name,
                                                                 output_dir,
                                                                 num_rank,
@@ -416,9 +416,9 @@ class OfflineBaselineComparisonAnalysis(Analysis):
                                                                 loops,
                                                                 verbose)
         self._sweep_analysis = FreqSweepAnalysis(self._name, output_dir, num_rank,
-                                                 num_node, app_argv, loops, verbose, skip_turbo)
-        self._skip_turbo = skip_turbo
-        self._ref_freq = sys_freq_avail()[-2] if skip_turbo else sys_freq_avail()[-1]
+                                                 num_node, app_argv, loops, verbose, allow_turbo)
+        self._allow_turbo = allow_turbo
+        self._ref_freq = sys_freq_avail()[-1] if allow_turbo else sys_freq_avail()[-2]
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
         """
@@ -528,7 +528,7 @@ class OnlineBaselineComparisonAnalysis(Analysis):
     compared.  Uses baseline comparison class to do analysis.
 
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, skip_turbo=True):
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, allow_turbo=False):
         super(OnlineBaselineComparisonAnalysis, self).__init__(name,
                                                                output_dir,
                                                                num_rank,
@@ -537,8 +537,8 @@ class OnlineBaselineComparisonAnalysis(Analysis):
                                                                loops,
                                                                verbose)
         self._sweep_analysis = FreqSweepAnalysis(self._name, output_dir, num_rank,
-                                                 num_node, app_argv, loops, verbose, skip_turbo)
-        self._skip_turbo = skip_turbo
+                                                 num_node, app_argv, loops, verbose, allow_turbo)
+        self._allow_turbo = allow_turbo
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
         """
@@ -568,7 +568,7 @@ class OnlineBaselineComparisonAnalysis(Analysis):
 
             freqs = sys_freq_avail()
             self._min_freq = min(freqs)
-            self._max_freq = freqs[-2] if self._skip_turbo else max(freqs)
+            self._max_freq = max(freqs) if self._allow_turbo else freqs[-2]
             if self._app_argv and not os.path.exists(report_path):
                 os.environ['GEOPM_EFFICIENT_FREQ_MIN'] = str(self._min_freq)
                 os.environ['GEOPM_EFFICIENT_FREQ_MAX'] = str(self._max_freq)
@@ -642,10 +642,10 @@ class StreamDgemmMixAnalysis(Analysis):
        online mode are compared to the run a sticker frequency.
 
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, skip_turbo=True):
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, allow_turbo=False):
         super(StreamDgemmMixAnalysis, self).__init__(name, output_dir, num_rank, num_node, app_argv, loops, verbose)
 
-        self._skip_turbo = skip_turbo
+        self._allow_turbo = allow_turbo
         self._sweep_analysis = {}
         self._offline_analysis = {}
         self._online_analysis = {}
@@ -690,7 +690,7 @@ class StreamDgemmMixAnalysis(Analysis):
                                                                 app_argv,
                                                                 self._loops,
                                                                 self._verbose,
-                                                                self._skip_turbo)
+                                                                self._allow_turbo)
             # Analysis class that includes a full sweep plus the plugin run with freq map
             self._offline_analysis[ratio_idx] = OfflineBaselineComparisonAnalysis(name,
                                                                                   self._output_dir,
@@ -699,7 +699,7 @@ class StreamDgemmMixAnalysis(Analysis):
                                                                                   app_argv,
                                                                                   self._loops,
                                                                                   self._verbose,
-                                                                                  self._skip_turbo)
+                                                                                  self._allow_turbo)
             # Analysis class that runs the online plugin
             self._online_analysis[ratio_idx] = OnlineBaselineComparisonAnalysis(name,
                                                                                 self._output_dir,
@@ -708,7 +708,7 @@ class StreamDgemmMixAnalysis(Analysis):
                                                                                 app_argv,
                                                                                 self._loops,
                                                                                 self._verbose,
-                                                                                self._skip_turbo)
+                                                                                self._allow_turbo)
 
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
@@ -830,6 +830,7 @@ geopmanalysis - Used to run applications and analyze results for specific
   --geopm-ctl           launch type for the GEOPM controller.  Available
                         GEOPM_CTL values: process, pthread, or application (default 'process')
   --loops               Number of experiments to run per analysis type
+  --allow-turbo         Allows turbo to be tested when determining best per-region frequencies
   --version             show the GEOPM version number and exit
 
 """.format(argv_0=sys.argv[0])
@@ -873,6 +874,8 @@ Copyright (c) 2015, 2016, 2017, 2018, Intel Corporation. All rights reserved.
                         action='store', default='process')
     parser.add_argument('--loops',
                         action='store', default=1, type=int)
+    parser.add_argument('--allow-turbo', dest='allow_turbo',
+                        action='store_true', default=False)
     parser.add_argument('-v', '--verbose',
                         action='store_true', default=False)
 
@@ -886,7 +889,8 @@ Copyright (c) 2015, 2016, 2017, 2018, Intel Corporation. All rights reserved.
                                                      args.num_node,
                                                      args.app_argv,
                                                      args.loops,
-                                                     args.verbose)
+                                                     args.verbose,
+                                                     args.allow_turbo)
 
     if args.skip_launch:
         analysis.find_files()
