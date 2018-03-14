@@ -364,7 +364,7 @@ class FreqSweepAnalysis(Analysis):
         return means_df[cols]
 
 
-def baseline_comparison_means(parse_output, comp_name):
+def baseline_comparison(parse_output, comp_name):
     """Used to compare a set of runs for a progile of interest to a baseline profile including verbose data.
     """
     comp_df = parse_output.loc[pandas.IndexSlice[:, comp_name, :, :, :, :, :, :], ]
@@ -489,7 +489,7 @@ class OfflineBaselineComparisonAnalysis(Analysis):
 
     def report_process(self, parse_output):
         comp_name = self._name + '_offline'
-        baseline_comp_df = baseline_comparison_means(parse_output, comp_name)
+        baseline_comp_df = baseline_comparison(parse_output, comp_name)
         return baseline_comp_df
 
     def report(self, process_output):
@@ -603,7 +603,7 @@ class OnlineBaselineComparisonAnalysis(Analysis):
 
     def report_process(self, parse_output):
         comp_name = self._name + '_online'
-        baseline_comp_df = baseline_comparison_means(parse_output, comp_name)
+        baseline_comp_df = baseline_comparison(parse_output, comp_name)
         return baseline_comp_df
 
     def report(self, process_output):
@@ -642,9 +642,10 @@ class StreamDgemmMixAnalysis(Analysis):
        online mode are compared to the run a sticker frequency.
 
     """
-    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True):
+    def __init__(self, name, output_dir, num_rank, num_node, app_argv, loops=1, verbose=True, skip_turbo=True):
         super(StreamDgemmMixAnalysis, self).__init__(name, output_dir, num_rank, num_node, app_argv, loops, verbose)
 
+        self._skip_turbo = skip_turbo
         self._sweep_analysis = {}
         self._offline_analysis = {}
         self._online_analysis = {}
@@ -687,21 +688,27 @@ class StreamDgemmMixAnalysis(Analysis):
                                                                 self._num_rank,
                                                                 self._num_node,
                                                                 app_argv,
-                                                                self._verbose)
+                                                                self._loops,
+                                                                self._verbose,
+                                                                self._skip_turbo)
             # Analysis class that includes a full sweep plus the plugin run with freq map
             self._offline_analysis[ratio_idx] = OfflineBaselineComparisonAnalysis(name,
                                                                                   self._output_dir,
                                                                                   self._num_rank,
                                                                                   self._num_node,
                                                                                   app_argv,
-                                                                                  self._verbose)
+                                                                                  self._loops,
+                                                                                  self._verbose,
+                                                                                  self._skip_turbo)
             # Analysis class that runs the online plugin
             self._online_analysis[ratio_idx] = OnlineBaselineComparisonAnalysis(name,
                                                                                 self._output_dir,
                                                                                 self._num_rank,
                                                                                 self._num_node,
                                                                                 app_argv,
-                                                                                self._verbose)
+                                                                                self._loops,
+                                                                                self._verbose,
+                                                                                self._skip_turbo)
 
 
     def launch(self, geopm_ctl='process', do_geopm_barrier=False):
@@ -746,19 +753,19 @@ class StreamDgemmMixAnalysis(Analysis):
 
             best_fit_df = df.loc[pandas.IndexSlice[:, best_fit_name, :, :, :, :, :, :], ]
             combo_df = baseline_df.append(best_fit_df)
-            comp_df = baseline_comparison_means(combo_df, best_fit_name)
+            comp_df = baseline_comparison(combo_df, best_fit_name)
             offline_app_energy = comp_df.loc[pandas.IndexSlice['epoch', int(baseline_freq * 1e-6)], 'energy_savings']
             offline_app_runtime = comp_df.loc[pandas.IndexSlice['epoch', int(baseline_freq * 1e-6)], 'runtime_savings']
 
             offline_df = df.loc[pandas.IndexSlice[:, name + '_offline', :, :, :, :, :, :], ]
             combo_df = baseline_df.append(offline_df)
-            comp_df = baseline_comparison_means(combo_df, name + '_offline')
+            comp_df = baseline_comparison(combo_df, name + '_offline')
             offline_phase_energy = comp_df.loc[pandas.IndexSlice['epoch', int(baseline_freq * 1e-6)], 'energy_savings']
             offline_phase_runtime = comp_df.loc[pandas.IndexSlice['epoch', int(baseline_freq * 1e-6)], 'runtime_savings']
 
             online_df = df.loc[pandas.IndexSlice[:, name + '_online', :, :, :, :, :, :], ]
             combo_df = baseline_df.append(online_df)
-            comp_df = baseline_comparison_means(combo_df, name + '_online')
+            comp_df = baseline_comparison(combo_df, name + '_online')
             online_phase_energy = comp_df.loc[pandas.IndexSlice['epoch', int(baseline_freq * 1e-6)], 'energy_savings']
             online_phase_runtime = comp_df.loc[pandas.IndexSlice['epoch', int(baseline_freq * 1e-6)], 'runtime_savings']
 
