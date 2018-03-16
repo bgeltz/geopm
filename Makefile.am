@@ -264,6 +264,8 @@ libgeopmpolicy_la_SOURCES = src/Agent.cpp \
                             src/Controller.hpp \
                             src/ControlMessage.cpp \
                             src/ControlMessage.hpp \
+                            src/CpuinfoIOGroup.cpp \
+                            src/CpuinfoIOGroup.hpp \
                             src/Decider.cpp \
                             src/Decider.hpp \
                             src/DefaultProfile.cpp \
@@ -274,8 +276,6 @@ libgeopmpolicy_la_SOURCES = src/Agent.cpp \
                             src/GlobalPolicy.hpp \
                             src/IOGroup.cpp \
                             src/IOGroup.hpp \
-                            src/CpuinfoIOGroup.cpp \
-                            src/CpuinfoIOGroup.hpp \
                             src/geopm.h \
                             src/geopm_env.h \
                             src/geopm_error.h \
@@ -293,6 +293,8 @@ libgeopmpolicy_la_SOURCES = src/Agent.cpp \
                             src/geopm_version.h \
                             src/geopm_policy.h \
                             src/Helper.hpp \
+							src/ManagerIO.cpp \
+							src/ManagerIO.hpp \
                             src/KNLPlatformImp.cpp \
                             src/KNLPlatformImp.hpp \
                             src/Kontroller.cpp \
