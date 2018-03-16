@@ -105,6 +105,8 @@ src/GlobalPolicy.hpp
 src/Helper.hpp
 src/IOGroup.cpp
 src/IOGroup.hpp
+src/JsonIOGroup.cpp
+src/JsonIOGroup.hpp
 src/KNLPlatformImp.cpp
 src/KNLPlatformImp.hpp
 src/MPIComm.cpp
@@ -198,6 +200,7 @@ test/geopm_test.sh
 test/GlobalPolicyTest.cpp
 test/googletest.mk
 test/GoverningDeciderTest.cpp
+test/JsonIOGroupTest.cpp
 test/legacy_whitelist.out
 test/ProfileTest.cpp
 test/RuntimeRegulatorTest.cpp

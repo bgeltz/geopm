@@ -78,6 +78,15 @@ GTEST_TESTS = test/gtest_links/PlatformFactoryTest.platform_register \
               test/gtest_links/GlobalPolicyTest.invalid_policy \
               test/gtest_links/GlobalPolicyTest.c_interface \
               test/gtest_links/GlobalPolicyTest.negative_c_interface \
+              test/gtest_links/ManagerIOSamplerTest.parse_json_file \
+              test/gtest_links/ManagerIOSamplerTest.negative_parse_json_file \
+              test/gtest_links/ManagerIOSamplerTest.parse_json_shm \
+              test/gtest_links/ManagerIOSamplerTest.parse_json_shm_int \
+              test/gtest_links/ManagerIOSamplerTest.negative_shm_setup_mutex \
+              test/gtest_links/ManagerIOSamplerTest.negative_parse_bad_json_shm \
+              test/gtest_links/ManagerIOSamplerTest.negative_parse_json_shm \
+              test/gtest_links/ManagerIOSamplerTest.negative_bad_files \
+              test/gtest_links/ManagerIOSamplerTest.get_json_str \
               test/gtest_links/ExceptionTest.hello \
               test/gtest_links/ProfileIOSampleTest.hello \
               test/gtest_links/ProfileTableTest.hello \
@@ -285,6 +294,7 @@ test_geopm_test_SOURCES = test/geopm_test.cpp \
                           test/PlatformTopologyTest.cpp \
                           test/CircularBufferTest.cpp \
                           test/GlobalPolicyTest.cpp \
+                          test/ManagerIOTest.cpp \
                           test/ExceptionTest.cpp \
                           test/ProfileTableTest.cpp \
                           test/SampleRegulatorTest.cpp \
