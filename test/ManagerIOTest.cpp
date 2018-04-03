@@ -56,6 +56,10 @@
 #include "PlatformTopo.hpp"
 #include "SharedMemory.hpp"
 
+// DEBUGGING
+#include "geopm_time.h"
+// DEBUGGING
+
 using geopm::IPlatformTopo;
 using geopm::ManagerIO;
 using geopm::ManagerIOSampler;
@@ -114,10 +118,20 @@ TEST_F(ManagerIOTest, write_json_shm)
     struct geopm_manager_shmem_s *data = (struct geopm_manager_shmem_s *) json_shmem->pointer();
     ManagerIO jio(m_json_shm_path, std::move(json_shmem));
 
+    // DEBUGGING
+    double timeout;
+    struct geopm_time_s start, curr;
+    // DEBUGGING
+
+    geopm_time(&start);
     jio.adjust("POWER_CONSUMED", 777);
     jio.adjust("RUNTIME", 12.3456);
     jio.adjust("GHZ", 2.3e9);
     jio.write_batch();
+    geopm_time(&curr);
+
+    timeout = geopm_time_diff(&start, &curr);
+    std::cout << "BRG time to write 3 JSON fields to fake memory: " << timeout << std::endl;
 
     std::string json_str(data->json_str, data->json_size);
     Json root (json_str);
@@ -133,10 +147,27 @@ TEST_F(ManagerIOTest, negative_write_json_shm_int)
 {
     ManagerIO jio(m_json_shm_path);
 
+    // DEBUGGING
+    double timeout;
+    struct geopm_time_s start, curr;
+    // DEBUGGING
+
+    geopm_time(&start);
     jio.adjust("POWER_CONSUMED", 777);
     jio.adjust("RUNTIME", 12.3456);
-    jio.adjust("GHZ", 2.3e9);
+    jio.adjust("GHZ1", 2.1e9);
+    jio.adjust("GHZ2", 2.2e9);
+    jio.adjust("GHZ3", 2.3e9);
+    jio.adjust("GHZ4", 2.4e9);
+    jio.adjust("GHZ5", 2.5e9);
+    jio.adjust("GHZ6", 2.6e9);
+    jio.adjust("GHZ7", 2.7e9);
+    jio.adjust("GHZ8", 2.8e9);
     jio.write_batch();
+    geopm_time(&curr);
+
+    timeout = geopm_time_diff(&start, &curr);
+    std::cout << "BRG time to write 3 JSON fields to real shmem: " << timeout << std::endl;
 
     GEOPM_EXPECT_THROW_MESSAGE(jio.write_batch(),
                                GEOPM_ERROR_INVALID, "write requested before previous update has been processed.");
@@ -276,11 +307,18 @@ TEST_F(ManagerIOSamplerTest, parse_json_shm_int)
 
     ManagerIOSampler gp(m_json_shm_path);
 
+    // DEBUGGING
+    double timeout;
+    struct geopm_time_s start, curr;
+    // DEBUGGING
+
+    geopm_time(&start);
     EXPECT_FALSE(gp.is_update_available());
     EXPECT_EQ(400, gp.sample("POWER_MAX"));
     EXPECT_EQ(2.3e9, gp.sample("FREQUENCY_MAX"));
     EXPECT_EQ(1.2e9, gp.sample("FREQUENCY_MIN"));
     EXPECT_EQ(3.14159265, gp.sample("PI"));
+    geopm_time(&curr);
 
     std::string updated_json = m_valid_json;
     updated_json.replace(m_valid_json.find("400"), 3, "350");
@@ -292,6 +330,9 @@ TEST_F(ManagerIOSamplerTest, parse_json_shm_int)
     pthread_mutex_unlock(&data->lock);
 
     gp.read_batch();
+
+    timeout = geopm_time_diff(&start, &curr);
+    std::cout << "BRG time to read 4 JSON fields to real shmem: " << timeout << std::endl;
 
     EXPECT_EQ(350, gp.sample("POWER_MAX"));
     EXPECT_EQ(2.3e9, gp.sample("FREQUENCY_MAX"));
