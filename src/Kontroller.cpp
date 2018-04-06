@@ -46,6 +46,7 @@
 #include "PlatformIO.hpp"
 #include "Agent.hpp"
 #include "TreeComm.hpp"
+#include "ManagerIO.hpp"
 #include "config.h"
 
 extern "C"
@@ -81,7 +82,7 @@ namespace geopm
                      std::unique_ptr<IReporter>(new Reporter(geopm_env_report(), platform_io())),
                      std::unique_ptr<ITracer>(new Tracer(geopm_env_trace())),
                      std::vector<std::unique_ptr<IAgent> >{},
-                     {})
+                     std::unique_ptr<IManagerIOSampler>(new ManagerIOSampler(global_policy_path, true)))
     {
         for (int level = 0; level != m_num_level_ctl; ++level) {
             m_agent.push_back(agent_factory().make_plugin(m_agent_name));
@@ -103,7 +104,7 @@ namespace geopm
                            std::unique_ptr<IReporter> reporter,
                            std::unique_ptr<ITracer> tracer,
                            std::vector<std::unique_ptr<IAgent> > level_agent,
-                           std::map<std::string, double> manager_values)
+                           std::unique_ptr<IManagerIOSampler> manager_io_sampler)
         : m_comm(comm)
         , m_platform_topo(plat_topo)
         , m_platform_io(plat_io)
@@ -122,7 +123,7 @@ namespace geopm
         , m_out_policy(m_num_level_ctl)
         , m_in_sample(m_num_level_ctl)
         , m_out_sample(m_num_send_up)
-        , m_manager_values(manager_values)
+        , m_manager_io_sampler(std::move(manager_io_sampler))
     {
 
         // Three dimensional vector over levels, children, and message
@@ -211,12 +212,8 @@ namespace geopm
         int level = m_num_level_ctl - 1;//m_tree_comm->num_level_controlled() - 1;
         if (m_is_root) {
             std::cout << "KON sample manager" << std::endl;
-            /// @todo: no longer using IOgroup for this. will be special object with a similar API
-            int policy_idx = 0;
-            for (auto key : m_agent_policy_names) {
-                m_in_policy[policy_idx] = m_manager_values.at(key);
-                ++policy_idx;
-            }
+            // TODO Check ManagerIOSampler for available updates, and selectively call read_batch();
+            m_in_policy = m_manager_io_sampler->sample();
         }
         else {
             m_tree_comm->receive_down(level, m_in_policy);

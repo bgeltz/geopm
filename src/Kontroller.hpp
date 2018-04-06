@@ -47,6 +47,7 @@ namespace geopm
     class IPlatformIO;
     class IKontrollerIO;
     class IManagerIO;
+    class IManagerIOSampler;
     class IApplicationIO;
     class IReporter;
     class ITracer;
@@ -73,7 +74,7 @@ namespace geopm
                        std::unique_ptr<IReporter> reporter,
                        std::unique_ptr<ITracer> tracer,
                        std::vector<std::unique_ptr<IAgent> > level_agent,
-                       std::map<std::string, double> manager_values); /// @todo replace with real interface
+                       std::unique_ptr<IManagerIOSampler> manager_io_sampler);
             virtual ~Kontroller();
             void run(void);
             void step(void);
@@ -103,7 +104,9 @@ namespace geopm
             std::vector<std::vector<std::vector<double> > > m_out_policy;
             std::vector<std::vector<std::vector<double> > > m_in_sample;
             std::vector<double> m_out_sample;
-            std::map<std::string, double> m_manager_values;
+
+            std::unique_ptr<IManagerIOSampler> m_manager_io_sampler;
+
             std::vector<int> m_tracer_sample_idx;
             std::vector<double> m_tracer_sample;
 
