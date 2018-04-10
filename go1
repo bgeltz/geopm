@@ -4,10 +4,12 @@ set -e
 #set -x
 
 PROCS=30
-TEST_FLAGS='--enable-coverage'
-#TEST_FLAGS+=' --enable-ompt'
-#TEST_FLAGS+=' --enable-overhead'
+TEST_FLAGS=''
 TEST_FLAGS+=' --enable-debug'
+TEST_FLAGS+=' --disable-fortran'
+#TEST_FLAGS+=' --enable-coverage'
+#TEST_FLAGS+=' --enable-overhead'
+#TEST_FLAGS+=' --enable-ompt'
 
 GEOPM_PATH=${BIN_PATH}/geopm
 
