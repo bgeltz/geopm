@@ -868,7 +868,7 @@ class Trace(object):
         else:
             tmp_df = trace_df
 
-        filtered_df = tmp_df.filter(regex=column_regex)
+        filtered_df = tmp_df.filter(regex=column_regex).copy()
         filtered_df['elapsed_time'] = tmp_df['seconds']
         filtered_df = filtered_df.diff()
         filtered_df['region_id'] = tmp_df['region_id']

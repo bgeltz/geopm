@@ -542,8 +542,10 @@ def generate_combined_power_plot(trace_df, config):
                          label=node_dict[node_name])
 
         if config.analyze:
-            plt.plot(pandas.Series(numpy.arange(float(len(node_df))) / (len(node_df) - 1) * 100),
-                     median_df['combined_power'].unstack(level=['node_name']).mean(axis=1),
+            aggregate_power_s = median_df['combined_power'].unstack(level=['node_name']).mean(axis=1)
+
+            plt.plot(pandas.Series(numpy.arange(float(len(aggregate_power_s))) / (len(aggregate_power_s) - 1) * 100),
+                     aggregate_power_s.rolling(window=config.smooth, center=True).mean(),
                      label='Combined Average',
                      color='aqua',
                      linewidth=2.0,
