@@ -84,6 +84,7 @@ src/EpochRuntimeRegulator.hpp
 src/Exception.cpp
 src/Exception.hpp
 src/geopm_agent.h
+srd/geopmagent_main.c
 src/geopm_ctl.h
 src/geopm_endpoint.h
 src/geopmctl_main.c
@@ -248,6 +249,7 @@ test/MockControlMessage.hpp
 test/MockGlobalPolicy.hpp
 test/MockIOGroup.hpp
 test/MockKprofileIOSample.hpp
+test/MockManagerIO.hpp
 test/MockManagerIOSampler.hpp
 test/MockPlatform.hpp
 test/MockPlatformImp.hpp

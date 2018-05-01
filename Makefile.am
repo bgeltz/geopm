@@ -31,11 +31,11 @@
 
 # GLOBAL SETTINGS
 ACLOCAL_AMFLAGS = -I m4
-AM_CPPFLAGS += -I$(top_srcdir)/src -DGEOPM_PLUGIN_PATH=\"$(pkglibdir)\" -D_POSIX_C_SOURCE=200112L -DOMPI_SKIP_MPICXX
+AM_CPPFLAGS += -I$(top_srcdir)/src -DGEOPM_PLUGIN_PATH=\"$(pkglibdir)\" -D_POSIX_C_SOURCE=200809L -DOMPI_SKIP_MPICXX
 
 # THINGS THAT ARE INSTALLED
 lib_LTLIBRARIES = libgeopmpolicy.la
-bin_PROGRAMS = geopmpolicy
+bin_PROGRAMS = geopmpolicy geopmagent
 pkglib_LTLIBRARIES =
 nodist_include_HEADERS =
 
@@ -246,6 +246,7 @@ libgeopmpolicy_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(geopm_abi_version)
 
 # ADD LIBRARY DEPENDENCIES FOR EXECUTABLES
 geopmpolicy_LDADD = libgeopmpolicy.la
+geopmagent_LDADD = libgeopmpolicy.la
 if ENABLE_MPI
     geopmctl_LDADD = libgeopm.la $(MPI_CLIBS)
     geopmbench_LDADD = libgeopm.la $(MPI_CLIBS)
@@ -400,6 +401,15 @@ geopmpolicy_SOURCES = src/geopmpolicy_main.c \
                       src/geopm_message.h \
                       src/geopm_version.h \
                       # end
+
+# TODO There are things missing from the policy sources above and from the ctl sources below...
+# Does all this really need to be here?
+geopmagent_SOURCES = src/geopmagent_main.c \
+                     src/geopm_agent.h \
+                     src/geopm_version.h \
+                     src/geopm_error.h \
+                     src/geopm_env.h \
+                     # end
 
 if ENABLE_MPI
     # All source files that are compiled into libgeopmpolicy are also

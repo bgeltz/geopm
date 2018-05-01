@@ -30,6 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "iostream"
+
 #include "geopm_agent.h"
 #include "string.h"
 #include "Agent.hpp"
@@ -227,7 +229,7 @@ int geopm_agent_sample_name(const char *agent_name,
 {
     int num_sample;
     int err = geopm_agent_num_sample(agent_name, &num_sample);
-    if (!err && (sample_idx <= 0 || sample_idx >= num_sample)) {
+    if (!err && (sample_idx < 0 || sample_idx >= num_sample)) {
         err = GEOPM_ERROR_INVALID;
     }
     if (!err) {
@@ -250,8 +252,33 @@ int geopm_agent_sample_name(const char *agent_name,
 }
 
 int geopm_agent_policy_json(const char *agent_name,
+                            size_t policy_count,
                             const double *policy_array,
-                            const char *json_path)
+                            size_t json_string_max,
+                            char *json_string)
 {
+    // std::string policy_vals (policy_array, policy_array + sizeof(policy_array) / sizeof(policy_array[0]));
+
+    for (size_t i = 0; i < policy_count; ++i) {
+        std::cout << "policy_array[" << i << "] = " << policy_array[i] << std::endl;
+    }
+
     return GEOPM_ERROR_NOT_IMPLEMENTED;
 }
+
+int geopm_agent_list(size_t agent_list_max, char *agent_list)
+{
+    int err = 0;
+    std::string tmp_list;
+    std::forward_list<std::string> agent_names = geopm::agent_factory().plugin_names();
+    for (auto& name : agent_names) {
+        tmp_list += name + '\n';
+    }
+    if (tmp_list.size() > agent_list_max) {
+        err = GEOPM_ERROR_INVALID;
+    }
+
+    strncpy(agent_list, tmp_list.c_str(), agent_list_max);
+    return err;
+}
+
