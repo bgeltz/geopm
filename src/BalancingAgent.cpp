@@ -33,6 +33,7 @@
 #include <cfloat>
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 //BEGIN FOR DEBUG
 #include <unistd.h>
@@ -78,7 +79,6 @@ namespace geopm
         , m_num_sample(3) // Number of samples required to be in m_epoch_runtime_buf before balancing begins
         , m_last_epoch_count(0)
     {
-
     }
 
     BalancingAgent::~BalancingAgent()
@@ -88,6 +88,11 @@ namespace geopm
 
     void BalancingAgent::init(int level, int num_leaf)
     {
+std::cout << "Balancer construction (Level " << level << ", Leaves " << num_leaf << "):\n"
+          << "\tMin power limit = " << m_lower_bound << std::endl
+          << "\tMax power limit = " << m_upper_bound << std::endl
+          << std::endl;
+
         m_level = level;
         m_num_leaf = num_leaf;
         if (level == 0) {
@@ -222,6 +227,12 @@ namespace geopm
                 }
             }
 
+if (m_last_child_policy != out_policy) {
+    std::cout << "\nBalancer[" << m_level << "] -> Leaves: " << m_num_leaf;
+    for (int i=0; i < out_policy.size(); i++) {
+        std::cout << "\n\tChild[" << i << "] budget = " << out_policy[i][0] << std::endl;
+    }
+}
             m_last_power_budget_in = avg_per_node_pwr_tgt;
             m_last_child_policy = out_policy;
         }
