@@ -122,7 +122,8 @@ namespace geopm
 
             std::vector<std::function<double(const std::vector<double>&)> > m_agg_func;
 
-            double m_last_power_budget;
+            double m_last_power_budget_in;
+            double m_last_power_budget_out;
             std::vector<std::vector<double> > m_last_sample;
             std::vector<std::vector<double> > m_last_child_policy;
             std::unique_ptr<ICircularBuffer<double> > m_epoch_runtime_buf;
