@@ -326,7 +326,7 @@ std::cerr << hostname << ": (budget, target)=(" << in_policy[M_POLICY_POWER] << 
         out_sample[M_SAMPLE_POWER] = m_sample[M_PLAT_SAMPLE_PKG_POWER] + m_sample[M_PLAT_SAMPLE_DRAM_POWER]; // Sum of all PKG and DRAM power.
         out_sample[M_SAMPLE_IS_CONVERGED] = m_is_converged;
         if (isnan(out_sample[M_SAMPLE_EPOCH_RUNTIME]) ||
-            out_sample[M_SAMPLE_EPOCH_RUNTIME] != 0.0) {
+            out_sample[M_SAMPLE_EPOCH_RUNTIME] == 0.0) {
             result = false;
         }
         return result;
