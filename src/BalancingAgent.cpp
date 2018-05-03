@@ -207,22 +207,22 @@ std::cout << "Balancer construction (Level " << level << ", Leaves " << num_leaf
                         m_epoch_runtime_buf->clear();
                         m_is_updated = true;
                     }
-                }
 
-                if (m_is_converged && (stddev_child_runtime > m_convergence_target)) {
-                    ++m_num_out_of_range;
-                    if (m_num_out_of_range >= m_min_num_converged) {
-                        m_is_converged  = false;
-                        m_num_converged = 0;
-                        m_num_out_of_range = 0;
+                    if (m_is_converged && (stddev_child_runtime > m_convergence_target)) {
+                        ++m_num_out_of_range;
+                        if (m_num_out_of_range >= m_min_num_converged) {
+                            m_is_converged  = false;
+                            m_num_converged = 0;
+                            m_num_out_of_range = 0;
+                        }
                     }
-                }
-                // We are within bounds.
-                else if (!m_is_converged && (stddev_child_runtime < m_convergence_target)) {
-                    m_num_out_of_range = 0;
-                    ++m_num_converged;
-                    if (m_num_converged >= m_min_num_converged) {
-                        m_is_converged = true;
+                    // We are within bounds.
+                    else if (!m_is_converged && (stddev_child_runtime < m_convergence_target)) {
+                        m_num_out_of_range = 0;
+                        ++m_num_converged;
+                        if (m_num_converged >= m_min_num_converged) {
+                            m_is_converged = true;
+                        }
                     }
                 }
             }
