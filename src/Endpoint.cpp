@@ -48,39 +48,30 @@ using json11::Json;
 
 namespace geopm
 {
-
-    Endpoint::Endpoint()
+    Endpoint::Endpoint(std::string endpoint)
         : m_policy_data(nullptr)
         , m_sample_data(nullptr)
         , m_is_using_shmem(false)
         , m_agent_name(geopm_env_agent())
-        , m_policy(Agent::num_policy(agent_factory().dictionary(m_agent_name)))
-        , m_sample(Agent::num_sample(agent_factory().dictionary(m_agent_name)))
-        , m_policy_names(Agent::policy_names(agent_factory().dictionary(m_agent_name)))
-        , m_sample_names(Agent::sample_names(agent_factory().dictionary(m_agent_name)))
+        , m_policy_shmem_str("/geopm-shm-" + endpoint + ".policy")
+        , m_sample_shmem_str("/geopm-shm-" + endpoint + ".sample")
     {
-        std::cout << "In Endpoint::Endpoint() for Kontroller..." << std::endl;
+        std::cout << "In Endpoint::Endpoint()..." << std::endl;
+        /// Last_update:
+        //
+        //  This object's responsibilities need split.  There needs to be a StaticPolicy object
+        //  that handles all the JSON things.  The Endpoint should only deal with shmem.
+        //  There would need to be some sort of switch in the Kontroller so it knows which backing
+        //  it's using for the policy.  This switch would also be used to determine if the sample
+        //  vector actually needs passed somewhere out of the Kontroller.
+        //
 
-        if (std::string(geopm_env_policy()).size() == 0) {
-            throw Exception("Endpoint::" + std::string(__func__) + "(): No policy specified.",
-                            GEOPM_ERROR_RUNTIME, __FILE__, __LINE__);
-        }
-        // If GEOPM_ENDPOINT is defined, it's required that the shmem region was already created.
-        // If it isn't, the policy will be read from a JSON file.
-        else if (std::string(geopm_env_endpoint()).size() > 0) {
-            m_is_using_shmem = true;
-            attach_shmem();
-        }
-        update(); // Updates internal state from either the shmem region or JSON
-    }
-
-    Endpoint::Endpoint(std::string endpoint)
-        : m_policy_data(nullptr)
-        , m_sample_data(nullptr)
-    {
-        std::cout << "In Endpoint::Endpoint() for commandline..." << std::endl;
-        setenv("GEOPM_ENDPOINT", endpoint.c_str(), 1);
-        geopm_env_load(); // This has to be here since the env was already parsed once when geopmpolicy_load was called.
+        /// @todo Move this throw to the Kontroller.
+        ///       Only the root Kontroller will have a populated endpoint reference.
+        // if (m_endpoint.size() > 0 && m_policy.size() > 0) {
+        //     throw Exception("Environment::" + std::string(__func__) + "(): GEOPM_ENDPOINT and GEOPM_POLICY cannot be specified simultaneously.",
+        //                     GEOPM_ERROR_INVALID, __FILE__, __LINE__);
+        // }
     }
 
     Endpoint::~Endpoint()

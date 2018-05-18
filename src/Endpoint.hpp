@@ -67,15 +67,14 @@ namespace geopm
     class IEndpoint
     {
         public:
-            IEndpoint() = default;
+            IEndpoint() = delete;
             virtual ~IEndpoint() = default;
     };
 
     class Endpoint : public IEndpoint
     {
         public:
-            Endpoint(); // For Kontroller
-            Endpoint(std::string endpoint); // For commandline binary
+            Endpoint(std::string endpoint);
             Endpoint(const Endpoint &other) = delete;
             ~Endpoint();
             void create_shmem(void);
@@ -110,6 +109,9 @@ namespace geopm
             std::vector<double> m_sample;
             const std::vector<std::string> m_policy_names;
             const std::vector<std::string> m_sample_names;
+
+            std::string m_policy_shmem_str;
+            std::string m_sample_shmem_str;
 
     };
 
