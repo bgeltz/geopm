@@ -35,6 +35,9 @@
 #include <map>
 #include <vector>
 
+#include <iostream>
+#include <iomanip>
+
 #include "geopm_message.h"
 #include "GoverningDecider.hpp"
 #include "Policy.hpp"
@@ -139,6 +142,9 @@ namespace geopm
             }
             double upper_limit = m_last_dram_power + (GUARD_BAND * limit_total);
             double lower_limit = m_last_dram_power - (GUARD_BAND * limit_total);
+            std::cerr << "upper limit = " << upper_limit
+                      << " lower limit = " << lower_limit
+                      << " dram power = " << dram_power << std::endl;
 
             // If we have enough energy samples to accurately
             // calculate power: derivative function did not return NaN.
@@ -147,6 +153,10 @@ namespace geopm
                     m_last_dram_power = dram_power;
                     for (int domain_idx = 0; domain_idx < num_domain; ++domain_idx) {
                         target[domain_idx] = limit[domain_idx] - domain_dram_power[domain_idx];
+                        std::cerr << "target[" << domain_idx << "] = " << target[domain_idx] << ", "
+                                  << "limit[" << domain_idx << "] = " << limit[domain_idx] << ", "
+                                  << "domain_dram_power[" << domain_idx << "] = " << domain_dram_power[domain_idx]
+                                  << std::endl;
                     }
                     curr_policy.update(region_id, target);
                     is_target_updated = true;

@@ -30,6 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <iostream>
+#include <iomanip>
 #include "Exception.hpp"
 #include "RAPLPlatform.hpp"
 #include "PlatformImp.hpp"
@@ -238,6 +240,7 @@ namespace geopm
             (m_num_energy_domain == (int)target.size())) {
             control_type = GEOPM_TELEMETRY_TYPE_PKG_ENERGY;
             for (int i = 0; i < m_num_package; ++i) {
+                std::cerr << "BRG RAPLPlatform package[" << i << "] = " << target[i] << std::endl;
                 m_imp->write_control(m_imp->power_control_domain(), i, control_type, target[i]);
             }
         }

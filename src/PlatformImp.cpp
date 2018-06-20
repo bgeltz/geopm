@@ -40,6 +40,9 @@
 #include <unistd.h>
 #include <float.h>
 
+#include <iomanip>
+#include <iostream>
+
 #include <cmath>
 #include <sstream>
 #include <fstream>
@@ -241,6 +244,15 @@ namespace geopm
     {
         uint64_t old_value;
         uint64_t curr_value;
+        static uint64_t old_value_brg = 0;
+
+        if (msr_offset == 0x0610) {
+            std::cerr << "BRG RAPL socket" << device_index  <<": 0x"
+                      << std::hex << std::uppercase << std::setfill('0') << std::setw(16) << value
+                      << std::dec << " ( " << ((float) (value & 0x7FFF) / 8.0) << " W )"
+                      << std::endl;
+            old_value_brg = value;
+        }
 
         curr_value = msr_read(device_type, device_index, msr_offset);
         curr_value &= ~msr_mask;

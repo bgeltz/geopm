@@ -33,6 +33,8 @@
 #include <cmath>
 #include <sstream>
 #include <unistd.h>
+#include <iostream>
+#include <iomanip>
 
 #include "geopm_message.h"
 #include "Exception.hpp"
@@ -589,6 +591,10 @@ namespace geopm
         m_tdp_pkg_watts = ((double)(tmp & 0x7fff)) / m_power_units_inv;
         m_min_pkg_watts = ((double)((tmp >> 16) & 0x7fff)) / m_power_units_inv;
         m_max_pkg_watts = ((double)((tmp >> 32) & 0x7fff)) / m_power_units_inv;
+
+        std::cerr << "BRG XeonPlat min_pkg = " << m_min_pkg_watts
+                  << " max_pkg = " << m_max_pkg_watts
+                  << std::endl;
 
         tmp = msr_read(GEOPM_DOMAIN_PACKAGE, 0, "DRAM_POWER_INFO");
         m_min_dram_watts = ((double)((tmp >> 16) & 0x7fff)) / m_power_units_inv;
