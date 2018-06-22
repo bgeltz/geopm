@@ -614,7 +614,7 @@ class TestIntegration(unittest.TestCase):
         trace_path = name + '.trace'
         num_node = 4
         num_rank = 16
-        loop_count = 500
+        loop_count = 100
         app_conf = geopmpy.io.BenchConf(name + '_app.config')
         self._tmp_files.append(app_conf.get_path())
         app_conf.append_region('dgemm', 8.0)
