@@ -306,7 +306,6 @@ namespace geopm
         , m_matrix_b(NULL)
         , m_matrix_c(NULL)
         , m_matrix_size(0)
-        , M_LDB(1928)
         , m_pad_size(64)
     {
         m_name = "dgemm";
@@ -336,9 +335,9 @@ namespace geopm
 
         loop_count(big_o_in);
 
-        m_matrix_size = (int)pow(4e8 * big_o_in / m_loop_count, 1.0/2.0);
+        m_matrix_size = (int)pow(4e9 * big_o_in / m_loop_count, 1.0/3.0);
         if (big_o_in && m_big_o != big_o_in) {
-            size_t mem_size = sizeof(double) * (M_LDB * (m_matrix_size + m_pad_size));
+            size_t mem_size = sizeof(double) * (m_matrix_size * (m_matrix_size + m_pad_size));
             int err = posix_memalign((void **)&m_matrix_a, m_pad_size, mem_size);
             if (!err) {
                 err = posix_memalign((void **)&m_matrix_b, m_pad_size, mem_size);
@@ -374,7 +373,7 @@ namespace geopm
                 int N = m_matrix_size;
                 int K = m_matrix_size;
                 int LDA = m_matrix_size + m_pad_size / sizeof(double);
-                int LDB = M_LDB;
+                int LDB = m_matrix_size + m_pad_size / sizeof(double);
                 int LDC = m_matrix_size + m_pad_size / sizeof(double);
                 double alpha = 2.0;
                 double beta = 3.0;
