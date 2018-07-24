@@ -31,6 +31,7 @@
  */
 
 #include <cpuid.h>
+#include <unistd.h>
 #include <iomanip>
 #include <cmath>
 #include <algorithm>
@@ -79,12 +80,16 @@ namespace geopm
                 }
                 catch (const geopm::Exception &ex) {
 #ifdef GEOPM_DEBUG
+                    char hostname[NAME_MAX];
+                    gethostname(hostname, NAME_MAX);
+
                     std::cerr << "<geopm> Warning: failed to load " << it << " IOGroup.  "
                               << "GEOPM may not work properly unless an alternate "
                               << "IOGroup plugin is loaded to provide signals/controls "
                               << "required by the Controller and Agent."
                               << std::endl;
-                    std::cerr << "The error was: " << ex.what() << std::endl;
+                    std::cerr << "The error was: " << ex.what() << " "
+                              << "on host " << hostname << std::endl;
 #endif
                 }
             }
