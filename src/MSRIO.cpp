@@ -81,7 +81,7 @@ namespace geopm
         size_t num_read = pread(msr_desc(cpu_idx), &result, sizeof(result), offset);
         if (num_read != sizeof(result)) {
             std::ostringstream err_str;
-            err_str << "MSRIO::read_msr(): pread() failed at offset 0x" << std::hex << offset
+            err_str << "MSRIO::read_msr(): pread() failed at cpu " << cpu_idx  << " offset 0x" << std::hex << offset
                     << " system error: " << strerror(errno);
             throw Exception(err_str.str(), GEOPM_ERROR_MSR_WRITE, __FILE__, __LINE__);
         }
