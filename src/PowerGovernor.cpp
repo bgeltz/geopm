@@ -55,6 +55,7 @@ namespace geopm
         , m_platform_io(platform_io)
         , m_platform_topo(platform_topo)
         , M_SAMPLES_PER_CONTROL(samples_per_control)
+        , M_POWER_PACKAGE_TIME_WINDOW(0.015)
         , m_sample_count(-1)
         , m_pkg_pwr_domain_type(m_platform_io.control_domain_type("POWER_PACKAGE"))
         , m_num_pkg(m_platform_topo.num_domain(m_pkg_pwr_domain_type))
@@ -90,9 +91,10 @@ namespace geopm
     void PowerGovernor::init_platform_io(void)
     {
         init_platform_io_dram();
-        for(int i = 0; i < m_num_pkg; ++i) {
-            int control_idx = m_platform_io.push_control("POWER_PACKAGE", m_pkg_pwr_domain_type, i);
+        for(int domain_idx = 0; domain_idx < m_num_pkg; ++domain_idx) {
+            int control_idx = m_platform_io.push_control("POWER_PACKAGE", m_pkg_pwr_domain_type, domain_idx);
             m_control_idx.push_back(control_idx);
+            m_platform_io.write_control("POWER_PACKAGE_TIME_WINDOW", m_pkg_pwr_domain_type, domain_idx, M_POWER_PACKAGE_TIME_WINDOW);
         }
     }
 
@@ -178,5 +180,10 @@ namespace geopm
         }
         m_min_pkg_power_policy = min_pkg_power;
         m_max_pkg_power_policy = max_pkg_power;
+    }
+
+    double PowerGovernor::power_package_time_window(void) const
+    {
+        return M_POWER_PACKAGE_TIME_WINDOW;
     }
 }
