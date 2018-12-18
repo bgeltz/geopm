@@ -34,6 +34,8 @@
 #define GEOPM_ERROR_H_INCLUDE
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,6 +71,14 @@ enum geopm_error_e {
 
 /* Convert error number into an error message */
 void geopm_error_message(int err, char *msg, size_t size);
+
+#define GETHOST \
+    char hn[1024]; \
+    gethostname(hn, 1024);
+
+#define INFO(msg) \
+    fprintf(stderr, "%s: geopm_debug: %s:%d:%s() ", hn, __FILE__, __LINE__, __func__); \
+    fprintf(stderr, "%s\n", msg);
 
 #ifdef __cplusplus
 }

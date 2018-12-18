@@ -39,6 +39,7 @@
 #include <sstream>
 #include <iostream>
 
+#include "geopm_error.h"
 #include "geopm_sched.h"
 #include "geopm_hash.h"
 #include "Exception.hpp"
@@ -305,7 +306,10 @@ namespace geopm
             result = m_active_control.size();
             m_active_control.push_back(std::vector<MSRControl*>());
             if (control_name == "POWER_PACKAGE") {
+                GETHOST;
+                INFO("About to write the PL1 enable bits.");
                 write_control("MSR::PKG_POWER_LIMIT:PL1_LIMIT_ENABLE", domain_type, domain_idx, 1.0);
+                INFO("Past the PL1 enable write.");
                 // for power only set the first cpu in the package; others are lowered
                 cpu_idx = {*cpu_idx.begin()};
             }
@@ -347,6 +351,8 @@ namespace geopm
                 throw Exception("MSRIOGroup::write_batch() called before all controls were adjusted",
                                 GEOPM_ERROR_INVALID, __FILE__, __LINE__);
             }
+            GETHOST;
+            INFO("About to call m_msrio->write_batch().");
             m_msrio->write_batch(m_write_field);
         }
     }
@@ -436,7 +442,10 @@ namespace geopm
         }
 
         if (control_name == "POWER_PACKAGE") {
+            GETHOST;
+            INFO("About to write the PL1 enable bit.");
             write_control("MSR::PKG_POWER_LIMIT:PL1_LIMIT_ENABLE", domain_type, domain_idx, 1.0);
+            INFO("Past the PL1 enable write.");
         }
 
         std::set<int> cpu_idx;
@@ -448,7 +457,10 @@ namespace geopm
             uint64_t mask = 0;
             control.map_field(&field, &mask);
             control.adjust(setting);
+            GETHOST;
+            INFO("About to m_msrio->write_msr()...");
             m_msrio->write_msr(cpu, offset, field, mask);
+            INFO("Back from write_msr().");
         }
     }
 

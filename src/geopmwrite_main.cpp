@@ -171,10 +171,16 @@ int main(int argc, char **argv)
             }
             if (!err) {
                 try {
+                    GETHOST;
+                    INFO("About to IPlatformTopo::domain_name_to_type.");
                     int domain_type = IPlatformTopo::domain_name_to_type(pos_args[1]);
+                    INFO("About to push_control().");
                     int idx = platform_io.push_control(control_name, domain_type, domain_idx);
+                    INFO("About to adjust().");
                     platform_io.adjust(idx, write_value);
+                    INFO("About to write_batch().");
                     platform_io.write_batch();
+                    INFO("Finished write_batch().");
                 }
                 catch (const geopm::Exception &ex) {
                     std::cerr << "Error: cannot write control: " << ex.what() << std::endl;

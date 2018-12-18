@@ -93,6 +93,10 @@ namespace geopm
                           uint64_t raw_value,
                           uint64_t write_mask)
     {
+        char buf[1024];
+        sprintf(buf, "In write_msr()... offset=%#010lx", offset);
+        GETHOST;
+        INFO(buf);
         if ((raw_value & write_mask) != raw_value) {
             std::ostringstream err_str;
             err_str << "MSRIO::write_msr(): raw_value does not obey write_mask, "
@@ -100,16 +104,20 @@ namespace geopm
                     << " write_mask=0x" << write_mask;
             throw Exception(err_str.str(), GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
+        INFO("About to read_msr().");
         uint64_t write_value = read_msr(cpu_idx, offset);
         write_value &= ~write_mask;
         write_value |= raw_value;
+        INFO("About to pwrite().");
         size_t num_write = pwrite(msr_desc(cpu_idx), &write_value, sizeof(write_value), offset);
+        INFO("Back from pwrite().");
         if (num_write != sizeof(write_value)) {
             std::ostringstream err_str;
             err_str << "MSRIO::write_msr(): pwrite() failed at offset 0x" << std::hex << offset
                     << " system error: " << strerror(errno);
             throw Exception(err_str.str(), GEOPM_ERROR_MSR_WRITE, __FILE__, __LINE__);
         }
+        INFO("Done with write_msr().");
     }
 
     void MSRIO::config_batch(const std::vector<int> &read_cpu_idx,
