@@ -43,6 +43,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <mpi.h>
 
 #include "geopm_version.h"
 #include "geopm_error.h"
@@ -86,8 +87,20 @@ int main(int argc, char **argv)
         {NULL, 0, NULL, 0}
     };
 
+    int size = 0;
+    int rank = 0;
+    int err = MPI_Init(&argc, &argv);
+    if (!err) {
+        err = MPI_Comm_size(MPI_COMM_WORLD, &size);
+    }
+    if (!err) {
+        err = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    }
+    if (!err && !rank) {
+        printf("MPI_COMM_WORLD size: %d\n", size);
+    }
+
     int opt;
-    int err = 0;
     bool is_domain = false;
     while (!err && (opt = getopt_long(argc, argv, "dhv", long_options, NULL)) != -1) {
         switch (opt) {
@@ -193,6 +206,8 @@ int main(int argc, char **argv)
             err = EINVAL;
         }
     }
+
+    MPI_Finalize();
 
     return err;
 }

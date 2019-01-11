@@ -37,7 +37,6 @@ AM_CPPFLAGS += -I$(top_srcdir)/src -DGEOPM_PLUGIN_PATH=\"$(pkglibdir)\" -D_POSIX
 lib_LTLIBRARIES = libgeopmpolicy.la
 bin_PROGRAMS = geopmpolicy \
                geopmread \
-               geopmwrite \
                geopmagent \
                #end
 pkglib_LTLIBRARIES =
@@ -46,6 +45,7 @@ nodist_include_HEADERS =
 if ENABLE_MPI
     lib_LTLIBRARIES += libgeopm.la
     bin_PROGRAMS += geopmctl \
+				    geopmwrite \
                     geopmbench \
                     # end
 if ENABLE_FORTRAN
@@ -286,11 +286,11 @@ geopmwrite_CXXFLAGS = $(AM_CXXFLAGS) -std=c++11
 # ADD LIBRARY DEPENDENCIES FOR EXECUTABLES
 geopmpolicy_LDADD = libgeopmpolicy.la
 geopmread_LDADD = libgeopmpolicy.la
-geopmwrite_LDADD = libgeopmpolicy.la
 geopmagent_LDADD = libgeopmpolicy.la
 if ENABLE_MPI
     geopmctl_LDADD = libgeopm.la $(MPI_CLIBS)
     geopmbench_LDADD = libgeopm.la $(MPI_CLIBS)
+    geopmwrite_LDADD = libgeopm.la $(MPI_CLIBS)
     libgeopm_la_LIBADD = $(MPI_CLIBS)
 if ENABLE_FORTRAN
     libgeopmfort_la_LIBADD = libgeopm.la $(MPI_FLIBS)
