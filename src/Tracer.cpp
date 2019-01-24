@@ -75,7 +75,7 @@ namespace geopm
         : m_file_path(file_path)
         , m_hostname(hostname)
         , m_is_trace_enabled(do_trace)
-        , m_buffer_limit(134217728) // 128 MiB
+        , m_buffer_limit(0) // 128 MiB
         , m_platform_io(platform_io)
         , m_platform_topo(platform_topo)
         , m_env_column(env_column)
