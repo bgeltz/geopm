@@ -168,7 +168,7 @@ namespace geopm
             void controller_ready(void) override;
             void abort(void) override;
         private:
-            static constexpr size_t M_SHMEM_REGION_SIZE = 2*1024*1024;
+            static constexpr size_t M_SHMEM_REGION_SIZE = 20*1024*1024;
 
             double current_energy_pkg(void) const;
             double current_energy_dram(void) const;
