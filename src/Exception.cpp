@@ -169,9 +169,7 @@ namespace geopm
             const std::system_error *ex_sys = dynamic_cast<const std::system_error *>(&ex);
             const std::runtime_error *ex_rt = dynamic_cast<const std::runtime_error *>(&ex);
 
-#ifdef GEOPM_DEBUG
             do_print = true;
-#endif
             if (ex_geopm_signal) {
                 if (do_print) {
                     std::cerr << "Error: " << ex_geopm_signal->what() << std::endl;
