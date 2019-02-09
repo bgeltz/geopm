@@ -271,7 +271,7 @@ namespace geopm
 
         // if buffer is full, flush to file
         if (m_buffer.tellp() > m_buffer_limit) {
-            m_stream << m_buffer.str();
+            m_stream << m_buffer.str() << std::flush;
             m_buffer.str("");
         }
     }
