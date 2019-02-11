@@ -40,6 +40,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 
 #include <float.h>
 #include <unistd.h>
@@ -62,6 +63,7 @@
 #include "SharedMemory.hpp"
 #include "Exception.hpp"
 #include "Comm.hpp"
+#include "Helper.hpp"
 #include "config.h"
 
 namespace geopm
@@ -117,21 +119,36 @@ namespace geopm
         ++m_overhead_time_shutdown;
         --m_overhead_time_shutdown;
 #endif
+        std::string hn (hostname());
+        std::ofstream brgFile;
+        brgFile.open(hn + "_shmem.log");
+
         std::string sample_key(key_base + "-sample");
         std::string tprof_key(key_base + "-tprof");
         int shm_num_rank = 0;
 
+        brgFile << "Sample key = " << sample_key << std::endl;
+        brgFile << "Tprof key = " << tprof_key << std::endl;
+        brgFile << "About to init_prof_comm()..." << std::endl;
+
         init_prof_comm(std::move(comm), shm_num_rank);
         try {
+            brgFile << "About to init_ctl_msg()..." << std::endl;
             init_ctl_msg(sample_key);
+            brgFile << "About to init_cpu_list()..." << std::endl;
             init_cpu_list(topo.num_domain(IPlatformTopo::M_DOMAIN_CPU));
+            brgFile << "About to init_cpu_affinity()..." << std::endl;
             init_cpu_affinity(shm_num_rank);
+            brgFile << "About to init_tprof_table()..." << std::endl;
             init_tprof_table(tprof_key, topo);
+            brgFile << "About to init_table()..." << std::endl;
             init_table(sample_key);
         }
         catch (const Exception &ex) {
             if (!m_rank) {
-                std::cerr << "Warning: <geopm> Controller handshake failed, running without geopm." << std::endl;
+                std::cerr << "Warning: <geopm> Controller handshake failed, running without geopm. "
+                          << "BRG: " << ex.what()
+                          << std::endl;
                 int err = ex.err_value();
                 if (err != GEOPM_ERROR_RUNTIME) {
                     char tmp_msg[NAME_MAX];
@@ -142,6 +159,7 @@ namespace geopm
             }
             m_is_enabled = false;
         }
+        brgFile.close();
 #ifdef GEOPM_OVERHEAD
         m_overhead_time_startup = geopm_time_since(&overhead_entry);
 #endif
