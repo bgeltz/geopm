@@ -121,7 +121,12 @@ namespace geopm
 #endif
         std::string hn (hostname());
         std::ofstream brgFile;
+        std::cout << "BRG Opening shmem log..." << std::endl;
         brgFile.open(hn + "_shmem.log");
+        if (!brgFile.good()) {
+            std::cerr << "WARNING BRG: Unable to open shmem log file '" << hn + "_shmem.log"
+                      << "': " << strerror(errno) << std::endl;
+        }
 
         std::string sample_key(key_base + "-sample");
         std::string tprof_key(key_base + "-tprof");
@@ -146,7 +151,7 @@ namespace geopm
         }
         catch (const Exception &ex) {
             if (!m_rank) {
-                std::cerr << "Warning: <geopm> Controller handshake failed, running without geopm. "
+                std::cerr << "Warning: <geopm> Controller hand$hake failed, running without geopm. "
                           << "BRG: " << ex.what()
                           << std::endl;
                 int err = ex.err_value();
