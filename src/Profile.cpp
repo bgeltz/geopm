@@ -121,7 +121,6 @@ namespace geopm
 #endif
         std::string hn (hostname());
         std::ofstream brgFile;
-        std::cout << "BRG Opening shmem log..." << std::endl;
         brgFile.open(hn + "_shmem.log");
         if (!brgFile.good()) {
             std::cerr << "WARNING BRG: Unable to open shmem log file '" << hn + "_shmem.log"
