@@ -519,7 +519,7 @@ fi
         # instead of just running on one node.
         launcher = factory(argv, self.num_node, self.num_node, host_file=self.host_file, node_list=self.node_list)
         launcher.run()
-        os.remove(tmp_script)
+        #  os.remove(tmp_script)
         argv = shlex.split("dummy {} -- lscpu --hex".format(self.launcher_command()))
         launcher = factory(argv, 1, 1, host_file=self.host_file, node_list=self.node_list)
         ostream = StringIO.StringIO()

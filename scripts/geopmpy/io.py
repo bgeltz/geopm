@@ -266,9 +266,9 @@ class AppOutput(object):
             filesize += os.stat(tp).st_size
         # Abort if traces are too large
         avail_mem = psutil.virtual_memory().available
-        if filesize > avail_mem / 2:
-            sys.stderr.write('<geopmpy> Warning: Total size of traces is greater than 50% of available memory. Parsing traces will be skipped.\n')
-            return
+        #  if filesize > avail_mem / 2:
+        #      sys.stderr.write('<geopmpy> Warning: Total size of traces is greater than 50% of available memory. Parsing traces will be skipped.\n')
+        #      return
 
         filesize = '{}MiB'.format(filesize/1024/1024)
 
