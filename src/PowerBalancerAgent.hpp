@@ -127,6 +127,7 @@ namespace geopm
                 M_TRACE_SAMPLE_POLICY_MAX_EPOCH_RUNTIME,
                 M_TRACE_SAMPLE_POLICY_POWER_SLACK,
                 M_TRACE_SAMPLE_EPOCH_RUNTIME,
+                M_TRACE_SAMPLE_EPOCH_RUNTIME_UNFILTERED,
                 M_TRACE_SAMPLE_POWER_LIMIT,
                 M_TRACE_SAMPLE_ENFORCED_POWER_LIMIT,
                 M_TRACE_NUM_SAMPLE,
@@ -308,6 +309,7 @@ namespace geopm
                     std::unique_ptr<IPowerBalancer> m_power_balancer;
                     int m_last_epoch_count;
                     double m_runtime;
+                    double m_runtime_unfiltered;
                     double m_actual_limit;
                     double m_power_slack;
                     double m_power_headroom;
