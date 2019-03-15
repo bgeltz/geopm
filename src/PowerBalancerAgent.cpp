@@ -152,6 +152,7 @@ namespace geopm
         , m_power_balancer(std::move(power_balancer))
         , m_last_epoch_count(0)
         , m_runtime(0.0)
+        , m_runtime_unfiltered(0.0)
         , m_actual_limit(NAN)
         , m_power_slack(0.0)
         , m_power_headroom(0.0)
@@ -245,6 +246,7 @@ namespace geopm
                 "policy_max_epoch_runtime", // M_TRACE_SAMPLE_POLICY_MAX_EPOCH_RUNTIME
                 "policy_power_slack",       // M_TRACE_SAMPLE_POLICY_POWER_SLACK
                 "epoch_runtime",            // M_TRACE_SAMPLE_EPOCH_RUNTIME
+                "epoch_runtime_unfiltered", // M_TRACE_SAMPLE_EPOCH_RUNTIME_UNFILTERED
                 "power_limit",              // M_TRACE_SAMPLE_POWER_LIMIT
                 "enforced_power_limit"      // M_TRACE_SAMPLE_ENFORCED_POWER_LIMIT
                };
@@ -263,6 +265,7 @@ namespace geopm
         values[M_TRACE_SAMPLE_POLICY_MAX_EPOCH_RUNTIME] = m_policy[M_POLICY_MAX_EPOCH_RUNTIME];
         values[M_TRACE_SAMPLE_POLICY_POWER_SLACK] = m_policy[M_POLICY_POWER_SLACK];
         values[M_TRACE_SAMPLE_EPOCH_RUNTIME] = m_power_balancer->runtime_sample();
+        values[M_TRACE_SAMPLE_EPOCH_RUNTIME_UNFILTERED] = m_runtime_unfiltered;
         values[M_TRACE_SAMPLE_POWER_LIMIT] = m_power_balancer->power_limit();
         values[M_TRACE_SAMPLE_ENFORCED_POWER_LIMIT] = m_actual_limit;
     }
@@ -468,6 +471,7 @@ namespace geopm
             role.m_is_step_complete = role.m_power_balancer->is_runtime_stable(balanced_epoch_runtime);
             role.m_power_balancer->calculate_runtime_sample();
             role.m_runtime = role.m_power_balancer->runtime_sample();
+            role.m_runtime_unfiltered = balanced_epoch_runtime;
             role.m_last_epoch_count = epoch_count;
         }
     }
