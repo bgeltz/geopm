@@ -46,7 +46,7 @@ import argparse
 import subprocess
 import math
 import signal
-import StringIO
+import io
 import itertools
 import glob
 import shlex
@@ -108,7 +108,7 @@ def range_str(values):
     values.sort()
     # Group values with equal delta compared the sequence from zero to
     # N, these are sequential.
-    for aa, bb in itertools.groupby(enumerate(values), lambda(xx, yy): yy - xx):
+    for aa, bb in itertools.groupby(enumerate(values), lambda xx, yy: yy - xx):
         bb = list(bb)
         # The range is from the smallest to the largest in the group.
         begin = bb[0][1]
@@ -505,7 +505,7 @@ class Launcher(object):
         # instead of just running on one node.
         argv = shlex.split('dummy {} --geopm-ctl-disable -- lscpu --hex'.format(self.launcher_command()))
         launcher = factory.create(argv, 1, 1, host_file=self.host_file, node_list=self.node_list)
-        ostream = StringIO.StringIO()
+        ostream = io.StringIO()
         launcher.run(stdout=ostream)
         out = ostream.getvalue()
         cpu_tpc_core_socket = [int(line.split(':')[1])
@@ -1279,11 +1279,11 @@ GEOPM_OPTIONS:
 
     try:
         # Print geopm help or version if it appears that documentation was requested
-        is_help_request = ('--help' in sys.argv)
+        is_help_request = ('--help' in sys.argv or len(sys.argv) < 2)
         is_version_request = ('--version' in sys.argv)
         if is_help_request or is_version_request:
             sys.argv.append('--geopm-ctl-disable')
-        if sys.argv[1] not in ['--help', '--version']:
+        if sys.argv[1] not in ['--help', '--version'] and len(sys.argv) < 2:
             launcher = Factory().create(sys.argv)
             launcher.run()
         if is_help_request:
