@@ -30,7 +30,7 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 """
-GEOPM Plotter - Used to produce plots and other analysis files from report and/or trace files.
+BRG - GEOPM Plotter - Used to produce plots and other analysis files from report and/or trace files.
 """
 
 import sys
@@ -852,6 +852,7 @@ def generate_power_plot(trace_df, config):
 
         # Diff the energy counters and determine the median iteration (if multiple runs)
         median_df = geopmpy.io.Trace.get_median_df(df, 'energy', config)
+
         # Calculate power from the diffed counters
         pkg_energy_cols = [s for s in median_df.keys() if 'energy_package' in s]
         dram_energy_cols = [s for s in median_df.keys() if 'energy_dram' in s]
@@ -866,8 +867,19 @@ def generate_power_plot(trace_df, config):
         plt.rc('axes', prop_cycle=(cycler('color', colors)))
         f, ax = plt.subplots()
 
+        first_time = True
+
         for node_name in natsorted(node_names):
             node_df = median_df.loc[idx[:, :, :, :, node_name], ]
+
+            #  if first_time:
+            #      first_time=False
+            #      code.interact(local=dict(globals(), **locals()))
+
+
+            node_df = node_df[:100] # HACKK to examine the first 100 epoch's
+            #  node_df = node_df[100:200] # HACKK to examine the first 100 epoch's
+            #  node_df = node_df[200:300] # HACKK to examine the first 100 epoch's
 
             if node_name == config.focus_node:
                 plt.plot(pandas.Series(numpy.arange(float(len(node_df))) / (len(node_df) - 1) * 100),
@@ -891,7 +903,8 @@ def generate_power_plot(trace_df, config):
                      zorder=11)
             plt.axhline(int(power_budget), linewidth=2, color='blue', label='Cap', zorder=11)
 
-        ax.set_xlabel('Iteration # (Normalized)')
+        ax.set_xlabel('Iteration #')
+        #  ax.set_xlabel('Iteration # (Normalized)')
         ylabel = 'Socket Power (W)'
         if config.smooth > 1:
             ylabel += ' Smoothed'
@@ -906,7 +919,8 @@ def generate_power_plot(trace_df, config):
                 l.set_linewidth(2.0)
             legend.set_zorder(11)
         plt.tight_layout()
-        ax.set_ylim(ax.get_ylim()[0] * .93, ax.get_ylim()[1])
+        #  ax.set_ylim(ax.get_ylim()[0] * .93, ax.get_ylim()[1])
+        ax.set_ylim(95, 170)
 
         # Write data/plot files
         region_desc = 'epoch_only' if config.epoch_only else 'all_samples'

@@ -266,10 +266,10 @@ class AppOutput(object):
         for tp in trace_paths:  # Get size of all trace files
             filesize += os.stat(tp).st_size
         # Abort if traces are too large
-        avail_mem = psutil.virtual_memory().available
-        if filesize > avail_mem / 2:
-            sys.stderr.write('<geopmpy> Warning: Total size of traces is greater than 50% of available memory. Parsing traces will be skipped.\n')
-            return
+        #  avail_mem = psutil.virtual_memory().available
+        #  if filesize > avail_mem / 2:
+        #      sys.stderr.write('<geopmpy> Warning: Total size of traces is greater than 50% of available memory. Parsing traces will be skipped.\n')
+        #      return
 
         filesize = '{}MiB'.format(filesize/1024/1024)
 
@@ -923,8 +923,8 @@ class Trace(object):
     """
     def __init__(self, trace_path, use_agent=True):
         self._path = trace_path
-        #  self._df = pandas.read_csv(trace_path, sep='|', comment='#', dtype={'region_hash': str, 'region_hint': str}, usecols=['time', 'epoch_count', 'energy_package', 'energy_dram'])
-        self._df = pandas.read_csv(trace_path, sep='|', comment='#', dtype={'region_hash': str, 'region_hint': str}, usecols=['time', 'epoch_count', 'cycles_thread', 'cycles_reference'])
+        self._df = pandas.read_csv(trace_path, sep='|', comment='#', dtype={'region_hash': str, 'region_hint': str}, usecols=['time', 'epoch_count', 'energy_package', 'energy_dram'])
+        #  self._df = pandas.read_csv(trace_path, sep='|', comment='#', dtype={'region_hash': str, 'region_hint': str}, usecols=['time', 'epoch_count', 'cycles_thread', 'cycles_reference'])
         self._df.columns = list(map(str.strip, self._df[:0]))  # Strip whitespace from column names
         #  self._df['region_hash'] = self._df['region_hash'].astype(str).map(str.strip)  # Strip whitespace from region hashes
         #  self._df['region_hint'] = self._df['region_hint'].astype(str).map(str.strip)  # Strip whitespace from region hints
@@ -1052,6 +1052,7 @@ class Trace(object):
         if epoch:
             filtered_df['epoch_count'] = tmp_df['epoch_count']
         filtered_df = filtered_df.diff()
+
         # The following drops all 0's and the negative sample when traversing between 2 trace files.
         # If the epoch_count column is included, this will also drop rows occuring mid-epoch.
         filtered_df = filtered_df.loc[(filtered_df > 0).all(axis=1)]
