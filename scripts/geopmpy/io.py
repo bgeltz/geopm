@@ -923,10 +923,11 @@ class Trace(object):
     """
     def __init__(self, trace_path, use_agent=True):
         self._path = trace_path
-        self._df = pandas.read_csv(trace_path, sep='|', comment='#', dtype={'region_hash': str, 'region_hint': str})  # region_hash and region_hint must be a string because pandas can't handle 64-bit integers
+        #  self._df = pandas.read_csv(trace_path, sep='|', comment='#', dtype={'region_hash': str, 'region_hint': str}, usecols=['time', 'epoch_count', 'energy_package', 'energy_dram'])
+        self._df = pandas.read_csv(trace_path, sep='|', comment='#', dtype={'region_hash': str, 'region_hint': str}, usecols=['time', 'epoch_count', 'cycles_thread', 'cycles_reference'])
         self._df.columns = list(map(str.strip, self._df[:0]))  # Strip whitespace from column names
-        self._df['region_hash'] = self._df['region_hash'].astype(str).map(str.strip)  # Strip whitespace from region hashes
-        self._df['region_hint'] = self._df['region_hint'].astype(str).map(str.strip)  # Strip whitespace from region hints
+        #  self._df['region_hash'] = self._df['region_hash'].astype(str).map(str.strip)  # Strip whitespace from region hashes
+        #  self._df['region_hint'] = self._df['region_hint'].astype(str).map(str.strip)  # Strip whitespace from region hints
         self._version = None
         self._start_time = None
         self._profile_name = None
