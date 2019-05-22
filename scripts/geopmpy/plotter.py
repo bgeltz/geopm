@@ -1183,6 +1183,7 @@ def generate_freq_plot(trace_df, config):
 
             for node_name in natsorted(node_names):
                 node_data = frequency_data.loc[idx[:, :, :, :, node_name], ]
+                node_data = node_data[:100] # HACKK to examine the first 100 epoch's
 
                 if node_name == config.focus_node:
                     plt.plot(pandas.Series(numpy.arange(float(len(node_data))) / (len(node_data) - 1) * 100),
@@ -1196,7 +1197,8 @@ def generate_freq_plot(trace_df, config):
                              node_data.rolling(window=config.smooth, center=True).mean(),
                              label=node_dict[node_name])
 
-            ax.set_xlabel('Iteration # (Normalized)')
+            #  ax.set_xlabel('Iteration # (Normalized)')
+            ax.set_xlabel('Iteration #')
             if config.base_clock:
                 ylabel = 'Frequency (GHz)'
             else:
@@ -1216,7 +1218,8 @@ def generate_freq_plot(trace_df, config):
 
             plt.tight_layout()
 
-            ax.set_ylim(0, ax.get_ylim()[1] * 1.1)
+            #  ax.set_ylim(0, ax.get_ylim()[1] * 1.1)
+            ax.set_ylim(0, 110)
 
             # Write data/plot files
             region_desc = 'epoch_only' if config.epoch_only else 'all_samples'
