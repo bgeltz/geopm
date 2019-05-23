@@ -283,7 +283,7 @@ class PowerSweepAnalysis(Analysis):
         reports = []
         for report in report_files:
             try:
-                power = int(report.split('_')[1])
+                power = int(report.split('_')[3])
                 reports.append(report)
             except:
                 pass
@@ -598,6 +598,7 @@ class NodeEfficiencyAnalysis(Analysis):
             self._max_power = max(profiles)
 
         self._power_caps = range(self._min_power, self._max_power+1, self._step_power)
+        self._power_caps.append(215)
         gov_freq_data = {}
         bal_freq_data = {}
 
@@ -606,7 +607,7 @@ class NodeEfficiencyAnalysis(Analysis):
         if self._nodelist:
             begin_node, end_node = self._nodelist
         for target_power in self._power_caps:
-            profile = self._name + "_" + str(target_power)
+            profile = self._name + "_" + str(target_power) if self._name else str(target_power)
             governor_data = parse_output.get_report_data(profile=profile, agent="power_governor", region='epoch')
             gov_freq_data[target_power] = governor_data.groupby('node_name').mean()['frequency'].sort_values()
             balancer_data = parse_output.get_report_data(profile=profile, agent="power_balancer", region='epoch')
@@ -639,7 +640,7 @@ class NodeEfficiencyAnalysis(Analysis):
         all_gov_data, all_bal_data = process_output
 
         config = geopmpy.plotter.ReportConfig(output_dir=os.path.join(self._output_dir, 'figures'))
-        config.output_types = ['png']
+        config.output_types = ['svg','pdf']
         config.verbose = True
         config.min_drop = self._min_freq / 1e9
         config.max_drop = (self._max_freq - self._step_freq) / 1e9
@@ -648,10 +649,10 @@ class NodeEfficiencyAnalysis(Analysis):
         for target_power in self._power_caps:
             gov_data = all_gov_data[target_power]
             bal_data = all_bal_data[target_power]
-            config.profile_name = self._name + "@" + str(target_power) + "W Governor"
+            config.profile_name = self._name + "HACC@" + str(target_power) + "W Governor"
             geopmpy.plotter.generate_histogram(gov_data, config, 'frequency',
                                                bin_size, 3)
-            config.profile_name = self._name + "@" + str(target_power) + "W Balancer"
+            config.profile_name = self._name + "HACC@" + str(target_power) + "W Balancer"
             geopmpy.plotter.generate_histogram(bal_data, config, 'frequency',
                                                bin_size, 3)
 
