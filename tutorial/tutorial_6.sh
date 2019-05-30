@@ -38,6 +38,8 @@ export PATH=$GEOPM_BIN:$PATH
 export PYTHONPATH=$GEOPMPY_PKGDIR:$PYTHONPATH
 export LD_LIBRARY_PATH=$GEOPM_LIB:$LD_LIBRARY_PATH
 
+TIMESTAMP=$(date +%F_%H%M.%S)
+
 # Run on 2 nodes
 # with 8 MPI ranks
 # launch geopm controller as an MPI process
@@ -45,13 +47,28 @@ export LD_LIBRARY_PATH=$GEOPM_LIB:$LD_LIBRARY_PATH
 # create trace files
 if [ "$GEOPM_LAUNCHER" = "srun" ]; then
     # Use GEOPM launcher wrapper script with SLURM's srun
+    # GEOPM_FREQUENCY_MAP='{"stream":1300000000, "dgemm": 2101000000}' \
+    OMP_NUM_THREADS=1 \
+    GEOPM_FREQUENCY_MAP='{"stream":2100000000, "dgemm": 3700000000}' \
     geopmlaunch srun \
-                -N 2 \
-                -n 8 \
+                -N 1 \
+                -n 2 \
+                -w mcfly15 \
                 --geopm-ctl=process \
-                --geopm-report=tutorial_6_report \
-                --geopm-trace=tutorial_6_trace \
+                --geopm-agent=frequency_map \
+                --geopm-policy=frequency_map.json \
+                --geopm-report=debug_report_${TIMESTAMP} \
+                --geopm-trace=debug_trace_${TIMESTAMP} \
                 -- geopmbench tutorial_6_config.json
+    # OMP_NUM_THREADS=20 \
+    # geopmlaunch srun \
+                # -N 1 \
+                # -n 2 \
+                # --geopm-ctl=process \
+                # --geopm-agent=monitor \
+                # --geopm-report=debug_report_${TIMESTAMP} \
+                # --geopm-trace=debug_trace_${TIMESTAMP} \
+                # -- geopmbench tutorial_6_config.json
     err=$?
 elif [ "$GEOPM_LAUNCHER" = "aprun" ]; then
     # Use GEOPM launcher wrapper script with ALPS's aprun
