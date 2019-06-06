@@ -34,6 +34,8 @@
 # default environment for the tutorial.  Modify these variables to
 # suit your environment or export them before running the tutorial.
 
+export FI_PROVIDER=tcp
+
 # GEOPM_PREFIX: Where to find lib and include directories for geopm.
 if [ ! "$GEOPM_PREFIX" ]; then
     GEOPM_PREFIX=$HOME/build/geopm
