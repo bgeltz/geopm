@@ -61,27 +61,27 @@ int main(int argc, char **argv)
     }
 
     uint64_t stream_region_id = 0;
-    std::unique_ptr<geopm::ModelRegionBase> stream_model(geopm::model_region_factory("stream", 2.80, is_verbose));
+    std::unique_ptr<geopm::ModelRegionBase> stream_model(geopm::model_region_factory("stream", 1.35, is_verbose));
     err = geopm_prof_region("stream", GEOPM_REGION_HINT_UNKNOWN, &stream_region_id);
     if (err) {
         throw geopm::Exception("test_ee_stream_dgemm_spin", err, __FILE__, __LINE__);
     }
 
     uint64_t dgemm_region_id = 0;
-    std::unique_ptr<geopm::ModelRegionBase> dgemm_model(geopm::model_region_factory("dgemm", 40.0, is_verbose));
+    std::unique_ptr<geopm::ModelRegionBase> dgemm_model(geopm::model_region_factory("dgemm", 20.0, is_verbose));
     err = geopm_prof_region("dgemm", GEOPM_REGION_HINT_UNKNOWN, &dgemm_region_id);
     if (err) {
         throw geopm::Exception("test_ee_stream_dgemm_spin", err, __FILE__, __LINE__);
     }
 
-    std::unique_ptr<geopm::ModelRegionBase> spin_model(geopm::model_region_factory("spin", 1.00, is_verbose));
+    std::unique_ptr<geopm::ModelRegionBase> spin_model(geopm::model_region_factory("spin", 0.50, is_verbose));
     uint64_t spin_region_id = 0;
     err = geopm_prof_region("spin", GEOPM_REGION_HINT_UNKNOWN, &spin_region_id);
     if (err) {
         throw geopm::Exception("test_ee_stream_dgemm_spin", err, __FILE__, __LINE__);
     }
 
-    int repeat = 100;
+    int repeat = 10;
 
     for (int rep_idx = 0; rep_idx != repeat; ++rep_idx) {
         err = geopm_prof_enter(stream_region_id);
