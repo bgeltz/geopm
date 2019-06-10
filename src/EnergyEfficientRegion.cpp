@@ -46,7 +46,7 @@ namespace geopm
 
     EnergyEfficientRegionImp::EnergyEfficientRegionImp(double freq_min, double freq_max, double freq_step)
         : M_PERF_MARGIN(0.10)  // up to 10% degradation allowed
-        , M_MIN_PERF_SAMPLE(5)
+        , M_MIN_PERF_SAMPLE(7)
         , m_is_learning(true)
         , m_max_step(calc_num_step(freq_min, freq_max, freq_step) - 1)
         , m_freq_step(freq_step)
