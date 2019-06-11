@@ -58,9 +58,17 @@ int main(int argc, char **argv)
     geopm_prof_region("dgemm", GEOPM_REGION_HINT_UNKNOWN, &dgemm_region_id);
     geopm_prof_region("spin", GEOPM_REGION_HINT_UNKNOWN, &spin_region_id);
 
-    std::unique_ptr<geopm::ModelRegionBase> stream_model(geopm::model_region_factory("stream", 1.35, true));
-    std::unique_ptr<geopm::ModelRegionBase> dgemm_model(geopm::model_region_factory("dgemm", 20.0, true));
-    std::unique_ptr<geopm::ModelRegionBase> spin_model(geopm::model_region_factory("spin", 0.50, true));
+    // Add artifical imbalance to one node; assumes 4 app ranks per node
+    double imbalance = 0.0;
+    if (argc > 1 && strcmp(argv[1], "--imbalance") == 0) {
+        if (comm_rank < 4) {
+            imbalance = 0.3;
+        }
+    }
+
+    std::unique_ptr<geopm::ModelRegionBase> stream_model(geopm::model_region_factory("stream", 1.05 + imbalance, true));
+    std::unique_ptr<geopm::ModelRegionBase> dgemm_model(geopm::model_region_factory("dgemm", 20.0 + 20*imbalance, true));
+    std::unique_ptr<geopm::ModelRegionBase> spin_model(geopm::model_region_factory("spin", 0.50 + imbalance, true));
 
     int repeat = 200;
 
