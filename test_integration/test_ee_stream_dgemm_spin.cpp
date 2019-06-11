@@ -105,6 +105,11 @@ int main(int argc, char **argv)
     }
 
     for (int rep_idx = 0; rep_idx != repeat; ++rep_idx) {
+        err = geopm_prof_epoch();
+        if (err) {
+            throw geopm::Exception("test_ee_stream_dgemm_spin", err, __FILE__, __LINE__);
+        }
+
         err = geopm_prof_enter(stream_region_id);
         if (err) {
             throw geopm::Exception("test_ee_stream_dgemm_spin", err, __FILE__, __LINE__);
