@@ -41,21 +41,6 @@
 #include "Exception.hpp"
 #include "ModelRegion.hpp"
 
-static bool get_env(const std::string &name, std::string &env_string)
-{
-    bool result = false;
-    char *check_string = getenv(name.c_str());
-    if (check_string != NULL) {
-        if (strlen(check_string) > NAME_MAX) {
-            throw geopm::Exception("Environment variable too long",
-                            GEOPM_ERROR_INVALID, __FILE__, __LINE__);
-        }
-        env_string = check_string;
-        result = true;
-    }
-    return result;
-}
-
 int main(int argc, char **argv)
 {
     int err = 0;
@@ -96,9 +81,10 @@ int main(int argc, char **argv)
     }
 
     int repeat;
-    std::string iterations;
-    if (get_env("TEST_ITERATIONS", iterations)) {
-        repeat = std::stoi(iterations);
+
+    char *check_string = getenv("TEST_ITERATIONS");
+    if (check_string != NULL) {
+        repeat = std::stoi(check_string);
     }
     else {
         repeat = 10;
