@@ -41,6 +41,7 @@ EXTRA_DIST += test_integration/geopm_context.py \
 
 noinst_PROGRAMS += test_integration/test_ee_stream_dgemm_mix \
 				   test_integration/test_ee_stream_dgemm_spin \
+				   test_integration/test_ee_stream_dgemm_spin_demo \
                    # end
 
 test_integration_test_ee_stream_dgemm_mix_SOURCES = test_integration/test_ee_stream_dgemm_mix.cpp \
@@ -58,3 +59,11 @@ test_integration_test_ee_stream_dgemm_spin_SOURCES = test_integration/test_ee_st
 test_integration_test_ee_stream_dgemm_spin_LDADD = libgeopm.la $(MATH_LIB) $(MPI_CLIBS)
 test_integration_test_ee_stream_dgemm_spin_LDFLAGS = $(AM_LDFLAGS) $(MPI_CLDFLAGS) $(MATH_CLDFLAGS)
 test_integration_test_ee_stream_dgemm_spin_CXXFLAGS = $(AM_CXXFLAGS) $(MPI_CFLAGS) -D_GNU_SOURCE -std=c++11 $(MATH_CFLAGS)
+
+test_integration_test_ee_stream_dgemm_spin_demo_SOURCES = test_integration/test_ee_stream_dgemm_spin_demo.cpp \
+                                                    src/ModelRegion.cpp \
+                                                    src/ModelRegion.hpp \
+                                                    # end
+test_integration_test_ee_stream_dgemm_spin_demo_LDADD = libgeopm.la $(MATH_LIB) $(MPI_CLIBS)
+test_integration_test_ee_stream_dgemm_spin_demo_LDFLAGS = $(AM_LDFLAGS) $(MPI_CLDFLAGS) $(MATH_CLDFLAGS)
+test_integration_test_ee_stream_dgemm_spin_demo_CXXFLAGS = $(AM_CXXFLAGS) $(MPI_CFLAGS) -D_GNU_SOURCE -std=c++11 $(MATH_CFLAGS)
