@@ -66,7 +66,7 @@ int main(int argc, char **argv)
         }
     }
 
-    std::unique_ptr<geopm::ModelRegionBase> stream_model(geopm::model_region_factory("stream", 1.05 + imbalance, true));
+    std::unique_ptr<geopm::ModelRegionBase> stream_model(geopm::model_region_factory("stream", 1.35 + imbalance, true));
     std::unique_ptr<geopm::ModelRegionBase> dgemm_model(geopm::model_region_factory("dgemm", 20.0 + 20*imbalance, true));
     std::unique_ptr<geopm::ModelRegionBase> spin_model(geopm::model_region_factory("spin", 0.50 + imbalance, true));
 
