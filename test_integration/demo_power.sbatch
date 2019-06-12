@@ -3,29 +3,22 @@
 #SBATCH -J demo_balancer
 #SBATCH -t 24:00:00
 #SBATCH -o %j_dgemm.out
-##SBATCH --reservation test_ee
 
 TIMESTAMP=$(date +%F_%H%M)
-GEOPM_SRC=${HOME}/geopm_work
+GEOPM_SRC=${HOME}/geopm
 OUTDIR=./test_app_${SLURM_JOB_ID}_${TIMESTAMP}
 mkdir -p ${OUTDIR}
 cd ${OUTDIR}
-
-# Capture stdout and stderr to log files
-# exec > >(tee -i demo.log)
-# exec 2> >(tee -i demoerr.out)
 
 set -x
 
 NUM_NODES=2
 RANKS_PER_NODE=4  #TODO hardcoded imbalance in source code depends on this value
-# export OMP_NUM_THREADS=5
 export OMP_NUM_THREADS=10
-# export FI_PROVIDER=tcp
 export MPLBACKEND='Agg'
 
 APP_EXECUTABLE=${GEOPM_SRC}/test_integration/.libs/test_ee_stream_dgemm_spin_demo
-APP_PARAMS="--imbalance -v"
+APP_PARAMS="--imbalance"
 
 APP_NAME=demo
 export TEST_ITERATIONS=200
