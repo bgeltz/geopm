@@ -114,6 +114,7 @@ class Analysis(object):
             if agent_conf.get_agent() != 'monitor':
                 argv.append('--geopm-agent=' + agent_conf.get_agent())
                 argv.append('--geopm-policy=' + agent_conf.get_path())
+            argv.append('--geopm-preload')
             argv.extend(app_argv)
             argv.insert(1, launcher_name)
             launcher = geopmpy.launcher.Factory().create(argv)
