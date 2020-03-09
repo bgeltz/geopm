@@ -100,16 +100,14 @@ def create_frequency_map_policy(min_freq, max_freq, frequency_map, use_env=False
 class TestIntegration(unittest.TestCase):
     def setUp(self):
         self.longMessage = True
-        self._agent = 'power_governor'
-        self._options = {'power_budget': 150}
+        self._agent = 'monitor'
+        self._options = {}
         self._tmp_files = []
         self._output = None
-        self._power_limit = geopm_test_launcher.geopmread("MSR::PKG_POWER_LIMIT:PL1_POWER_LIMIT board 0")
         self._frequency = geopm_test_launcher.geopmread("MSR::PERF_CTL:FREQ board 0")
         self._original_freq_map_env = os.environ.get('GEOPM_FREQUENCY_MAP')
 
     def tearDown(self):
-        geopm_test_launcher.geopmwrite("MSR::PKG_POWER_LIMIT:PL1_POWER_LIMIT board 0 " + str(self._power_limit))
         geopm_test_launcher.geopmwrite("MSR::PERF_CTL:FREQ board 0 " + str(self._frequency))
         if sys.exc_info() == (None, None, None) and os.getenv('GEOPM_KEEP_FILES') is None:
             if self._output is not None:
