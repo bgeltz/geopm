@@ -200,7 +200,8 @@ class TestLauncher(object):
             launcher.run(stdout=outfile, stderr=outfile)
 
     def run(self, test_name, include_geopm_policy=True):
-        """ Run the test as configured at construction time.
+        """
+        Run the test as configured at construction time.
 
         Arguments:
         test_name (str):  Name of the test run to use for log files and the policy name in reports.

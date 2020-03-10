@@ -118,9 +118,9 @@ def skip_unless_power_agent():
 @util.skip_unless_batch()
 @skip_if_geopmadmin_check_fails()
 class TestIntegrationPluginStaticPolicy(unittest.TestCase):
-    """Test the static policy enforcement feature of the currently
-       configured RM plugin.
-
+    """
+    Test the static policy enforcement feature of the currently
+    configured RM plugin.
     """
     @classmethod
     def setUpClass(cls):

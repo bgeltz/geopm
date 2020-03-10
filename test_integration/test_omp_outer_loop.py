@@ -31,9 +31,9 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-"""Test the detection of user defined regions in an application
-   configured such that the outer loop is an OMP paralell region.
-
+"""
+Test the detection of user defined regions in an application
+configured such that the outer loop is an OMP paralell region.
 """
 
 from __future__ import absolute_import
@@ -55,19 +55,19 @@ _g_skip_launch = False
 
 
 class AppConf(object):
-    """Class that is used by the test launcher to get access
-       to the test_omp_outer_loop test binary..
-
+    """
+    Class that is used by the test launcher to get access
+    to the test_omp_outer_loop test binary..
     """
     def write(self):
-        """No configuration files are required.
-
+        """
+        No configuration files are required.
         """
         pass
 
     def get_exec_path(self):
-        """Path to bencmark
-
+        """
+        Path to bencmark
         """
         script_dir = os.path.dirname(os.path.realpath(__file__))
         return os.path.join(script_dir, '.libs', 'test_omp_outer_loop')
@@ -79,8 +79,8 @@ class AppConf(object):
 class TestIntegrationOMPOuterLoop(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        """Create launcher, execute benchmark and set up class variables.
-
+        """
+        Create launcher, execute benchmark and set up class variables.
         """
         sys.stdout.write('(' + os.path.basename(__file__).split('.')[0] +
                          '.' + cls.__name__ + ') ...')
@@ -112,9 +112,9 @@ class TestIntegrationOMPOuterLoop(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """If we are not handling an exception and the GEOPM_KEEP_FILES
+        """
+        If we are not handling an exception and the GEOPM_KEEP_FILES
         environment variable is unset, clean up output.
-
         """
         if (sys.exc_info() == (None, None, None) and not
             cls._keep_files and not cls._skip_launch):
@@ -123,8 +123,9 @@ class TestIntegrationOMPOuterLoop(unittest.TestCase):
                 os.unlink(rp)
 
     def test_regions_absent(self):
-        """Test that the first run's report does NOT contain
-           MPI_Barrier region.
+        """
+        Test that the first run's report does NOT contain
+        MPI_Barrier region.
         """
         # self._report_path[0] maps to with-ompt config
         report = geopmpy.io.RawReport(self._report_path[0])
@@ -146,8 +147,9 @@ class TestIntegrationOMPOuterLoop(unittest.TestCase):
                             msg="There should be some network time assiciated with an OMPT detected region.")
 
     def test_regions_present(self):
-        """Test that the second run's report DOES contain the
-           MPIBarrier region.
+        """
+        Test that the second run's report DOES contain the
+        MPIBarrier region.
         """
         # self._report_path[1] maps to with-ompt config
         report = geopmpy.io.RawReport(self._report_path[1])

@@ -31,8 +31,8 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-"""Test the scaling model region
-
+"""
+Test the scaling model region
 """
 
 from __future__ import absolute_import
@@ -53,19 +53,19 @@ from test_integration import util
 _g_skip_launch = False
 
 class AppConf(object):
-    """Class that is used by the test launcher as a geopmpy.io.BenchConf
+    """
+    Class that is used by the test launcher as a geopmpy.io.BenchConf
     when running the test_scaling_region benchmark.
-
     """
     def write(self):
-        """No configuration files are required.
-
+        """
+        No configuration files are required.
         """
         pass
 
     def get_exec_path(self):
-        """Path to benchmark
-
+        """
+        Path to benchmark
         """
         script_dir = os.path.dirname(os.path.realpath(__file__))
         return os.path.join(script_dir, '.libs', 'test_timed_scaling_region')
@@ -80,8 +80,8 @@ class AppConf(object):
 class TestIntegrationScalingRegion(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        """Create launcher, execute benchmark and set up class variables.
-
+        """
+        Create launcher, execute benchmark and set up class variables.
         """
         sys.stdout.write('(' + os.path.basename(__file__).split('.')[0] +
                          '.' + cls.__name__ + ') ...')
@@ -133,9 +133,9 @@ class TestIntegrationScalingRegion(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """If we are not handling an exception and the GEOPM_KEEP_FILES
+        """
+        If we are not handling an exception and the GEOPM_KEEP_FILES
         environment variable is unset, clean up output.
-
         """
         if (sys.exc_info() == (None, None, None) and not
             cls._keep_files and not cls._skip_launch):
@@ -148,9 +148,9 @@ class TestIntegrationScalingRegion(unittest.TestCase):
             self.fail('The fractional difference between {a} and {b} is greater than {epsilon}.  {msg}'.format(a=a, b=b, epsilon=epsilon, msg=msg))
 
     def test_uniform_performance(self):
-        """Test that the reports generated show uniform performance with
-           respect to CPU frequency.
-
+        """
+        Test that the reports generated show uniform performance with
+        respect to CPU frequency.
         """
         report = geopmpy.io.RawReport(self._report_path)
         host_names = report.host_names()
@@ -161,9 +161,9 @@ class TestIntegrationScalingRegion(unittest.TestCase):
                     self.assertNear(1.0, report.get_field(region, 'runtime', 'sec'))
 
     def test_achieved_frequency(self):
-        """Test that the reports show achieved frequencies near target
-           frequency.
-
+        """
+        Test that the reports show achieved frequencies near target
+        frequency.
         """
         report = geopmpy.io.RawReport(self._report_path)
         host_names = report.host_names()

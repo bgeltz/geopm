@@ -53,7 +53,8 @@ def skip_unless_platform_bdx():
 
 
 def get_config_value(key):
-    """Get the value of an option from the build configuration, returning None
+    """
+    Get the value of an option from the build configuration, returning None
     if no such key is present.
     """
     path = os.path.join(
@@ -126,7 +127,8 @@ def skip_unless_stressng():
 
 
 def skip_or_ensure_writable_file(path):
-    """Skip the test unless the given file can be created or modified on compute nodes.
+    """
+    Skip the test unless the given file can be created or modified on compute nodes.
     """
     stdout = StringIO()
     created_directories = list()
@@ -160,7 +162,8 @@ def skip_or_ensure_writable_file(path):
 
 
 def skip_unless_library_in_ldconfig(library):
-    """Skip the test if the given library is not in ldconfig on the compute nodes.
+    """
+    Skip the test if the given library is not in ldconfig on the compute nodes.
     """
     try:
         with open('/dev/null', 'w') as dev_null:
@@ -175,7 +178,8 @@ def skip_unless_library_in_ldconfig(library):
 
 
 def run_script_on_compute_nodes(script, stdout, stderr, interpreter='sh'):
-    """Run an inline script on compute nodes.
+    """
+    Run an inline script on compute nodes.
     """
     geopm_test_launcher.allocation_node_test('dummy -- {}'.format(
         '{} -c {}'.format(interpreter, pipes.quote(script))), stdout, stderr)
@@ -183,7 +187,8 @@ def run_script_on_compute_nodes(script, stdout, stderr, interpreter='sh'):
 
 @contextmanager
 def temporarily_remove_compute_node_file(path):
-    """Context manager to remove a file from compute nodes if it exists, by renaming
+    """
+    Context manager to remove a file from compute nodes if it exists, by renaming
     with a .backup suffix.  When exiting the context, the file is restored by moving
     the backup file to its original path.
     """
@@ -198,7 +203,8 @@ def temporarily_remove_compute_node_file(path):
 
 
 def remove_file_on_compute_nodes(file_path):
-    """Remove a file from compute nodes.
+    """
+    Remove a file from compute nodes.
     """
     with open('/dev/null', 'w') as dev_null:
         geopm_test_launcher.allocation_node_test('dummy -- rm {}'.format(file_path), dev_null, dev_null)

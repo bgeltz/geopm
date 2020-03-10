@@ -55,19 +55,19 @@ _g_skip_launch = False
 
 
 class AppConf(object):
-    """Class that is used by the test launcher as a geopmpy.io.BenchConf
+    """
+    Class that is used by the test launcher as a geopmpy.io.BenchConf
     when running the script as a benchmark.
-
     """
     def write(self):
-        """No configuration files are required.
-
+        """
+        No configuration files are required.
         """
         pass
 
     def get_exec_path(self):
-        """Path to bencmark
-
+        """
+        Path to bencmark
         """
         script_dir = os.path.dirname(os.path.realpath(__file__))
         return os.path.join(script_dir, '.libs', 'test_ee_timed_scaling_mix')
@@ -82,8 +82,8 @@ class AppConf(object):
 class TestIntegrationEETimedScalingMix(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        """Create launcher, execute benchmark and set up class variables.
-
+        """
+        Create launcher, execute benchmark and set up class variables.
         """
         sys.stdout.write('(' + os.path.basename(__file__).split('.')[0] +
                          '.' + cls.__name__ + ') ...')
@@ -114,9 +114,9 @@ class TestIntegrationEETimedScalingMix(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """If we are not handling an exception and the GEOPM_KEEP_FILES
+        """
+        If we are not handling an exception and the GEOPM_KEEP_FILES
         environment variable is unset, clean up output.
-
         """
         if (sys.exc_info() == (None, None, None) and not
             cls._keep_files and not cls._skip_launch):
@@ -126,9 +126,9 @@ class TestIntegrationEETimedScalingMix(unittest.TestCase):
                 os.unlink(ff)
 
     def test_monotone_frequency(self):
-        """Test that agent selects lower frequencies for regions with more
+        """
+        Test that agent selects lower frequencies for regions with more
         stream.
-
         """
         report = geopmpy.io.RawReport(self._report_path)
         host_names = report.host_names()
@@ -156,8 +156,8 @@ class TestIntegrationEETimedScalingMix(unittest.TestCase):
                                 msg='Same frequency chosen for dgemm only and stream only.')
 
     def test_skip_network_regions(self):
-        """Test that agent does not learn for regions declared with the network hint.
-
+        """
+        Test that agent does not learn for regions declared with the network hint.
         """
         report = geopmpy.io.RawReport(self._report_path)
         host_names = report.host_names()

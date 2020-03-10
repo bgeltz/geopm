@@ -63,7 +63,8 @@ environment_override_path = os.path.join(util.get_config_value('GEOPM_CONFIG_PAT
 
 
 def create_frequency_map_policy(min_freq, max_freq, frequency_map, use_env=False):
-    """Create a frequency map to be consumed by the frequency map agent.
+    """
+    Create a frequency map to be consumed by the frequency map agent.
 
     Arguments:
     min_freq: Floor frequency for the agent
@@ -129,7 +130,8 @@ class TestIntegration(unittest.TestCase):
             self.fail('The fractional difference between {a} and {b} is greater than {epsilon}.  {msg}'.format(a=a, b=b, epsilon=epsilon, msg=msg))
 
     def assert_geopm_uses_policy(self, expected_policy, context, user_policy=None):
-        """Assert that geopm uses the given policy.
+        """
+        Assert that geopm uses the given policy.
 
         Arguments:
         expected_policy (dict str->float): Policy to expect in generated reports.
@@ -1274,7 +1276,8 @@ class TestIntegration(unittest.TestCase):
     @util.skip_or_ensure_writable_file(environment_override_path)
     @util.skip_unless_library_in_ldconfig('libgeopmpolicy.so')
     def test_geopm_environment(self):
-        """Test behavior of geopm environment files.
+        """
+        Test behavior of geopm environment files.
         """
         def create_policy_file_on_compute_node(policy, policy_file_name, etc_config_path):
             policy_string = json.dumps(policy)
@@ -1312,7 +1315,9 @@ class TestIntegration(unittest.TestCase):
 
 
 class TestIntegrationGeopmio(unittest.TestCase):
-    ''' Tests of geopmread and geopmwrite.'''
+    '''
+    Tests of geopmread and geopmwrite.
+    '''
     def setUp(self):
         self.skip_warning_string = 'Incompatible CPU'
 
@@ -1541,7 +1546,9 @@ class TestIntegrationGeopmio(unittest.TestCase):
 
 
 class TestIntegrationGeopmagent(unittest.TestCase):
-    ''' Tests of geopmagent.'''
+    '''
+    Tests of geopmagent.
+    '''
     def setUp(self):
         self.exec_name = 'geopmagent'
         self.skip_warning_string = 'Incompatible CPU frequency driver/governor'

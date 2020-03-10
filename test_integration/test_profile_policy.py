@@ -106,9 +106,9 @@ class TestIntegrationProfilePolicy(unittest.TestCase):
         except:
             pass
         # TODO: this could be a helper function
-        """If we are not handling an exception and the GEOPM_KEEP_FILES
+        """
+        If we are not handling an exception and the GEOPM_KEEP_FILES
         environment variable is unset, clean up output.
-
         """
         keep_files = os.getenv('GEOPM_KEEP_FILES') is not None
         if sys.exc_info() == (None, None, None) and not keep_files:

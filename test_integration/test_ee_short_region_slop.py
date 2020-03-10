@@ -31,7 +31,8 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-"""EE_SHORT_REGION_SLOP
+"""
+EE_SHORT_REGION_SLOP
 
 Integration test that executes a scaling region and a timed scaling
 region back to back in a loop.  This pattern of execution is repeated
@@ -40,7 +41,6 @@ the shortest region for which the frequency map agent can successfully
 change the frequency down for the timed region to save energy while
 not impacting the performance of the scaling region which is targeted
 for a high frequency.
-
 """
 
 import sys
@@ -87,30 +87,30 @@ g_plot_ipc_lim = [0.0, 2.4]
 
 
 class AppConf(object):
-    """Class that is used by the test launcher in place of a
+    """
+    Class that is used by the test launcher in place of a
     geopmpy.io.BenchConf when running the ee_short_region_slop benchmark.
-
     """
     def write(self):
-        """Called by the test launcher prior to executing the test application
+        """
+        Called by the test launcher prior to executing the test application
         to write any files required by the application.
-
         """
         pass
 
     def get_exec_path(self):
-        """Path to benchmark filled in by template automatically.
-
+        """
+        Path to benchmark filled in by template automatically.
         """
         script_dir = os.path.dirname(os.path.realpath(__file__))
         return os.path.join(script_dir, '.libs', 'test_ee_short_region_slop')
 
     def get_exec_args(self):
-        """Returns a list of strings representing the command line arguments
+        """
+        Returns a list of strings representing the command line arguments
         to pass to the test-application for the next run.  This is
         especially useful for tests that execute the test-application
         multiple times.
-
         """
         return []
 
@@ -118,8 +118,8 @@ class AppConf(object):
 class TestIntegration_ee_short_region_slop(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        """Create launcher, execute benchmark and set up class variables.
-
+        """
+        Create launcher, execute benchmark and set up class variables.
         """
         sys.stdout.write('(' + os.path.basename(__file__).split('.')[0] +
                          '.' + cls.__name__ + ') ...')
@@ -149,10 +149,10 @@ class TestIntegration_ee_short_region_slop(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """Clean up any files that may have been created during the test if we
+        """
+        Clean up any files that may have been created during the test if we
         are not handling an exception and the GEOPM_KEEP_FILES
         environment variable is unset.
-
         """
         if (sys.exc_info() == (None, None, None) and not
             cls._keep_files):

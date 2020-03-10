@@ -31,8 +31,8 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-"""Test the scaling model region
-
+"""
+Test the scaling model region
 """
 
 from __future__ import absolute_import
@@ -54,19 +54,19 @@ from test_integration import util
 _g_skip_launch = False
 
 class AppConf(object):
-    """Class that is used by the test launcher as a geopmpy.io.BenchConf
+    """
+    Class that is used by the test launcher as a geopmpy.io.BenchConf
     when running the test_scaling_region benchmark.
-
     """
     def write(self):
-        """No configuration files are required.
-
+        """
+        No configuration files are required.
         """
         pass
 
     def get_exec_path(self):
-        """Path to benchmark
-
+        """
+        Path to benchmark
         """
         script_dir = os.path.dirname(os.path.realpath(__file__))
         return os.path.join(script_dir, '.libs', 'test_scaling_region')
@@ -81,8 +81,8 @@ class AppConf(object):
 class TestIntegrationScalingRegion(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        """Create launcher, execute benchmark and set up class variables.
-
+        """
+        Create launcher, execute benchmark and set up class variables.
         """
         sys.stdout.write('(' + os.path.basename(__file__).split('.')[0] +
                          '.' + cls.__name__ + ') ...')
@@ -105,7 +105,7 @@ class TestIntegrationScalingRegion(unittest.TestCase):
             freq_sticker = geopm_test_launcher.geopmread("CPUINFO::FREQ_STICKER board 0")
             freq_step = geopm_test_launcher.geopmread("CPUINFO::FREQ_STEP board 0")
             num_step = int((freq_sticker - freq_min) / freq_step + 0.5)
-            agent_conf_dict = {'FREQ_MIN':freq_min,           
+            agent_conf_dict = {'FREQ_MIN':freq_min,
                                'FREQ_MAX':freq_sticker}
             cls._region_freq = [freq_min + idx * freq_step
                                 for idx in range(num_step)]
@@ -113,7 +113,7 @@ class TestIntegrationScalingRegion(unittest.TestCase):
             for freq_idx in range(len(cls._region_freq)):
                 agent_conf_dict['HASH_{}'.format(freq_idx)] = cls._region_hash[freq_idx]
                 agent_conf_dict['FREQ_{}'.format(freq_idx)] = cls._region_freq[freq_idx]
-            
+
             agent_conf = geopmpy.io.AgentConf(cls._agent_conf_path,
                                               'frequency_map',
                                               agent_conf_dict)
@@ -128,9 +128,9 @@ class TestIntegrationScalingRegion(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """If we are not handling an exception and the GEOPM_KEEP_FILES
+        """
+        If we are not handling an exception and the GEOPM_KEEP_FILES
         environment variable is unset, clean up output.
-
         """
         if (sys.exc_info() == (None, None, None) and not
             cls._keep_files and not cls._skip_launch):
@@ -138,9 +138,9 @@ class TestIntegrationScalingRegion(unittest.TestCase):
             os.unlink(cls._report_path)
 
     def test_monotone_performance(self):
-        """Test that the reports generated show linear performance with
-           respect to CPU frequency.
-
+        """
+        Test that the reports generated show linear performance with
+        respect to CPU frequency.
         """
         report = geopmpy.io.RawReport(self._report_path)
         host_names = report.host_names()
