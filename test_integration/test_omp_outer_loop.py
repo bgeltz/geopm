@@ -102,7 +102,7 @@ class TestIntegrationOMPOuterLoop(unittest.TestCase):
             launcher = geopm_test_launcher.TestLauncher(AppConf(),
                                                         agent_conf,
                                                         report_path,
-                                                        time_limit=6000)
+                                                        time_limit=600)
             launcher.set_num_node(num_node)
             launcher.set_num_rank(num_rank)
             if config == '_without_ompt':
