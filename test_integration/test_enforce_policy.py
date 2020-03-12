@@ -83,7 +83,6 @@ class TestIntegrationEnforcePolicy(unittest.TestCase):
         self._max_freq = geopm_test_launcher.geopmread("FREQUENCY_MAX board 0")
         geopm_test_launcher.geopmwrite("FREQUENCY board 0 {}".format(self._max_freq))
         self._tdp_power = geopm_test_launcher.geopmread("POWER_PACKAGE_TDP package 0")
-        geopm_test_launcher.geopmwrite("POWER_PACKAGE_LIMIT board 0 {}".format(self._tdp_power))
         self._sticker_freq = geopm_test_launcher.geopmread("FREQUENCY_STICKER board 0")
         self._step_freq = geopm_test_launcher.geopmread("FREQUENCY_STEP board 0")
 
@@ -92,7 +91,6 @@ class TestIntegrationEnforcePolicy(unittest.TestCase):
 
     def tearDown(self):
         geopm_test_launcher.geopmwrite("MSR::PERF_CTL:FREQ board 0 {}".format(self._old_max_freq))
-        geopm_test_launcher.geopmwrite("MSR::PKG_POWER_LIMIT:PL1_POWER_LIMIT board 0 {}".format(self._old_max_power))
 
     def run_tool(self, agent_name, policy_setting):
         test_name = 'test_enforce_policy'
