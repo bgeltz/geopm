@@ -1042,7 +1042,7 @@ class SrunLauncher(Launcher):
         return result
 
     def performance_governor_option(self):
-        return ['--cpu-freq=Performance']
+        return ['--cpu-freq=userspace']
 
     def get_idle_nodes(self):
         """

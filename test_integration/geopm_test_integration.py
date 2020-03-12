@@ -1092,6 +1092,10 @@ class TestIntegration(unittest.TestCase):
         max_freq = geopm_test_launcher.geopmread("CPUINFO::FREQ_MAX board 0")
         sticker_freq = geopm_test_launcher.geopmread("CPUINFO::FREQ_STICKER board 0")
         freq_step = geopm_test_launcher.geopmread("CPUINFO::FREQ_STEP board 0")
+        min_freq = 3800000000
+        max_freq = min_freq
+        sticker_freq = min_freq
+
         self._agent = "frequency_map"
         report_path = name + '.report'
         trace_path = name + '.trace'
@@ -1123,8 +1127,8 @@ class TestIntegration(unittest.TestCase):
         app_conf.append_region('all2all', 1.0)
         app_conf.write()
         freq_map = {}
-        freq_map['dgemm'] = min_freq + 2 * freq_step
-        freq_map['stream'] = sticker_freq - 2 * freq_step
+        freq_map['dgemm'] = min_freq
+        freq_map['stream'] = min_freq
         freq_map['all2all'] = min_freq
         self._options = create_frequency_map_policy(min_freq, max_freq, freq_map, use_env)
         agent_conf = geopmpy.io.AgentConf(name + '_agent.config', self._agent, self._options)
