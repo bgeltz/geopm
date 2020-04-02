@@ -44,7 +44,7 @@ export LD_LIBRARY_PATH=$GEOPM_LIB:$LD_LIBRARY_PATH
 # create a report file
 # create trace files
 
-NUM_NODES=2
+NUM_NODES=1
 RANKS_PER_NODE=4
 TOTAL_RANKS=$((${RANKS_PER_NODE} * ${NUM_NODES}))
 
@@ -62,7 +62,7 @@ elif [ "$GEOPM_LAUNCHER" = "srun" ]; then
     geopmlaunch srun \
                 -N ${NUM_NODES} \
                 -n ${TOTAL_RANKS} \
-                --geopm-ctl=process \
+                --geopm-ctl=pthread \
                 --geopm-report=tutorial_2_report \
                 --geopm-trace=tutorial_2_trace \
                 -- ./tutorial_2

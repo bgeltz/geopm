@@ -1092,9 +1092,8 @@ class TestIntegration(unittest.TestCase):
         max_freq = geopm_test_launcher.geopmread("CPUINFO::FREQ_MAX board 0")
         sticker_freq = geopm_test_launcher.geopmread("CPUINFO::FREQ_STICKER board 0")
         freq_step = geopm_test_launcher.geopmread("CPUINFO::FREQ_STEP board 0")
-        min_freq = 3800000000
+        min_freq = 2300000000
         max_freq = min_freq
-        sticker_freq = min_freq
 
         self._agent = "frequency_map"
         report_path = name + '.report'

@@ -44,7 +44,7 @@ export LD_LIBRARY_PATH=$GEOPM_LIB:$LD_LIBRARY_PATH
 # create a report file
 # create trace files
 
-NUM_NODES=2
+NUM_NODES=1
 RANKS_PER_NODE=2
 TOTAL_RANKS=$((${RANKS_PER_NODE} * ${NUM_NODES}))
 
@@ -65,6 +65,7 @@ elif [ "$GEOPM_LAUNCHER" = "srun" ]; then
                 --geopm-ctl=process \
                 --geopm-report=tutorial_6_report \
                 --geopm-trace=tutorial_6_trace \
+                --geopm-trace-signals=MSR::PERF_CTL:FREQ@package,MSR::PERF_STATUS# \
                 -- geopmbench tutorial_6_config.json
     err=$?
 elif [ "$GEOPM_LAUNCHER" = "aprun" ]; then

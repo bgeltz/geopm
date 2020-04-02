@@ -85,7 +85,7 @@ fi
 
 # GEOPM_CFLAGS: Contains compile options for geopm.
 if [ ! "$GEOPM_CFLAGS" ]; then
-    GEOPM_CFLAGS="-I$GEOPM_INC"
+    GEOPM_CFLAGS="-I$GEOPM_INC -I$MKL_INCDIR"
 fi
 
 # GEOPM_LDFLAGS: Contains link options for geopm.
