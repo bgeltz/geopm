@@ -220,8 +220,7 @@ class Config(object):
         Dictionary describing the environment variables controlled by the
         configuration object.
         """
-        result = {'LD_DYNAMIC_WEAK': 'true',
-                  'OMP_PROC_BIND': 'true'}
+        result = {'OMP_PROC_BIND': 'true'}
         if self.ctl == 'pthread':
             result['MPICH_MAX_THREAD_SAFETY'] = 'multiple'
         if self.ctl in ('process', 'pthread'):
