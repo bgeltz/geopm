@@ -1397,6 +1397,8 @@ class IMPIExecLauncher(Launcher):
 
         if self.is_slurm_enabled:
             result += ['-bootstrap', 'slurm']
+        else:
+            result += ['-bootstrap', 'ssh']
 
         return result
 
