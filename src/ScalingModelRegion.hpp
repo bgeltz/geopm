@@ -61,9 +61,8 @@ namespace geopm
             size_t m_rank_per_node;
             size_t m_array_len;
             size_t m_num_atom;
-            std::vector<double> m_array_a;
-            std::vector<double> m_array_b;
-            std::vector<double> m_array_c;
+            std::vector<double *> m_arrays;
+
     };
 }
 

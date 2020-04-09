@@ -51,6 +51,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas
+import code
 
 # Put integration test directory into the path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -134,13 +135,19 @@ class TestIntegration_ee_short_region_slop(unittest.TestCase):
         cls._keep_files = cls._skip_launch or os.getenv('GEOPM_KEEP_FILES') is not None
         cls._agent_conf_fixed_path = 'test_{}_fixed-agent-config.json'.format(cls._test_name)
         cls._agent_conf_dynamic_path = 'test_{}_dynamic-agent-config.json'.format(cls._test_name)
-        cls._num_trial = 10
+        #cls._num_trial = 10
+        cls._num_trial = 1
         cls._num_duration = 7
         cls._num_node = 1
         cls._num_rank = 2
+        #cls._num_rank = 1
         cls._job_time_limit = 6000
         cls._report_signals = 'INSTRUCTIONS_RETIRED,CYCLES_REFERENCE,CYCLES_THREAD'
-        cls._trace_signals = 'INSTRUCTIONS_RETIRED,MSR::UNCORE_PERF_STATUS:FREQ,TEMPERATURE_CORE'
+        #cls._trace_signals = 'INSTRUCTIONS_RETIRED,MSR::UNCORE_PERF_STATUS:FREQ,TEMPERATURE_CORE'
+        #LHL: 
+        #cls._trace_signals = 'INSTRUCTIONS_RETIRED,INSTRUCTIONS_RETIRED@core,CYCLES_THREAD@core,MSR::UNCORE_PERF_STATUS:FREQ,TEMPERATURE_CORE'
+        #cls._trace_signals = 'INSTRUCTIONS_RETIRED,INSTRUCTIONS_RETIRED@core,CYCLES_THREAD@core,MSR::UNCORE_PERF_STATUS:FREQ,TEMPERATURE_CORE,MSR::APERF:ACNT,MSR::MPERF:MCNT,MSR::PERF_LIMIT_REASONS#,MSR::IA32_PMC0:PERFCTR,MSR::IA32_PMC1:PERFCTR,MSR::IA32_PMC2:PERFCTR,MSR::IA32_PMC3:PERFCTR,MSR::IA32_PERFEVTSEL0:EVENT_SELECT,MSR::IA32_PERFEVTSEL0:UMASK,MSR::IA32_PERFEVTSEL1:EVENT_SELECT,MSR::IA32_PERFEVTSEL1:UMASK,MSR::IA32_PERFEVTSEL2:EVENT_SELECT,MSR::IA32_PERFEVTSEL2:UMASK,MSR::IA32_PERFEVTSEL3:EVENT_SELECT,MSR::IA32_PERFEVTSEL3:UMASK'
+        cls._trace_signals = 'INSTRUCTIONS_RETIRED,MSR::UNCORE_PERF_STATUS:FREQ,TEMPERATURE_CORE,MSR::APERF:ACNT,MSR::MPERF:MCNT,MSR::IA32_PMC0:PERFCTR,MSR::IA32_PMC1:PERFCTR,MSR::IA32_PMC2:PERFCTR,MSR::IA32_PMC3:PERFCTR,MSR::IA32_PERFEVTSEL0:EVENT_SELECT,MSR::IA32_PERFEVTSEL0:UMASK,MSR::IA32_PERFEVTSEL1:EVENT_SELECT,MSR::IA32_PERFEVTSEL1:UMASK,MSR::IA32_PERFEVTSEL2:EVENT_SELECT,MSR::IA32_PERFEVTSEL2:UMASK,MSR::IA32_PERFEVTSEL3:EVENT_SELECT,MSR::IA32_PERFEVTSEL3:UMASK'
         # Clear out exception record for python 2 support
         geopmpy.error.exc_clear()
         if not cls._skip_launch:
@@ -228,6 +235,8 @@ class TestIntegration_ee_short_region_slop(unittest.TestCase):
         for hh in timed_hash:
             agent_conf_dynamic_dict['HASH_{}'.format(policy_idx)] = hh
             agent_conf_dynamic_dict['FREQ_{}'.format(policy_idx)] = freq_min
+            #LHL: hack
+            #agent_conf_dynamic_dict['FREQ_{}'.format(policy_idx)] = freq_max
             policy_idx += 1
 
         agent_conf_dynamic = geopmpy.io.AgentConf(cls._agent_conf_dynamic_path,

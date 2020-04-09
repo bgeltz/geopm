@@ -51,13 +51,17 @@ int main(int argc, char **argv)
     geopm::Profile &prof = geopm::Profile::default_profile();
     size_t num_duration = 7;
     double duration = 0.2048;
-    double repeat = 200; // Each trial takes 41 seconds at sticker frequency
+    //double repeat = 200; // Each trial takes 41 seconds at sticker frequency
+    double repeat = 10; 
     for (size_t duration_idx = 0; duration_idx != num_duration; ++duration_idx) {
         // Create scaling and scaling_timed model regions
-        std::unique_ptr<geopm::ModelRegion> model_scaling(
-            geopm::ModelRegion::model_region("scaling", duration, is_verbose));
         std::unique_ptr<geopm::ModelRegion> model_timed(
             geopm::ModelRegion::model_region("timed_scaling", duration, is_verbose));
+
+        model_timed->run();
+
+        std::unique_ptr<geopm::ModelRegion> model_scaling(
+            geopm::ModelRegion::model_region("scaling", duration, is_verbose));
 
         // Rename model regions
         std::string scaling_name = "scaling_" + std::to_string(duration_idx);
@@ -74,15 +78,15 @@ int main(int argc, char **argv)
             prof.enter(scaling_rid);
             model_scaling->run();
             prof.exit(scaling_rid);
-            prof.enter(barrier_scaling_rid);
-            MPI_Barrier(MPI_COMM_WORLD);
-            prof.exit(barrier_scaling_rid);
+            //prof.enter(barrier_scaling_rid);
+            //MPI_Barrier(MPI_COMM_WORLD);
+            //prof.exit(barrier_scaling_rid);
             prof.enter(timed_rid);
             model_timed->run();
             prof.exit(timed_rid);
-            prof.enter(barrier_timed_rid);
-            MPI_Barrier(MPI_COMM_WORLD);
-            prof.exit(barrier_timed_rid);
+            //prof.enter(barrier_timed_rid);
+            //MPI_Barrier(MPI_COMM_WORLD);
+            //prof.exit(barrier_timed_rid);
         }
         repeat *= 2;
         duration /= 2.0;
