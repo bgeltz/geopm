@@ -44,7 +44,7 @@ export LD_LIBRARY_PATH=$GEOPM_LIB:$LD_LIBRARY_PATH
 # create a report file
 # create trace files
 
-NUM_NODES=2
+NUM_NODES=1
 RANKS_PER_NODE=2
 TOTAL_RANKS=$((${RANKS_PER_NODE} * ${NUM_NODES}))
 
@@ -82,6 +82,7 @@ elif [ "$GEOPM_LAUNCHER" = "impi" ]; then
     geopmlaunch impi \
                 -ppn ${RANKS_PER_NODE} \
                 -n ${TOTAL_RANKS} \
+                --hostfile tutorial_hosts \
                 --geopm-ctl=process \
                 --geopm-report=tutorial_6_report \
                 --geopm-trace=tutorial_6_trace \
