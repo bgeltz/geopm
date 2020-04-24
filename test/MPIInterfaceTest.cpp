@@ -269,6 +269,14 @@ TEST_F(MPIInterfaceTest, geopm_api)
     EXPECT_EQ((uint64_t)0, g_test_curr_region_enter_id);
     EXPECT_EQ(0, g_test_curr_region_enter_count);
     reset();
+
+    const char *funcs_list[NAME_MAX];
+    size_t length = NAME_MAX;
+    int err = geopm_mpi_funcs_list(funcs_list, &length);
+
+    printf("BRG length is %lu\n", length);
+    printf("BRG err is %d\n", err);
+    printf("BRG i[12] = %s\n", funcs_list[12]);
 }
 
 TEST_F(MPIInterfaceTest, mpi_api)

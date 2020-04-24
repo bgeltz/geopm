@@ -58,6 +58,50 @@ int geopm_is_comm_enabled(void)
     return !g_is_mpi_finalized;
 }
 
+int geopm_mpi_funcs_list(const char *list[], size_t *length)
+{
+    const char* const func_list[] = {"MPI_Allgather",
+                                     "MPI_Allgatherv",
+                                     "MPI_Allreduce",
+                                     "MPI_Alltoall",
+                                     "MPI_Alltoallv",
+                                     "MPI_Alltoallw",
+                                     "MPI_Barrier",
+                                     "MPI_Bcast"
+                                     "MPI_Bsend",
+                                     "MPI_Bsend_init",
+                                     "MPI_Gather",
+                                     "MPI_Gatherv",
+                                     "MPI_Neighbor_allgather",
+                                     "MPI_Neighbor_allgatherv",
+                                     "MPI_Neighbor_alltoall",
+                                     "MPI_Neighbor_alltoallv",
+                                     "MPI_Neighbor_alltoallw",
+                                     "MPI_Reduce",
+                                     "MPI_Reduce_scatter",
+                                     "MPI_Reduce_scatter_block",
+                                     "MPI_Rsend"
+                                     "MPI_Rsend_init",
+                                     "MPI_Scan",
+                                     "MPI_Scatter",
+                                     "MPI_Scatterv",
+                                     "MPI_Waitall",
+                                     "MPI_Waitany",
+                                     "MPI_Wait",
+                                     "MPI_Waitsome",
+                                     "MPI_Exscan",
+                                     "MPI_Recv",
+                                     "MPI_Send",
+                                     "MPI_Sendrecv",
+                                     "MPI_Sendrecv_replace",
+                                     "MPI_Ssend"};
+
+    *list = *func_list;
+    *length = (size_t)(sizeof(func_list) / sizeof(func_list[0]));
+
+    return 0;
+}
+
 #ifndef GEOPM_TEST
 int MPI_Init(int *argc, char **argv[])
 {
