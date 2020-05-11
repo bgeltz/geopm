@@ -238,7 +238,7 @@ class TestLauncher(object):
                 argv.extend(shlex.split(exec_wrapper))
             # Use app config to get path and arguements
             argv.append(self._app_conf.get_exec_path())
-            argv.append('--verbose')
+            #  argv.append('--verbose')
             argv.extend(self._app_conf.get_exec_args())
             launcher = geopmpy.launcher.Factory().create(argv, self._num_rank, self._num_node, self._cpu_per_rank, self._timeout,
                                                          self._time_limit, test_name, self._node_list, self._host_file)

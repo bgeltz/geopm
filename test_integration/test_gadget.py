@@ -65,6 +65,14 @@ class AppConf(object):
         input_data = os.getenv('GADGET_INPUT_PATH', '16cubed')
         self.input_data_dir = os.path.join(self.gadget_src_dir, 'ipcc-test-problem', input_data, 'from-snapshot')
 
+        # Setup execution dir
+        self.outdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'gadget')
+        try:
+            os.mkdir(self.outdir)
+        except OSError: # dir already exists
+            shutil.rmtree(self.outdir)
+            os.mkdir(self.outdir)
+
         #  bin_path = os.getenv('GADGET_BIN_PATH', None)
         #  if bin_path is None:
         #      raise RuntimeError("Please set GADGET_BIN_PATH to point to the compiled binary.")
@@ -76,14 +84,6 @@ class AppConf(object):
         to write any files required by the application.
 
         """
-        # Setup execution dir
-        self.outdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'gadget')
-        try:
-            os.mkdir(self.outdir)
-        except OSError: # dir already exists
-            shutil.rmtree(self.outdir)
-            os.mkdir(self.outdir)
-
         # Symlink all input data
         for ii in os.listdir(self.input_data_dir):
             if ii in ['outdir', 'P-Gadget3']: # Remove work dirs
@@ -166,6 +166,7 @@ class TestIntegration_gadget(unittest.TestCase):
             launcher.set_num_rank(num_rank)
             launcher.write_log(test_name, 'SRC dir = {}'.format(app_conf.gadget_src_dir))
             launcher.write_log(test_name, 'Input dataset = {}'.format(app_conf.input_data_dir))
+            #  os.chdir(app_conf.outdir) # Necessary?
 
             # Run the test application
             launcher.run(test_name)
