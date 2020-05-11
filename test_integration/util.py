@@ -43,7 +43,7 @@ import subprocess
 from io import StringIO
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from test_integration import geopm_test_launcher
+import geopm_test_launcher
 
 def skip_unless_platform_bdx():
     fam, mod = geopm_test_launcher.get_platform()
