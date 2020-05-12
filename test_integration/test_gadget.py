@@ -166,7 +166,7 @@ class TestIntegration_gadget(unittest.TestCase):
             launcher.set_num_rank(num_rank)
             launcher.write_log(test_name, 'SRC dir = {}'.format(app_conf.gadget_src_dir))
             launcher.write_log(test_name, 'Input dataset = {}'.format(app_conf.input_data_dir))
-            #  os.chdir(app_conf.outdir) # Necessary?
+            os.chdir(app_conf.outdir) # Necessary!  Undo somewhere...
 
             # Run the test application
             launcher.run(test_name)

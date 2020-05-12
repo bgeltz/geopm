@@ -528,7 +528,19 @@ class Launcher(object):
         pid = subprocess.Popen(argv_mod, env=self.environ(),
                                stdout=popen_stdout, stderr=popen_stderr,
                                shell=True)
+
+        #  import code
+        #  code.interact(local=dict(globals(), **locals()))
+
+        #  pid = subprocess.Popen(argv_mod, env=self.environ(),
+        #                         shell=True)
+
         stdout_bytes, stderr_bytes = pid.communicate()
+
+        if 'Gadget' in argv_mod:
+            import code
+            code.interact(local=dict(globals(), **locals()))
+
         if subprocess.PIPE in (popen_stdout, popen_stderr):
             try:
                 stdout.write(stdout_bytes.decode(encoding=stdout_encoding))
