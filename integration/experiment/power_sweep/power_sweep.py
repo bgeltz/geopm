@@ -31,17 +31,19 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+'''
+Helper functions for running power sweep experiments.
+'''
+
 import sys
 import os
 import time
-import pandas
 import math
 
 import geopmpy.io
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from integration import util
-from integration.experiment import common_args
 
 
 def setup_power_bounds(min_power, max_power, step_power):
@@ -110,31 +112,3 @@ def launch_power_sweep(file_prefix, machine_config, output_dir, iterations,
 
                 # rest to cool off between runs
                 time.sleep(60)
-
-
-def summary(parse_output):
-    # rename some columns
-    parse_output['power_limit'] = parse_output['POWER_PACKAGE_LIMIT_TOTAL']
-    parse_output['runtime'] = parse_output['runtime (sec)']
-    parse_output['network_time'] = parse_output['network-time (sec)']
-    parse_output['energy_pkg'] = parse_output['package-energy (joules)']
-    parse_output['energy_dram'] = parse_output['dram-energy (joules)']
-    parse_output['frequency'] = parse_output['frequency (Hz)']
-    parse_output['iteration'] = parse_output.apply(lambda row: row['Profile'].split('_')[-1],
-                                                   axis=1)
-    # set up index for grouping
-    parse_output = parse_output.set_index(['Agent', 'host', 'power_limit'])
-    summary = pandas.DataFrame()
-    for col in ['count', 'runtime', 'network_time', 'energy_pkg', 'energy_dram', 'frequency']:
-        summary[col] = parse_output[col].groupby(['Agent', 'power_limit']).mean()
-    return summary
-
-
-if __name__ == '__main__':
-    aargs = common_args.ExperimentAnalysisArgs()
-    output_dir = aargs.args
-
-    output = geopmpy.io.RawReportCollection("*report", dir_name=output_dir)
-    result = summary(output.get_epoch_df())
-
-    sys.stdout.write('{}\n'.format(result))
