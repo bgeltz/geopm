@@ -3,7 +3,7 @@
 TODO
 ----
 - documentation in some cases doesn't match current file structure.  document intent and fix files later.
-- should these files be README.md?
+- should these files be README.md? - Chris: Yes, that way we get good formatting on github
 - every __init__.py should have a docstring
 - instead of required arg for `--machine-config`, perhaps can autodetect?
 - by default, machine config is saved in output-dir and searched for in that dir.  a little confusing, maybe this should just be CWD or full path.
@@ -16,20 +16,29 @@ GEOPM INTEGRATION SCRIPTS
 Welcome to GEOPM integration.
 
 This directory contains scripts for running GEOPM for performance and
-integration testing.  Refer to the README files in each subdirectory
-for more information.
+integration testing.  Refer to the README.md files in each
+subdirectory for more information.
 
-The structure is organized as follows:
+The directory structure is organized as follows:
 
 - apps:
-
+    The apps directory is where information about applications is
+    located.  Each application supported has its own subdirectory
+    within the apps directory.  Each application directory contains
     scripts that encapsulate the required setup, run configuration,
-    and command line arguments for applications.
+    and command line arguments for executing the application.  There
+    may be more than one script for an application to support
+    different workloads or scenarios.  For some applications, there
+    are dedicated subdirectories containing more information on how to
+    download and build the application, and sometimes GEOPM-related
+    patches to be applied on top of publically-available source code.
 
 - experiment:
 
     scripts to help run experiments and analyze the output in a
-    consistent way, regardless of the application.
+    consistent way, regardless of the application.  These provide
+    summarizing statistics and can create visualizations of
+    measurements.
 
 - test:
 

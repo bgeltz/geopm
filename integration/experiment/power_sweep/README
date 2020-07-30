@@ -31,33 +31,39 @@ Example:
 
 2. Calculate the achieved frequency on each node and generate histogram plots:
 
-  ./node_efficiency.py --output-dir=my_data --machine-config=mcfly.conf
+  ./node_efficiency.py --machine-config=mcfly.machine --output-dir=test42
 
 
 
-SCRIPTS
--------
-
+Base Experiment Module
+----------------------
 power_sweep.py:
 
   - Contains the helper function for launching a power sweep.
+
+
+Application Specific Run Scripts
+--------------------------------
 
 run_power_sweep_dgemm.py:
 
   - Runs DGEMM on a number of nodes over a range of power caps.
 
-power_sweep_summary.py:
+Analysis Scripts to Produce Summary Tables and Visualizations
+-------------------------------------------------------------
+
+gen_power_sweep_summary.py:
 
   - Prints basic summary of the runtime and energy characteristics at
     each power cap.
 
-balancer_comparison.py
+gen_balancer_comparison.py
 
   - Compares the total runtime and energy of the application when run
     with the power balancer against the power governor and prints the
     runtime and energy savings.
 
-node_efficiency.py
+gen_node_efficiency.py
 
   - Calculates the achieved frequency of every package of every node
     at each power cap and agent in the experiment.  Produces a
