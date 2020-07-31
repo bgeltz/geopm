@@ -1,15 +1,3 @@
-## geopm/integration/README
-
-TODO
-----
-- documentation in some cases doesn't match current file structure.  document intent and fix files later.
-- should these files be README.md? - Chris: Yes, that way we get good formatting on github
-- every __init__.py should have a docstring
-- instead of required arg for `--machine-config`, perhaps can autodetect?
-- by default, machine config is saved in output-dir and searched for in that dir.  a little confusing, maybe this should just be CWD or full path.
-- remove _power_sweep_ being added to name of all power sweep files.  use provided file prefix only.
-- node_efficiency should add an argument for target region
-
 GEOPM INTEGRATION SCRIPTS
 -------------------------
 
@@ -22,6 +10,7 @@ subdirectory for more information.
 The directory structure is organized as follows:
 
 - apps:
+
     The apps directory is where information about applications is
     located.  Each application supported has its own subdirectory
     within the apps directory.  Each application directory contains
@@ -35,23 +24,71 @@ The directory structure is organized as follows:
 
 - experiment:
 
-    scripts to help run experiments and analyze the output in a
-    consistent way, regardless of the application.  These provide
-    summarizing statistics and can create visualizations of
-    measurements.
+    The scripts in this directory are intended to be used as a
+    starting point for various types of experiments using GEOPM.  An
+    experiment consists of a run step, containing application launches
+    with GEOPM, and an analysis step, in which the reports and traces
+    produced by the run step are processed, interpreted, and
+    summarized.  Analysis scripts may also produce plots.
+
+    Scripts are grouped into subfolders based on the type of
+    experiment, such as a sweep across power limits or processor
+    frequency settings.  In general, analysis of one type may be
+    difficult to apply to results from another, so run scripts for the
+    appropriate type should be used.
+
+    In general, the current model is to have a different run script
+    for each application.  This is because applications have specific
+    runtime requirements and are scaled to different node and rank
+    counts.
 
 - test:
-
-    integration tests of the GEOPM runtime.  These tests may use
-    functions from the experiment scripts to assist in launch and
-    analyze, but they also perform assertions on the results.
-
-- Any other files in this directory are utilities used by both
-  tests and experiments.
-# TODO: just move util into experiment?
+    The test directory contains the integration tests of the GEOPM
+    runtime.  These tests may use functions from the experiment
+    scripts to assist in launch and analysis, but they also perform
+    assertions on the results.
 
 
-#####
+##### NOTES BELOW HERE #####
+
+
+TODO
+----
+- documentation in some cases doesn't match current file structure.  document intent and fix files later.
+- should these files be README.md? - Chris: Yes, that way we get good formatting on github
+- every __init__.py should have a docstring
+- instead of required arg for `--machine-config`, perhaps can autodetect?
+- by default, machine config is saved in output-dir and searched for in that dir.  a little confusing, maybe this should just be CWD or full path.
+- remove _power_sweep_ being added to name of all power sweep files.  use provided file prefix only.
+- node_efficiency should add an argument for target region
+
+
+
+EXPERIMENT TYPES
+----------------
+
+Experiments are organized into the following subdirectories:
+
+- power_sweep: experiments based on running agents with power limit policies
+
+- frequency_sweep: experiments based on running agents with maximum frequency policies
+
+
+Glossary of terms
+-----------------
+application -
+
+experiment - a run step followed by one or more analysis steps in
+    order to answer a question about application behavior or GEOPM
+    agent performance
+
+run step - a sequence of job launches of an application
+
+analysis step - post-process, summarize, and interpret data from GEOPM reports and traces
+
+report/trace - output files from the GEOPM runtime.  Refer to the geopmlaunch(1) man page for more information.
+
+
 Example directory structure:
 
 integration/
