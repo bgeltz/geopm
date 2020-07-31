@@ -37,16 +37,11 @@ Example power sweep experiment using geopmbench.
 
 import sys
 import os
-import math
 import pandas
-import glob
-import argparse
 
 import geopmpy.io
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from integration import util
-from integration.experiment import common_args
+from experiment import common_args
 
 
 def plot_process(self, parse_output):
@@ -99,6 +94,7 @@ def plot_process(self, parse_output):
     df['target_min_delta'] = df['target_mean'] - df['target_min']
 
     return df
+
 
 def plot(self, process_output):
     config = geopmpy.plotter.ReportConfig(output_dir=os.path.join(self._output_dir, 'figures'))

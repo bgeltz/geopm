@@ -36,13 +36,11 @@ Prints a summary of the data from a power sweep experiment.
 '''
 
 import sys
-import os
 import pandas
 
 import geopmpy.io
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from integration.experiment import common_args
+from experiment import common_args
 
 
 def summary(parse_output):

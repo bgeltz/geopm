@@ -42,8 +42,7 @@ import math
 
 import geopmpy.io
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from integration import util
+from experiment import util
 
 
 def setup_power_bounds(min_power, max_power, step_power):

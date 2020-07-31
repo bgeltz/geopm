@@ -38,16 +38,12 @@ Example power sweep experiment using geopmbench.
 import sys
 import os
 import pandas
-import glob
 import matplotlib.pyplot as plt
-import json
-import argparse
 
 import geopmpy.io
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from integration import util
-from integration.experiment import common_args
+from experiment import util
+from experiment import common_args
 
 
 def generate_histogram(data, app_name, min_drop, max_drop, label, bin_size,

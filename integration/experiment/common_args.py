@@ -46,9 +46,6 @@ import os
 import argparse
 
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-
 def shared_args(parser):
     # output should be shared so that launch and analysis use the same location
     parser.add_argument('-o', '--output-dir', dest='output_dir',
@@ -57,7 +54,6 @@ def shared_args(parser):
     parser.add_argument('--machine-config', dest='machine_config',
                         action='store', required=True,
                         help='path to the file containing machine hardware limits for launch')
-
 
 
 def handle_help(parser):

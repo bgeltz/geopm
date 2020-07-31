@@ -54,7 +54,7 @@ if __name__ == '__main__':
         rt1 = df['EPOCH_RUNTIME-package-1'] - df['EPOCH_RUNTIME_NETWORK-package-1']
         tgt = df['POLICY_MAX_EPOCH_RUNTIME']
         plt.subplot(2, 1, 1)
-        ply.xlim((50, 100))
+        plt.xlim((50, 100))
         plt.plot(time, pl0, label='limit-0-mf{}'.format(node_num))
         plt.plot(time, pl1, label='limit-1-mf{}'.format(node_num))
         plt.title('Per socket power limits')

@@ -37,16 +37,11 @@ Example power sweep experiment using geopmbench.
 
 import sys
 import os
-import math
-import pandas
-import glob
-import argparse
 
 import geopmpy.io
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from integration.util import sys_power_avail
-from integration.experiment import common_args, power_sweep
+from experiment import common_args
+from experiment.power_sweep import power_sweep
 
 
 if __name__ == '__main__':
