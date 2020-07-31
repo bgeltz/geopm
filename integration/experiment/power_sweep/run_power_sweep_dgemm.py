@@ -49,43 +49,36 @@ if __name__ == '__main__':
     if largs.do_help:
         sys.exit(0)
 
-    skip_launch = largs.args.skip_launch
     output_dir = largs.args.output_dir
     num_nodes = largs.args.nodes
     machine_info = os.path.join(output_dir, largs.args.machine_config)
 
-    if not skip_launch:
-        # create output dir
-        if not os.path.exists(output_dir):
-            os.mkdir(output_dir)
+    # create output dir
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
 
-        # application parameters
-        app_name = 'dgemm'
-        app_conf = geopmpy.io.BenchConf(path=os.path.join(output_dir, 'dgemm.conf'))
-        app_conf.append_region('dgemm', 8.0)
-        app_conf.set_loop_count(500)
-        app_conf.write()
-        rank_per_node = 2
+    # application parameters
+    app_name = 'dgemm'
+    app_conf = geopmpy.io.BenchConf(path=os.path.join(output_dir, 'dgemm.conf'))
+    app_conf.append_region('dgemm', 8.0)
+    app_conf.set_loop_count(500)
+    app_conf.write()
+    rank_per_node = 2
 
-        # experiment parameters
-        # TODO: can dynamically choose whole range with
-        # setup_power_bounds(None, None), or add command line options
-        step_power = 10
-        min_power, max_power = power_sweep.setup_power_bounds(180, 190, step_power)
-        iterations = 2
-        power_sweep.launch_power_sweep(file_prefix=app_name,
-                                       machine_config=machine_info,
-                                       output_dir=output_dir,
-                                       iterations=iterations,
-                                       min_power=min_power,
-                                       max_power=max_power,
-                                       step_power=step_power,
-                                       agent_types=['power_governor', 'power_balancer'],
-                                       num_node=num_nodes,
-                                       num_rank=num_nodes*rank_per_node,
-                                       app_conf=app_conf)
-
-    output = geopmpy.io.RawReportCollection("*report", dir_name=output_dir)
-    result = power_sweep.summary(output.get_epoch_df())
-
-    sys.stdout.write('{}\n'.format(result))
+    # experiment parameters
+    # TODO: can dynamically choose whole range with
+    # setup_power_bounds(None, None), or add command line options
+    step_power = 10
+    min_power, max_power = power_sweep.setup_power_bounds(180, 190, step_power)
+    iterations = 2
+    power_sweep.launch_power_sweep(file_prefix=app_name,
+                                   machine_config=machine_info,
+                                   output_dir=output_dir,
+                                   iterations=iterations,
+                                   min_power=min_power,
+                                   max_power=max_power,
+                                   step_power=step_power,
+                                   agent_types=['power_governor', 'power_balancer'],
+                                   num_node=num_nodes,
+                                   num_rank=num_nodes*rank_per_node,
+                                   app_conf=app_conf)
