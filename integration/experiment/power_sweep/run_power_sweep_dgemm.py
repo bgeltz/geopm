@@ -37,6 +37,7 @@ Example power sweep experiment using geopmbench.
 
 import sys
 import os
+import argparse
 
 import geopmpy.io
 
@@ -45,13 +46,16 @@ from experiment.power_sweep import power_sweep
 
 
 if __name__ == '__main__':
-    largs = common_args.ExperimentLaunchArgs()
-    if largs.do_help:
-        sys.exit(0)
 
-    output_dir = largs.args.output_dir
-    num_nodes = largs.args.nodes
-    machine_info = os.path.join(output_dir, largs.args.machine_config)
+    parser = argparse.ArgumentParser()
+    common_args.add_machine_config(parser)
+    common_args.add_output_dir(parser)
+    common_args.add_nodes(parser)
+    args, extra_cli_args = parser.parse_known_args()
+
+    output_dir = args.output_dir
+    num_nodes = args.nodes
+    machine_info = os.path.join(output_dir, args.machine_config)
 
     # create output dir
     if not os.path.exists(output_dir):
@@ -81,4 +85,5 @@ if __name__ == '__main__':
                                    agent_types=['power_governor', 'power_balancer'],
                                    num_node=num_nodes,
                                    num_rank=num_nodes*rank_per_node,
-                                   app_conf=app_conf)
+                                   app_conf=app_conf,
+                                   experiment_cli_args=extra_cli_args)

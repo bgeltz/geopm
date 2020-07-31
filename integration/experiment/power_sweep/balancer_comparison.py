@@ -38,6 +38,7 @@ Example power sweep experiment using geopmbench.
 import sys
 import os
 import pandas
+import argparse
 
 import geopmpy.io
 
@@ -179,14 +180,18 @@ def print_summary(df):
 
 
 if __name__ == '__main__':
-    aargs = common_args.ExperimentAnalysisArgs()
-    output_dir = aargs.args.output_dir
-    detailed = aargs.args.show_details
+    parser = argparse.ArgumentParser()
+    common_args.add_output_dir(parser)
+    common_args.add_show_details(parser)
+
+    args, _ = parser.parse_known_args()
+    output_dir = args.output_dir
+    show_details = args.show_details
 
     # TODO: throw if data is missing; mention that user needs to run a power sweep
 
     output = geopmpy.io.RawReportCollection("*report", dir_name=output_dir)
-    result = balancer_comparison(output.get_epoch_df(), detailed=detailed)
+    result = balancer_comparison(output.get_epoch_df(), detailed=show_details)
     print_summary(result)
 
     # if detailed:

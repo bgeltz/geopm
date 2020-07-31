@@ -37,6 +37,7 @@ Prints a summary of the data from a power sweep experiment.
 
 import sys
 import pandas
+import argparse
 
 import geopmpy.io
 
@@ -62,8 +63,10 @@ def summary(parse_output):
 
 
 if __name__ == '__main__':
-    aargs = common_args.ExperimentAnalysisArgs()
-    output_dir = aargs.args.output_dir
+    parser = argparse.ArgumentParser()
+    common_args.add_output_dir(parser)
+    args, _ = parser.parse_known_args()
+    output_dir = args.output_dir
 
     output = geopmpy.io.RawReportCollection("*report", dir_name=output_dir)
     result = summary(output.get_epoch_df())

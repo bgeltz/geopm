@@ -34,62 +34,26 @@
 Common command line arguments for experiments.
 '''
 
-# TODO:
-# - might need argv as an input for testing.  For now, uses sys.argv automatically
-# - use of handle_help is a little weird for caller. might back this out if
-#   scripts only require one set.  e.g. launch script can provide output_dir to
-#   analysis step.  if show_details is desired, have to use other script
-# - might want named members instead of forcing caller to use self.args
 
-import sys
-import os
-import argparse
-
-
-def shared_args(parser):
-    # output should be shared so that launch and analysis use the same location
+def add_output_dir(parser):
     parser.add_argument('-o', '--output-dir', dest='output_dir',
                         action='store', default='.',
                         help='location for reports and other output files')
+
+
+def add_machine_config(parser):
     parser.add_argument('--machine-config', dest='machine_config',
                         action='store', required=True,
                         help='path to the file containing machine hardware limits for launch')
 
 
-def handle_help(parser):
-    ''' Workaround so that multiple parsers can be used in combination. '''
-    result = False
-    if '-h' in sys.argv or '--help' in sys.argv:
-        parser.print_help()
-        result = True
-    return result
+def add_nodes(parser):
+    parser.add_argument('--nodes', dest='nodes',
+                        default=1, type=int,
+                        help='number of nodes to use for launch')
 
 
-class ExperimentLaunchArgs:
-    def __init__(self):
-        parser = argparse.ArgumentParser()
-        shared_args(parser)
-        parser.add_argument('--skip-launch', dest='skip_launch',
-                            action='store_true', default=False,
-                            help='reuse existing data files; do not launch any jobs')
-        parser.add_argument('--nodes', default=1, type=int,
-                            help='number of nodes to use for launch')
-
-        do_help = handle_help(parser)
-        self.do_help = do_help
-        if not do_help:
-            self.args, _ = parser.parse_known_args()
-
-
-class ExperimentAnalysisArgs:
-    def __init__(self):
-        parser = argparse.ArgumentParser()
-        shared_args(parser)
+def add_show_details(parser):
         parser.add_argument('--show-details', dest='show_details',
                             action='store_true', default=False,
                             help='print additional data analysis details')
-
-        do_help = handle_help(parser)
-        self.do_help = do_help
-        if not do_help:
-            self.args, _ = parser.parse_known_args()

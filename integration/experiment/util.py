@@ -135,7 +135,7 @@ def geopmread(read_str):
 
 
 # TODO: better name, do_launch is taken
-def try_launch(agent_conf, app_conf, add_geopm_args, **launcher_args):
+def try_launch(agent_conf, app_conf, extra_cli_args, **launcher_factory_args):
     # TODO: why does launcher strip off first arg, rather than geopmlaunch main?
     argv = ['dummy', detect_launcher()]
 
@@ -143,14 +143,14 @@ def try_launch(agent_conf, app_conf, add_geopm_args, **launcher_args):
         argv.append('--geopm-agent=' + agent_conf.get_agent())
         argv.append('--geopm-policy=' + agent_conf.get_path())
 
-    argv.extend(add_geopm_args)
+    argv.extend(extra_cli_args)
 
     argv.extend(['--'])
     # Use app config to get path and arguments
     argv.append(app_conf.get_exec_path())
     argv.extend(app_conf.get_exec_args())
 
-    launcher = geopmpy.launcher.Factory().create(argv, **launcher_args)
+    launcher = geopmpy.launcher.Factory().create(argv, **launcher_factory_args)
     launcher.run()
 
 

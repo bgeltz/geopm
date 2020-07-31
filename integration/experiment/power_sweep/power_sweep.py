@@ -60,7 +60,7 @@ def setup_power_bounds(min_power, max_power, step_power):
 
 def launch_power_sweep(file_prefix, machine_config, output_dir, iterations,
                        min_power, max_power, step_power, agent_types,
-                       num_node, num_rank, app_conf):
+                       num_node, num_rank, app_conf, experiment_cli_args):
     """
     Runs the application under a range of socket power limits.  Used
     by other analysis types to run either the PowerGovernorAgent or
@@ -100,13 +100,14 @@ def launch_power_sweep(file_prefix, machine_config, output_dir, iterations,
 
                 # TODO: these are not passed to launcher create()
                 # some are generic enough they could be, though
-                run_args = ['--geopm-report', report_path,
-                            '--geopm-trace', trace_path,
-                            '--geopm-profile', profile_name,
-                            '--geopm-report-signals=' + ','.join(report_sig),
-                            '--geopm-trace-signals=' + ','.join(trace_sig)]
+                extra_cli_args = ['--geopm-report', report_path,
+                                  '--geopm-trace', trace_path,
+                                  '--geopm-profile', profile_name,
+                                  '--geopm-report-signals=' + ','.join(report_sig),
+                                  '--geopm-trace-signals=' + ','.join(trace_sig)]
+                extra_cli_args += experiment_cli_args
                 # any arguments after run_args are passed directly to launcher
-                util.try_launch(agent_conf, app_conf, run_args,
+                util.try_launch(agent_conf, app_conf, extra_cli_args,
                                 num_node=num_node, num_rank=num_rank)  # raw launcher factory args
 
                 # rest to cool off between runs

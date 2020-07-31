@@ -39,6 +39,7 @@ import sys
 import os
 import pandas
 import matplotlib.pyplot as plt
+import argparse
 
 import geopmpy.io
 
@@ -180,18 +181,21 @@ def achieved_freq_histogram_package(machine_info, app_name, output_dir, report_d
 
 
 if __name__ == '__main__':
-    aargs = common_args.ExperimentAnalysisArgs()
-    output_dir = aargs.args.output_dir
-    detailed = aargs.args.show_details
+    parser = argparse.ArgumentParser()
+    common_args.add_machine_config(parser)
+    common_args.add_output_dir(parser)
+    common_args.add_show_details(parser)
+    parser.add_argument('--label', action='store', default="APP",
+                        help='name of the application to use for plot titles')
 
+    args, _ = parser.parse_known_args()
+    output_dir = args.output_dir
+    show_details = args.show_details
+    label = args.label
+    machine_info = os.path.join(output_dir, args.machine_config)
     output = geopmpy.io.RawReportCollection("*report", dir_name=output_dir)
-    # machine info must match file prefix given to launch above + .machine
-    # TODO: fix app name for plots and machine name
-    # TODO: need option for location of machine config
-    app_name = "DGEMM"
-    machine_info = os.path.join(output_dir, aargs.args.machine_config)
-    achieved_freq_histogram_package(machine_info,
-                                    app_name,
-                                    output_dir,
-                                    output.get_epoch_df(),
-                                    detailed=detailed)
+    achieved_freq_histogram_package(machine_info=machine_info,
+                                    app_name=label,
+                                    output_dir=output_dir,
+                                    report_df=output.get_epoch_df(),
+                                    detailed=show_details)
