@@ -102,6 +102,7 @@ int MPI_Allgatherv(GEOPM_MPI_CONST void *sendbuf, int sendcount, MPI_Datatype se
 
 int MPI_Allreduce(GEOPM_MPI_CONST void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
 {
+    MPI_Barrier(comm);
     int err = 0;
     GEOPM_PMPI_ENTER_MACRO(__func__)
     err = PMPI_Allreduce(sendbuf, recvbuf, count, datatype, op, geopm_swap_comm_world(comm));
@@ -111,6 +112,7 @@ int MPI_Allreduce(GEOPM_MPI_CONST void *sendbuf, void *recvbuf, int count, MPI_D
 
 int MPI_Alltoall(GEOPM_MPI_CONST void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm)
 {
+    MPI_Barrier(comm);
     int err = 0;
     GEOPM_PMPI_ENTER_MACRO(__func__)
     err = PMPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, geopm_swap_comm_world(comm));
