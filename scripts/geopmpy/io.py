@@ -1579,7 +1579,9 @@ class RawReportCollection(object):
                         header[in_key] = _try_float(in_val)
                 else:
                     _add_column('all', top_key)
-                    header[top_key] = top_val
+                    # TODO: If we ever use strings in the agent policy files, then
+                    #       a similar change will have to be made in _try_float().
+                    header[top_key] = str(top_val).encode('utf-8')
 
             _add_column('all', 'host')
             figure_of_merit = rr.figure_of_merit()
