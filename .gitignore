@@ -99,6 +99,7 @@
 /MANIFEST
 /missing
 *.o
+*.out
 /openmp/*
 /openmp-*.src/*
 /openmp-*.src.tar.xz

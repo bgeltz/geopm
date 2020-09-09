@@ -35,6 +35,9 @@ EXTRA_DIST += integration/experiment/common_args.py \
               integration/experiment/machine.py \
               integration/experiment/README.md \
               integration/experiment/util.py \
+              integration/experiment/run.sbatch \
+              integration/experiment/run_quartz.sbatch \
+              integration/experiment/run_smng.sbatch \
               # end
 
 include integration/experiment/energy_efficiency/Makefile.mk

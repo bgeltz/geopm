@@ -31,6 +31,8 @@
 
 
 EXTRA_DIST += integration/README.md \
+              integration/env_build.sh \
+              integration/env_run.sh \
               # end
 
 include integration/apps/Makefile.mk

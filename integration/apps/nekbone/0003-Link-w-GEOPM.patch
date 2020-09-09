@@ -1,4 +1,4 @@
-From 7ddb3453e08be80148a4e032abb9490d620ac795 Mon Sep 17 00:00:00 2001
+From d6a4e199af258cae0404d35bc507fff39a78ee85 Mon Sep 17 00:00:00 2001
 From: Brad Geltz <brad.geltz@intel.com>
 Date: Wed, 5 Aug 2020 13:34:15 -0700
 Subject: [PATCH 3/8] Link w/GEOPM
@@ -42,22 +42,22 @@ Signed-off-by: Brad Geltz <brad.geltz@intel.com>
  1 file changed, 5 insertions(+), 4 deletions(-)
 
 diff --git a/test/example1/makenek-intel b/test/example1/makenek-intel
-index a5cce80..491621b 100755
+index a5cce80..8baf677 100755
 --- a/test/example1/makenek-intel
 +++ b/test/example1/makenek-intel
 @@ -4,12 +4,13 @@
  
  # source path
  SOURCE_ROOT="../../src"
-+GEOPM_ROOT="${HOME}/build/geopm"
++GEOPM_ROOT="${GEOPM_BUILD:?Please set GEOPM_BUILD in the environment}"
  
  # Fortran compiler
 -F77="mpiifort"
-+F77="mpifort -I${GEOPM_ROOT}/lib/ifort/modules/geopm-x86_64/"
++F77="${MPIFC} -I${GEOPM_ROOT}/lib/ifort/modules/geopm-x86_64/"
  
  # C compiler
 -CC="mpiicc"
-+CC="mpicc"
++CC="${MPICC}"
  
  # pre-processor symbol list
  # (set PPLIST=? to get a list of available symbols)
