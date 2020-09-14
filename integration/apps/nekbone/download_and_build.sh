@@ -47,11 +47,11 @@ if [ -d "nekbone" ]; then
 fi
 
 # Acquire the source:
-svn checkout https://repocafe.cels.anl.gov/repos/nekbone
+svn checkout https://repocafe.cels.anl.gov/repos/nekbone/trunk/nekbone
 base_dir=${PWD}
 
 # Change directories to the unpacked files.
-cd nekbone/trunk/nekbone
+cd nekbone/
 
 # Create a git repo for the app source
 git init
