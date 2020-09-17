@@ -1,0 +1,26 @@
+From 73aec0fab29e0742c63a237545374fa065285783 Mon Sep 17 00:00:00 2001
+From: Brad Geltz <brad.geltz@intel.com>
+Date: Thu, 17 Sep 2020 15:39:25 -0700
+Subject: [PATCH 9/9] DNM: Use WORKSPACE in nekbone build
+
+Signed-off-by: Brad Geltz <brad.geltz@intel.com>
+---
+ test/example1/makenek-intel | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/example1/makenek-intel b/test/example1/makenek-intel
+index affd0e7..067323d 100755
+--- a/test/example1/makenek-intel
++++ b/test/example1/makenek-intel
+@@ -4,7 +4,7 @@
+ 
+ # source path
+ SOURCE_ROOT="../../src"
+-GEOPM_ROOT="${HOME}/build/geopm"
++GEOPM_ROOT="${WORKSPACE}/build/geopm"
+ 
+ # Fortran compiler
+ F77="mpifort -I${GEOPM_ROOT}/lib/ifort/modules/geopm-x86_64/"
+-- 
+2.8.3
+
