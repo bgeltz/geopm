@@ -37,6 +37,7 @@ Energy savings from power capping experiment using HPCG.
 
 import argparse
 
+from experiment import machine
 from experiment.power_sweep import power_sweep
 from experiment.energy_efficiency import power_balancer_energy
 from apps.hpcg import hpcg
@@ -48,6 +49,7 @@ if __name__ == '__main__':
     power_sweep.setup_run_args(parser)
     parser.set_defaults(agent_list='power_balancer')
     args, extra_cli_args = parser.parse_known_args()
+    mach = machine.init_output_dir(args.output_dir)
     app_conf = hpcg.HpcgAppConf(mach, mkl_version=True)
     power_balancer_energy.launch(app_conf=app_conf, args=args,
                                  experiment_cli_args=extra_cli_args)
