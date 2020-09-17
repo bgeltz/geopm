@@ -47,6 +47,9 @@ class HpcgAppConf(apps.AppConf):
         if self._mkl_version:
             # use Intel(R) MKL benchmark; requires Intel(R) MKL to be installed
             benchmark_dir = '/opt/ohpc/pub/compiler/intel/compilers_and_libraries_2019.4.243/linux/mkl/benchmarks/hpcg/bin'
+            # path on quartz
+            benchmark_dir = '/usr/tce/packages/intel/intel-19.0.4/compilers_and_libraries/linux/mkl/benchmarks/hpcg/bin'
+
             self._hpcg_exe = os.path.join(benchmark_dir, 'xhpcg_skx')
         else:
             # use reference version; will be slower
