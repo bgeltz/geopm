@@ -125,7 +125,7 @@ def add_cool_off_time(parser):
 
 def add_agent_list(parser):
     parser.add_argument('--agent-list', dest='agent_list',
-                        action='store', type=str, default=None,
+                        action='store', type=str, default='power_governor',
                         help='comma separated list of agents to be compared')
 
 
