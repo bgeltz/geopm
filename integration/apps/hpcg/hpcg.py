@@ -43,7 +43,8 @@ class HpcgAppConf(apps.AppConf):
         return 'hpcg'
 
     def __init__(self, mach):
-        benchmark_dir = os.path.join(os.environ['MKLROOT'], 'benchmarks/hpcg/bin')
+        benchmark_dir = os.path.dirname(os.path.abspath(__file__))
+        benchmark_dir = os.path.join(benchmark_dir, 'hpcg_mkl', 'bin')
         self._hpcg_exe = os.path.join(benchmark_dir, 'xhpcg_skx')
         # path on quartz
         self._hpcg_exe = os.path.join(benchmark_dir, 'xhpcg_avx2')
