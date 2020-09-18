@@ -32,7 +32,7 @@
 
 set -e
 
-HPCG_DIR=hpcg-3.1
+HPCG_DIR=hpcg_mkl
 if [ -d "$HPCG_DIR" ]; then
     echo "WARNING: Previous HPCG checkout detected at ./$HPCG_DIR"
     read -p "OK to delete and rebuild? (y/n) " -n 1 -r
@@ -46,14 +46,8 @@ if [ -d "$HPCG_DIR" ]; then
 fi
 
 # Acquire the source:
-if [ ! -f hpcg-3.1.tar.gz ]; then
-    wget http://www.hpcg-benchmark.org/downloads/hpcg-3.1.tar.gz
-fi
+cp -r ${MKLROOT}/benchmarks/hpcg/ $HPCG_DIR
 
-# Unpack the source:
-tar xvzf hpcg-3.1.tar.gz
-
-# Change directories to the unpacked files.
 cd $HPCG_DIR
 
 # Set up git
@@ -62,10 +56,8 @@ git add -A
 git commit --no-edit -s -m "Initial commit"
 
 # Apply patches
-git am ../0001-Fix-OpenMP-compiler-option-for-ICPC.patch
+git am ../0001-Change-MPI-compiler-to-mpicxx.patch
 
 # Build
-mkdir build
-cd build
-../configure MPIICPC_OMP
+./configure IMPI_IOMP_AVX2
 make
