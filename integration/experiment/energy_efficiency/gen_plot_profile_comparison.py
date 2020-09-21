@@ -55,6 +55,7 @@ def extract_prefix(name):
     return '_'.join(name.split('_')[:-1])
 
 
+# TODO: rename variables/column headers to be consistent
 def summary(df, baseline, targets, show_details):
     # remove iteration from end of profile name
     df['Profile'] = df['Profile'].apply(extract_prefix)
@@ -64,7 +65,7 @@ def summary(df, baseline, targets, show_details):
     df['runtime'] = df['runtime (sec)']
 
     # choose columns of interest
-    df = df[['Profile', 'Agent', 'energy', 'runtime']]
+    df = df[['Profile', 'Agent', 'energy', 'runtime', 'FOM']]
 
     # check that baseline is present
     profiles = df['Profile'].unique()
@@ -74,12 +75,14 @@ def summary(df, baseline, targets, show_details):
 
     base_runtime = base_data['runtime'].mean()
     base_energy = base_data['energy'].mean()
+    base_fom = base_data['FOM'].mean()
 
     # reset output stats
     # TODO: make this less of a mess
     output_prefix = os.path.join(output_dir, '{}'.format(common_prefix))
     output_stats_name = '{}_stats.log'.format(output_prefix)
     with open(output_stats_name, 'w') as outfile:
+        # re-create file to be appended to
         pass
 
     if show_details:
@@ -97,6 +100,7 @@ def summary(df, baseline, targets, show_details):
 
         target_runtime = target_data['runtime'].mean()
         target_energy = target_data['energy'].mean()
+        target_fom = target_data['FOM'].mean()
         if show_details:
             sys.stdout.write('{} data:\n{}\n\n'.format(target_name, target_data[['runtime', 'energy']].describe()))
         with open(output_stats_name, 'a') as outfile:
@@ -104,30 +108,39 @@ def summary(df, baseline, targets, show_details):
 
         norm_runtime = target_runtime / base_runtime
         norm_energy = target_energy / base_energy
+        norm_fom = target_fom / base_fom
         # for error bars, normalize to same baseline mean
         min_runtime = target_data['runtime'].min() / base_runtime
         max_runtime = target_data['runtime'].max() / base_runtime
+        # TODO: this should probably be total of all nodes in one iteration
         min_energy = target_data['energy'].min() / base_energy
         max_energy = target_data['energy'].max() / base_energy
+        min_fom = target_data['FOM'].min() / base_fom
+        max_fom = target_data['FOM'].max() / base_fom
         std_runtime = target_data['runtime'].std() / base_runtime
         std_energy = target_data['energy'].std() / base_energy
+        std_fom = target_data['FOM'].std() / base_fom
         min_delta_runtime = norm_runtime - min_runtime
         max_delta_runtime = max_runtime - norm_runtime
         min_delta_energy = norm_energy - min_energy
         max_delta_energy = max_energy - norm_energy
+        min_delta_fom = norm_fom - min_fom
+        max_delta_fom = max_fom - norm_fom
         data.append([target_runtime, target_energy,
-                     norm_runtime, norm_energy,
-                     std_runtime, std_energy,
+                     norm_runtime, norm_energy, norm_fom,
+                     std_runtime, std_energy, std_fom,
                      min_delta_runtime, max_delta_runtime,
-                     min_delta_energy, max_delta_energy])
+                     min_delta_energy, max_delta_energy,
+                     min_delta_fom, max_delta_fom])
         xnames.append(target_name)
 
     result = pandas.DataFrame(data, index=xnames,
                               columns=['runtime', 'energy',
-                                       'runtime_norm', 'energy_norm',
-                                       'runtime_std', 'energy_std',
+                                       'runtime_norm', 'energy_norm', 'fom_norm',
+                                       'runtime_std', 'energy_std', 'fom_std',
                                        'min_delta_runtime', 'max_delta_runtime',
-                                       'min_delta_energy', 'max_delta_energy'])
+                                       'min_delta_energy', 'max_delta_energy',
+                                       'min_delta_fom', 'max_delta_fom'])
 
     if show_details:
         sys.stdout.write('{}\n'.format(result))
@@ -137,7 +150,7 @@ def summary(df, baseline, targets, show_details):
     return result
 
 
-def plot_bars(df, baseline_profile, xlabel, output_dir, use_stdev=False):
+def plot_bars(df, baseline_profile, xlabel, output_dir, use_stdev=False, use_fom=False):
 
     labels = df.index.format()
     title = os.path.commonprefix(labels)
@@ -158,13 +171,23 @@ def plot_bars(df, baseline_profile, xlabel, output_dir, use_stdev=False):
                        'zorder': 10}
 
     f, ax = plt.subplots()
-    # plot runtime
-    ax.bar(points - bar_width / 2, df['runtime_norm'], width=bar_width, color='orange',
-           label='runtime')
+    # plot performance
+    perf = df['runtime_norm']
+    perf_label = 'runtime (s)'
     yerr = (df['min_delta_runtime'], df['max_delta_runtime'])
-    if use_stdev:
+    if use_stdev and not use_fom:
         yerr = (df['runtime_std'], df['runtime_std'])
-    ax.errorbar(points - bar_width / 2, df['runtime_norm'], xerr=None,
+    # TODO: link error with perf metric instead of having 6 different columns
+    if use_fom:
+        perf = df['fom_norm']
+        perf_label = 'FOM (GFLOP/s)'
+        yerr = (df['min_delta_fom'], df['max_delta_fom'])
+        if use_stdev:
+            yerr = (df['fom_std'], df['fom_std'])
+    ax.bar(points - bar_width / 2, perf, width=bar_width, color='orange',
+           label=perf_label)
+
+    ax.errorbar(points - bar_width / 2, perf, xerr=None,
                 yerr=yerr, **errorbar_format)
 
     # plot energy
@@ -183,13 +206,16 @@ def plot_bars(df, baseline_profile, xlabel, output_dir, use_stdev=False):
     ax.set_xticklabels(labels, rotation='vertical')
     ax.set_xlabel(xlabel)
     f.subplots_adjust(bottom=0.25)  # TODO: use longest profile name
-    ax.set_ylabel('Normalized runtime (s) or energy (J)')
+    ax.set_ylabel('Normalized {} or energy (J)'.format(perf_label))
     plt.title('{}\nBaseline: {}'.format(title, baseline_profile))
     plt.legend()
     fig_dir = os.path.join(output_dir, 'figures')
     if not os.path.exists(fig_dir):
         os.mkdir(fig_dir)
     fig_name = '{}_bar'.format(title.lower().replace(' ', '_').replace(')', '').replace('(', ''))
+    # TODO: clean up
+    if use_fom:
+        fig_name += '_fom_'
     fig_name = os.path.join(fig_dir, '{}.png'.format(fig_name))
     plt.savefig(fig_name)
     if show_details:
@@ -221,6 +247,9 @@ if __name__ == '__main__':
     parser.add_argument('--xlabel', dest='xlabel',
                         action='store', default='Profile',
                         help='x-axis label for profiles')
+    parser.add_argument('--use-fom', dest='use_fom',
+                        action='store_true', default=False,
+                        help='use figure of merit instead of runtime')
 
     args = parser.parse_args()
 
@@ -261,4 +290,4 @@ if __name__ == '__main__':
     show_details = args.show_details
 
     result = summary(rrc.get_app_df(), baseline, targets, show_details)
-    plot_bars(result, baseline, args.xlabel, output_dir, args.use_stdev)
+    plot_bars(result, baseline, args.xlabel, output_dir, args.use_stdev, args.use_fom)
