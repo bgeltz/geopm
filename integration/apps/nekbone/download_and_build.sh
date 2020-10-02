@@ -31,7 +31,6 @@
 #
 
 set -e
-set -x
 
 # Clear out old versions:
 if [ -d "nekbone" ]; then
