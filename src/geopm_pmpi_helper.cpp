@@ -103,11 +103,15 @@ extern "C" {
         return err;
     }
 
-    void geopm_mpi_region_enter(uint64_t func_rid)
+    void geopm_mpi_region_enter(uint64_t func_rid, MPI_Comm comm)
     {
         if (func_rid) {
+            if (comm == MPI_COMM_WORLD) {
+                func_rid |= GEOPM_REGION_ID_COMM_WORLD;
+            }
             geopm_prof_enter(func_rid);
         }
+
         geopm_prof_enter(GEOPM_REGION_ID_MPI);
     }
 

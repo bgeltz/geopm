@@ -317,6 +317,7 @@ int MPI_Scatterv(GEOPM_MPI_CONST void *sendbuf, GEOPM_MPI_CONST int sendcounts[]
 int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status *array_of_statuses)
 {
     int err = 0;
+    MPI_Comm comm = MPI_COMM_NULL;
     GEOPM_PMPI_ENTER_MACRO(__func__)
     err = PMPI_Waitall(count, array_of_requests, array_of_statuses);
     GEOPM_PMPI_EXIT_MACRO
@@ -326,6 +327,7 @@ int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status *array_of
 int MPI_Waitany(int count, MPI_Request array_of_requests[], int *index, MPI_Status *status)
 {
     int err = 0;
+    MPI_Comm comm = MPI_COMM_NULL;
     GEOPM_PMPI_ENTER_MACRO(__func__)
     err = PMPI_Waitany(count, array_of_requests, index, status);
     GEOPM_PMPI_EXIT_MACRO
@@ -335,6 +337,7 @@ int MPI_Waitany(int count, MPI_Request array_of_requests[], int *index, MPI_Stat
 int MPI_Wait(MPI_Request *request, MPI_Status *status)
 {
     int err = 0;
+    MPI_Comm comm = MPI_COMM_NULL;
     GEOPM_PMPI_ENTER_MACRO(__func__)
     err = PMPI_Wait(request, status);
     GEOPM_PMPI_EXIT_MACRO
@@ -344,6 +347,7 @@ int MPI_Wait(MPI_Request *request, MPI_Status *status)
 int MPI_Waitsome(int incount, MPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[])
 {
     int err = 0;
+    MPI_Comm comm = MPI_COMM_NULL;
     GEOPM_PMPI_ENTER_MACRO(__func__)
     err = PMPI_Waitsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
     GEOPM_PMPI_EXIT_MACRO

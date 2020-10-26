@@ -39,7 +39,7 @@ MPI_Fint geopm_swap_comm_world_f(MPI_Fint comm);
 /*!
  * @brief Mark entry of a wrapped MPI region
  */
-void geopm_mpi_region_enter(uint64_t func_rid);
+void geopm_mpi_region_enter(uint64_t func_rid, MPI_Comm comm);
 /*!
  * @brief Mark exit of a wrapped MPI region
  */
@@ -53,6 +53,7 @@ uint64_t geopm_mpi_func_rid(const char *func_name);
  *  static storage with a non-const initializer.  We avoid repeating
  *  code.  Note this approach is thread safe because of the underlying
  *  lock in geopm_prof_region().
+ *  Note: comm must be defined by the caller
  */
 #define GEOPM_PMPI_ENTER_MACRO(FUNC) \
     static unsigned is_once = 1; \
@@ -61,7 +62,7 @@ uint64_t geopm_mpi_func_rid(const char *func_name);
         func_rid = geopm_mpi_func_rid(FUNC); \
         is_once = 0; \
     } \
-    geopm_mpi_region_enter(func_rid);
+    geopm_mpi_region_enter(func_rid, comm);
 
 #define GEOPM_PMPI_EXIT_MACRO geopm_mpi_region_exit(func_rid);
 
