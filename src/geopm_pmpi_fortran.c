@@ -173,90 +173,100 @@ extern void pmpi_waitsome_(MPI_Fint *incount, MPI_Fint *array_of_requests, MPI_F
 extern void pmpi_win_create_(MPI_Fint *base, MPI_Fint *size, MPI_Fint *disp_unit, MPI_Fint *info, MPI_Fint *comm, MPI_Fint *win, MPI_Fint *ierr);
 
 /* MPI_ALLGATHER Fortran wrappers */
-static void FMPI_Allgather(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Allgather(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_allgather_(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_ALLGATHERV Fortran wrappers */
-static void FMPI_Allgatherv(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *displs, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Allgatherv(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *displs, MPI_Fint *recvtype, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_allgatherv_(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_ALLREDUCE Fortran wrappers */
-static void FMPI_Allreduce(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Allreduce(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_allreduce_(sendbuf, recvbuf, count, datatype, op, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_ALLTOALL Fortran wrappers */
-static void FMPI_Alltoall(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Alltoall(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_alltoall_(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_ALLTOALLV Fortran wrappers */
-static void FMPI_Alltoallv(MPI_Fint *sendbuf, MPI_Fint *sendcounts, MPI_Fint *sdispls, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *rdispls, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Alltoallv(MPI_Fint *sendbuf, MPI_Fint *sendcounts, MPI_Fint *sdispls, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *rdispls, MPI_Fint *recvtype, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_alltoallv_(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls, recvtype, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_ALLTOALLW Fortran wrappers */
-static void FMPI_Alltoallw(MPI_Fint *sendbuf, MPI_Fint *sendcounts, MPI_Fint *sdispls, MPI_Fint *sendtypes, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *rdispls, MPI_Fint *recvtypes, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Alltoallw(MPI_Fint *sendbuf, MPI_Fint *sendcounts, MPI_Fint *sdispls, MPI_Fint *sendtypes, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *rdispls, MPI_Fint *recvtypes, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_alltoallw(sendbuf, sendcounts, sdispls, sendtypes, recvbuf, recvcounts, rdispls, recvtypes, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_BARRIER Fortran wrappers */
-static void FMPI_Barrier(MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Barrier(MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_barrier_(&comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_BCAST Fortran wrappers */
-static void FMPI_Bcast(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *root, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Bcast(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *root, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_bcast_(buf, count, datatype, root, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_BSEND Fortran wrappers */
-static void FMPI_Bsend(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Bsend(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_bsend_(buf, count, datatype, dest, tag, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_BSEND_INIT Fortran wrappers */
-static void FMPI_Bsend_init(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *request, MPI_Fint *ierr)
+static void FMPI_Bsend_init(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *fcomm, MPI_Fint *request, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_bsend_init_(buf, count, datatype, dest, tag, &comm_swap, request, ierr);
     GEOPM_PMPI_EXIT_MACRO
@@ -564,9 +574,10 @@ static void FMPI_Dist_graph_neighbors(MPI_Fint *comm, MPI_Fint *maxindegree, MPI
 #endif
 
 /* MPI_EXSCAN Fortran wrappers */
-static void FMPI_Exscan(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Exscan(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_exscan_(sendbuf, recvbuf, count, datatype, op, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
@@ -586,18 +597,20 @@ static void FMPI_Finalize(MPI_Fint *ierr)
 }
 
 /* MPI_GATHER Fortran wrappers */
-static void FMPI_Gather(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *root, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Gather(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *root, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_gather_(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_GATHERV Fortran wrappers */
-static void FMPI_Gatherv(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *displs, MPI_Fint *recvtype, MPI_Fint *root, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Gatherv(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *displs, MPI_Fint *recvtype, MPI_Fint *root, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_gatherv_(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, root, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
@@ -896,45 +909,50 @@ static void FMPI_Mprobe(MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm, MPI_Fin
 }
 
 /* MPI_NEIGHBOR_ALLGATHER Fortran wrappers */
-static void FMPI_Neighbor_allgather(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Neighbor_allgather(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_neighbor_allgather_(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_NEIGHBOR_ALLGATHERV Fortran wrappers */
-static void FMPI_Neighbor_allgatherv(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *displs, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Neighbor_allgatherv(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *displs, MPI_Fint *recvtype, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_neighbor_allgatherv_(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_NEIGHBOR_ALLTOALL Fortran wrappers */
-static void FMPI_Neighbor_alltoall(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Neighbor_alltoall(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_neighbor_alltoall_(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_NEIGHBOR_ALLTOALLV Fortran wrappers */
-static void FMPI_Neighbor_alltoallv(MPI_Fint *sendbuf, MPI_Fint *sendcounts, MPI_Fint *sdispls, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *rdispls, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Neighbor_alltoallv(MPI_Fint *sendbuf, MPI_Fint *sendcounts, MPI_Fint *sdispls, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *rdispls, MPI_Fint *recvtype, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_neighbor_alltoallv_(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls, recvtype, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_NEIGHBOR_ALLTOALLW Fortran wrappers */
-static void FMPI_Neighbor_alltoallw(MPI_Fint *sendbuf, MPI_Fint *sendcounts, MPI_Aint *sdispls, MPI_Fint *sendtypes, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Aint *rdispls, MPI_Fint *recvtypes, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Neighbor_alltoallw(MPI_Fint *sendbuf, MPI_Fint *sendcounts, MPI_Aint *sdispls, MPI_Fint *sendtypes, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Aint *rdispls, MPI_Fint *recvtypes, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_neighbor_alltoallw_(sendbuf, sendcounts, sdispls, sendtypes, recvbuf, recvcounts, rdispls, recvtypes, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
@@ -970,18 +988,20 @@ static void FMPI_Recv_init(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, M
 }
 
 /* MPI_RECV Fortran wrappers */
-static void FMPI_Recv(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *status, MPI_Fint *ierr)
+static void FMPI_Recv(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *source, MPI_Fint *tag, MPI_Fint *fcomm, MPI_Fint *status, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_recv_(buf, count, datatype, source, tag, &comm_swap, status, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_REDUCE Fortran wrappers */
-static void FMPI_Reduce(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *root, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Reduce(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *root, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_reduce_(sendbuf, recvbuf, count, datatype, op, root, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
@@ -989,9 +1009,10 @@ static void FMPI_Reduce(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, M
 
 #ifdef GEOPM_ENABLE_MPI3
 /* MPI_REDUCE_SCATTER_BLOCK Fortran wrappers */
-static void FMPI_Reduce_scatter_block(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Reduce_scatter_block(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_reduce_scatter_block_(sendbuf, recvbuf, recvcount, datatype, op, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
@@ -999,63 +1020,70 @@ static void FMPI_Reduce_scatter_block(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_
 #endif
 
 /* MPI_REDUCE_SCATTER Fortran wrappers */
-static void FMPI_Reduce_scatter(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Reduce_scatter(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *recvcounts, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_reduce_scatter_(sendbuf, recvbuf, recvcounts, datatype, op, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_RSEND Fortran wrappers */
-static void FMPI_Rsend(MPI_Fint *ibuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Rsend(MPI_Fint *ibuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_rsend_(ibuf, count, datatype, dest, tag, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_RSEND_INIT Fortran wrappers */
-static void FMPI_Rsend_init(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *request, MPI_Fint *ierr)
+static void FMPI_Rsend_init(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *fcomm, MPI_Fint *request, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_rsend_init_(buf, count, datatype, dest, tag, &comm_swap, request, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_SCAN Fortran wrappers */
-static void FMPI_Scan(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Scan(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_scan_(sendbuf, recvbuf, count, datatype, op, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_SCATTER Fortran wrappers */
-static void FMPI_Scatter(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *root, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Scatter(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *root, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_scatter_(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_SCATTERV Fortran wrappers */
-static void FMPI_Scatterv(MPI_Fint *sendbuf, MPI_Fint *sendcounts, MPI_Fint *displs, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *root, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Scatterv(MPI_Fint *sendbuf, MPI_Fint *sendcounts, MPI_Fint *displs, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *root, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_scatterv_(sendbuf, sendcounts, displs, sendtype, recvbuf, recvcount, recvtype, root, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_SEND Fortran wrappers */
-static void FMPI_Send(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Send(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_send_(buf, count, datatype, dest, tag, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
@@ -1069,27 +1097,30 @@ static void FMPI_Send_init(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, M
 }
 
 /* MPI_SENDRECV Fortran wrappers */
-static void FMPI_Sendrecv(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *dest, MPI_Fint *sendtag, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *source, MPI_Fint *recvtag, MPI_Fint *comm, MPI_Fint *status, MPI_Fint *ierr)
+static void FMPI_Sendrecv(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *dest, MPI_Fint *sendtag, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *source, MPI_Fint *recvtag, MPI_Fint *fcomm, MPI_Fint *status, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_sendrecv_(sendbuf, sendcount, sendtype, dest, sendtag, recvbuf, recvcount, recvtype, source, recvtag, &comm_swap, status, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_SENDRECV_REPLACE Fortran wrappers */
-static void FMPI_Sendrecv_replace(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *sendtag, MPI_Fint *source, MPI_Fint *recvtag, MPI_Fint *comm, MPI_Fint *status, MPI_Fint *ierr)
+static void FMPI_Sendrecv_replace(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *sendtag, MPI_Fint *source, MPI_Fint *recvtag, MPI_Fint *fcomm, MPI_Fint *status, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_sendrecv_replace_(buf, count, datatype, dest, sendtag, source, recvtag, &comm_swap, status, ierr);
     GEOPM_PMPI_EXIT_MACRO
 }
 
 /* MPI_SSEND Fortran wrappers */
-static void FMPI_Ssend(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *ierr)
+static void FMPI_Ssend(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *fcomm, MPI_Fint *ierr)
 {
-    MPI_Fint comm_swap = geopm_swap_comm_world_f(*comm);
+    MPI_Comm comm = PMPI_Comm_f2c(*fcomm);
+    MPI_Fint comm_swap = geopm_swap_comm_world_f(*fcomm);
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_ssend_(buf, count, datatype, dest, tag, &comm_swap, ierr);
     GEOPM_PMPI_EXIT_MACRO
@@ -1119,6 +1150,7 @@ static void FMPI_Unpack(MPI_Fint *inbuf, MPI_Fint *insize, MPI_Fint *position, M
 /* MPI_WAITALL Fortran wrappers */
 static void FMPI_Waitall(MPI_Fint *count, MPI_Fint *array_of_requests, MPI_Fint *array_of_statuses, MPI_Fint *ierr)
 {
+    MPI_Comm comm = MPI_COMM_NULL;
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_waitall_(count, array_of_requests, array_of_statuses, ierr);
     GEOPM_PMPI_EXIT_MACRO
@@ -1127,6 +1159,7 @@ static void FMPI_Waitall(MPI_Fint *count, MPI_Fint *array_of_requests, MPI_Fint 
 /* MPI_WAITANY Fortran wrappers */
 static void FMPI_Waitany(MPI_Fint *count, MPI_Fint *array_of_requests, MPI_Fint *index, MPI_Fint *status, MPI_Fint *ierr)
 {
+    MPI_Comm comm = MPI_COMM_NULL;
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_waitany_(count, array_of_requests, index, status, ierr);
     GEOPM_PMPI_EXIT_MACRO
@@ -1135,6 +1168,7 @@ static void FMPI_Waitany(MPI_Fint *count, MPI_Fint *array_of_requests, MPI_Fint 
 /* MPI_WAIT Fortran wrappers */
 static void FMPI_Wait(MPI_Fint *request, MPI_Fint *status, MPI_Fint *ierr)
 {
+    MPI_Comm comm = MPI_COMM_NULL;
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_wait_(request, status, ierr);
     GEOPM_PMPI_EXIT_MACRO
@@ -1143,6 +1177,7 @@ static void FMPI_Wait(MPI_Fint *request, MPI_Fint *status, MPI_Fint *ierr)
 /* MPI_WAITSOME Fortran wrappers */
 static void FMPI_Waitsome(MPI_Fint *incount, MPI_Fint *array_of_requests, MPI_Fint *outcount, MPI_Fint *array_of_indices, MPI_Fint *array_of_statuses, MPI_Fint *ierr)
 {
+    MPI_Comm comm = MPI_COMM_NULL;
     GEOPM_PMPI_ENTER_MACRO(__func__ + 1)
     pmpi_waitsome_(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, ierr);
     GEOPM_PMPI_EXIT_MACRO
