@@ -350,6 +350,13 @@ namespace geopm
         }
     }
 
+    void MPIComm::barrier_tracked(void) const
+    {
+        if (is_valid()) {
+            check_mpi(MPI_Barrier(m_comm));
+        }
+    }
+
     void MPIComm::broadcast(void *buffer, size_t size, int root) const
     {
         if (is_valid()) {

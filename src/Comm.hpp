@@ -142,6 +142,8 @@ namespace geopm
             // Collective communication
             /// @brief Barrier for all ranks
             virtual void barrier(void) const = 0;
+            /// @brief Barrier for all ranks; tracked within GEOPM
+            virtual void barrier_tracked(void) const = 0;
             /// @brief Broadcast a message to all ranks
             ///
             /// @param [in, out] buffer Starting address of buffer to be broadcasted.

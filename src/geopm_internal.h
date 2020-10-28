@@ -118,6 +118,11 @@ static inline int geopm_region_id_is_mpi(uint64_t region_id)
     return (region_id & GEOPM_REGION_ID_MPI) ? 1 : 0;
 }
 
+static inline int geopm_region_id_is_comm_world(uint64_t region_id)
+{
+    return (region_id & GEOPM_REGION_ID_COMM_WORLD) ? 1 : 0;
+}
+
 static inline int geopm_region_id_is_nested(uint64_t region_id)
 {
     return (geopm_region_id_is_mpi(region_id) && geopm_region_id_hash(region_id));

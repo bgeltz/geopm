@@ -66,7 +66,7 @@ namespace geopm
                            const std::string &key_base,
                            const std::string &report,
                            double timeout,
-                           bool do_region_barrier,
+                           bool do_mpi_collective_barrier,
                            std::unique_ptr<Comm> comm,
                            std::unique_ptr<ControlMessage> ctl_msg,
                            const PlatformTopo &topo,
@@ -79,7 +79,7 @@ namespace geopm
         , m_key_base(key_base)
         , m_report(report)
         , m_timeout(timeout)
-        , m_do_region_barrier(do_region_barrier)
+        , m_do_mpi_collective_barrier(do_mpi_collective_barrier)
         , m_comm(std::move(comm))
         , m_curr_region_id(0)
         , m_num_enter(0)
@@ -194,7 +194,7 @@ namespace geopm
 
     ProfileImp::ProfileImp()
         : ProfileImp(environment().profile(), environment().shmkey(), environment().report(),
-                     environment().timeout(), environment().do_region_barrier(),
+                     environment().timeout(), environment().do_mpi_collective_barrier(),
                      nullptr, nullptr, platform_topo(), nullptr,
                      nullptr, geopm::make_unique<SampleSchedulerImp>(0.01), nullptr)
     {
@@ -388,9 +388,11 @@ namespace geopm
 
         // if we are not currently in a region
         if (!m_curr_region_id && region_id) {
-            if (!geopm_region_id_is_mpi(region_id) &&
-                m_do_region_barrier) {
-                m_shm_comm->barrier();
+            // TODO : If the MPI region is in the set of ones that
+            //        barriers were requested for
+            if (m_do_mpi_collective_barrier &&
+                geopm_region_id_is_comm_world(region_id)) {
+                m_comm->barrier_tracked();
             }
             m_curr_region_id = region_id;
             m_num_enter = 0;
@@ -458,11 +460,6 @@ namespace geopm
                 m_parent_region = 0;
                 m_parent_progress = 0.0;
                 m_parent_num_enter = 0;
-            }
-
-            if (!geopm_region_id_is_mpi(region_id) &&
-                m_do_region_barrier) {
-                m_shm_comm->barrier();
             }
 
         }

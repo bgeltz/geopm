@@ -341,9 +341,9 @@ namespace geopm
         return is_set("GEOPM_ENDPOINT");
     }
 
-    bool EnvironmentImp::do_region_barrier(void) const
+    bool EnvironmentImp::do_mpi_collective_barrier(void) const
     {
-        return is_set("GEOPM_REGION_BARRIER");
+        return is_set("GEOPM_MPI_COLLECTIVE_BARRIER");
     }
 
     bool EnvironmentImp::do_trace(void) const

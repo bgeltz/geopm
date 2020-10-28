@@ -84,6 +84,7 @@ namespace geopm
             virtual void window_lock(size_t window_id, bool is_exclusive, int rank, int assert) const override;
             virtual void window_unlock(size_t window_id, int rank) const override;
             virtual void barrier(void) const override;
+            virtual void barrier_tracked(void) const override;
             virtual void broadcast(void *buffer, size_t size, int root) const override;
             virtual bool test(bool is_true) const override;
             virtual void reduce_max(double *send_buf, double *recv_buf, size_t count, int root) const override;
