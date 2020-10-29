@@ -305,6 +305,11 @@ namespace geopm
         return lookup("GEOPM_REPORT_SIGNALS");
     }
 
+    std::string EnvironmentImp::mpi_barrier_regions(void) const
+    {
+        return lookup("MPI_BARRIER_REGIONS");
+    }
+
     int EnvironmentImp::max_fan_out(void) const
     {
         return std::stoi(lookup("GEOPM_MAX_FAN_OUT"));
@@ -339,11 +344,6 @@ namespace geopm
     bool EnvironmentImp::do_endpoint(void) const
     {
         return is_set("GEOPM_ENDPOINT");
-    }
-
-    bool EnvironmentImp::do_mpi_collective_barrier(void) const
-    {
-        return is_set("GEOPM_MPI_COLLECTIVE_BARRIER");
     }
 
     bool EnvironmentImp::do_trace(void) const

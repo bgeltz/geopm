@@ -60,11 +60,11 @@ namespace geopm
             virtual std::string agent(void) const = 0;
             virtual std::string trace_signals(void) const = 0;
             virtual std::string report_signals(void) const = 0;
+            virtual std::string mpi_barrier_regions(void) const = 0;
             virtual int max_fan_out(void) const = 0;
             virtual int pmpi_ctl(void) const = 0;
             virtual bool do_policy(void) const = 0;
             virtual bool do_endpoint(void) const = 0;
-            virtual bool do_mpi_collective_barrier(void) const = 0;
             virtual bool do_trace(void) const = 0;
             virtual bool do_trace_profile(void) const = 0;
             virtual bool do_trace_endpoint_policy(void) const = 0;
@@ -101,11 +101,11 @@ namespace geopm
             std::string agent(void) const override;
             std::string trace_signals(void) const override;
             std::string report_signals(void) const override;
+            std::string mpi_barrier_regions(void) const override;
             int max_fan_out(void) const override;
             int pmpi_ctl(void) const override;
             bool do_policy(void) const override;
             bool do_endpoint(void) const override;
-            bool do_mpi_collective_barrier(void) const override;
             bool do_trace(void) const override;
             bool do_trace_profile(void) const override;
             bool do_trace_endpoint_policy(void) const override;

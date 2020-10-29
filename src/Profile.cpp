@@ -46,6 +46,7 @@
 
 #include "geopm.h"
 #include "geopm_internal.h"
+#include "geopm_hash.h"
 #include "geopm_time.h"
 #include "geopm_sched.h"
 #include "Environment.hpp"
@@ -66,7 +67,7 @@ namespace geopm
                            const std::string &key_base,
                            const std::string &report,
                            double timeout,
-                           bool do_mpi_collective_barrier,
+                           std::string mpi_barrier_regions,
                            std::unique_ptr<Comm> comm,
                            std::unique_ptr<ControlMessage> ctl_msg,
                            const PlatformTopo &topo,
@@ -79,7 +80,6 @@ namespace geopm
         , m_key_base(key_base)
         , m_report(report)
         , m_timeout(timeout)
-        , m_do_mpi_collective_barrier(do_mpi_collective_barrier)
         , m_comm(std::move(comm))
         , m_curr_region_id(0)
         , m_num_enter(0)
@@ -103,7 +103,9 @@ namespace geopm
         , m_overhead_time_startup(0.0)
         , m_overhead_time_shutdown(0.0)
     {
-
+        for (const std::string &rr : string_split(mpi_barrier_regions, ",")) {
+                m_mpi_barrier_hashes.insert(geopm_crc32_str(rr.c_str()));
+        }
     }
 
     void ProfileImp::init(void)
@@ -194,7 +196,7 @@ namespace geopm
 
     ProfileImp::ProfileImp()
         : ProfileImp(environment().profile(), environment().shmkey(), environment().report(),
-                     environment().timeout(), environment().do_mpi_collective_barrier(),
+                     environment().timeout(), environment().mpi_barrier_regions(),
                      nullptr, nullptr, platform_topo(), nullptr,
                      nullptr, geopm::make_unique<SampleSchedulerImp>(0.01), nullptr)
     {
@@ -388,10 +390,10 @@ namespace geopm
 
         // if we are not currently in a region
         if (!m_curr_region_id && region_id) {
-            // TODO : If the MPI region is in the set of ones that
-            //        barriers were requested for
-            if (m_do_mpi_collective_barrier &&
-                geopm_region_id_is_comm_world(region_id)) {
+            if (!m_mpi_barrier_hashes.empty() && // Fail fast if the set is empty
+                geopm_region_id_is_comm_world(region_id) &&
+                m_mpi_barrier_hashes.find(geopm_region_id_hash(region_id)) !=
+                    m_mpi_barrier_hashes.end()) {
                 m_comm->barrier_tracked();
             }
             m_curr_region_id = region_id;

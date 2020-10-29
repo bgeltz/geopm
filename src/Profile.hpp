@@ -38,6 +38,7 @@
 #include <string>
 #include <list>
 #include <memory>
+#include <unordered_set>
 
 namespace geopm
 {
@@ -201,7 +202,7 @@ namespace geopm
             ///
             /// @param [in] timeout Application connection timeout.
             ///
-            /// @param [in] do_mpi_collective_barrier Insert MPI barrier between regions.
+            /// @param [in] mpi_barrier_regions Insert global MPI barrier before these regions.
             ///
             /// @param [in] comm The application's MPI communicator.
             ///        Each rank of this communicator will report to a
@@ -224,7 +225,7 @@ namespace geopm
             ///
             /// @param [in] ctl_msg Preconstructed SampleScheduler instance.
             ProfileImp(const std::string &prof_name, const std::string &key_base,
-                       const std::string &report, double timeout, bool do_mpi_collective_barrier,
+                       const std::string &report, double timeout, std::string mpi_barrier_regions,
                        std::unique_ptr<Comm> comm, std::unique_ptr<ControlMessage> ctl_msg,
                        const PlatformTopo &topo, std::unique_ptr<ProfileTable> table,
                        std::shared_ptr<ProfileThreadTable> t_table,
@@ -284,7 +285,6 @@ namespace geopm
             std::string m_key_base;
             std::string m_report;
             double m_timeout;
-            bool m_do_mpi_collective_barrier;
             std::unique_ptr<Comm> m_comm;
             /// @brief Holds the 64 bit unique region identifier
             ///        for the current region.
@@ -328,6 +328,7 @@ namespace geopm
             double m_overhead_time;
             double m_overhead_time_startup;
             double m_overhead_time_shutdown;
+            std::unordered_set<uint64_t> m_mpi_barrier_hashes;
     };
 }
 
