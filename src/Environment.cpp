@@ -307,7 +307,7 @@ namespace geopm
 
     std::string EnvironmentImp::mpi_barrier_regions(void) const
     {
-        return lookup("MPI_BARRIER_REGIONS");
+        return lookup("GEOPM_MPI_BARRIER_REGIONS");
     }
 
     int EnvironmentImp::max_fan_out(void) const
