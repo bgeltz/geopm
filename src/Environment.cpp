@@ -151,7 +151,8 @@ namespace geopm
                 "GEOPM_FREQUENCY_MAP",
                 "GEOPM_MAX_FAN_OUT",
                 "GEOPM_OMPT_DISABLE",
-                "GEOPM_RECORD_FILTER"};
+                "GEOPM_RECORD_FILTER",
+                "GEOPM_MPI_BARRIER_REGIONS"};
     }
 
     void EnvironmentImp::parse_environment()
