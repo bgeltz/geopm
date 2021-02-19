@@ -62,9 +62,9 @@ class TestIntegration_trace(unittest.TestCase):
         num_rank = 4
         time_limit = 600
         app_conf = geopmpy.io.BenchConf(cls._test_name + '_app.config')
-        app_conf.set_loop_count(1)
+        app_conf.set_loop_count(10)
         app_conf.append_region('sleep', 1.0)
-        app_conf.append_region('dgemm', 1.0)
+        app_conf.append_region('dgemm', 300.0)
         app_conf.append_region('all2all', 1.0)
 
         agent_conf = geopmpy.io.AgentConf(cls._agent_conf_path)
@@ -84,7 +84,7 @@ class TestIntegration_trace(unittest.TestCase):
         if len(traces) == 0:
             raise RuntimeError("No traces found with prefix: {}".format(self._trace_path_prefix))
         for tt in traces:
-            check_trace.check_sample_rate(tt, 0.005)
+            check_trace.check_sample_rate(tt, 0.005, True)
 
     def test_trace_runtimes(self):
         """Test that the sync-runtime matches the runtime from the trace."""
