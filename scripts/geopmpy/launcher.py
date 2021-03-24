@@ -1437,7 +1437,10 @@ class IMPIExecLauncher(Launcher):
                 IMPIExecLauncher._is_once = False
 
         if self.is_slurm_enabled:
-            result += ['-bootstrap', 'slurm']
+            server = 'slurm'
+            if os.getenv('SLURM_CLUSTER_NAME') == 'endeavour':
+                server = 'ssh'
+            result += ['-bootstrap', server]
 
         return result
 
