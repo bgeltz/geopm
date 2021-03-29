@@ -34,11 +34,11 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ dev ]
+    branches: [ bgeltz-ci ]
   pull_request:
-    branches: [ dev ]
+    branches: [ bgeltz-ci ]
   pull_request_target:
-    branches: [ dev ]
+    branches: [ bgeltz-ci ]
 
 jobs:
   build:
