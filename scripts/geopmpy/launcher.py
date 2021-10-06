@@ -650,7 +650,7 @@ class Launcher(object):
         """
         governor_file = '/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor'
         out = self.run_compute_cmd('cat {}'.format(governor_file))
-        current_governor = out.splitlines()[3:] # Args 0:2 are just an echo of the command
+        current_governor = out.splitlines()
 
         if not all(current_governor[0] == gov for gov in current_governor):
             raise RuntimeError('<geopm> geopmpy.launcher: CPU governor mismatch: All compute nodes do not have the same governor.\n({})'.format(current_governor))
