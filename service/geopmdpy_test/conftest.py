@@ -31,6 +31,8 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+import pytest
+
 def pytest_html_report_title(report):
     report.title = 'BRG good title'
 
