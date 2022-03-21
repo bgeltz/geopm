@@ -151,11 +151,6 @@ jobs:
     - uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: set osc credentials
-      run: |
-           echo -e "[general]\n\n[https://api.opensuse.org]\ncredentials_mgr_class=osc.credentials.ObfuscatedConfigFileCredentialsManager" > ~/.oscrc
-           echo "user = ${OSC_USER}" >> ~/.oscrc
-           echo "pass = ${OSC_CREDENTIALS}" >> ~/.oscrc
     - name: install system dependencies
       run: sudo apt-get update && sudo apt-get install libsystemd-dev libgirepository1.0-dev osc python3-m2crypto
     - name: install base and service dir python dependencies
@@ -170,23 +165,22 @@ jobs:
       working-directory: service
       run: make -j2 dist
 
-    - name: Publish RC
-      working-directory: service
-      if: github.ref_name == 'release-v2.0-candidate'
-      env:
-        OSC_PACKAGE: home:${{ github.actor }}:${{ github.ref_name }}/geopm-service
+    - name: set OSC credentials
       run: |
-           osc co ${OSC_PACKAGE}
-           cp geopm-service.spec ${OSC_PACKAGE}
-           cp geopm-service*.tar.gz ${OSC_PACKAGE}/geopm-service.tar.gz
-           osc add ${OSC_PACKAGE}/geopm-service.spec ${OSC_PACKAGE}/geopm-service.tar.gz
-           osc ci -m ${{ github.sha }} ${OSC_PACKAGE}
+           echo -e "[general]\n\n[https://api.opensuse.org]\ncredentials_mgr_class=osc.credentials.ObfuscatedConfigFileCredentialsManager" > ~/.oscrc
+           echo "user = ${OSC_USER}" >> ~/.oscrc
+           echo "pass = ${OSC_CREDENTIALS}" >> ~/.oscrc
 
-    - name: Publish dev
+    - name: set OSC_PACKAGE
+      run: |
+           if [[ "${{ github.ref_name }}" == "release-v2.0-candidate" ]]; then
+               echo "OSC_PACKAGE=home:${{ github.actor }}:${{ github.ref_name }}/geopm-service" >> ${GITHUB_ENV}
+           else
+               echo "OSC_PACKAGE=home:${{ github.actor }}/geopm-service" >> ${GITHUB_ENV}
+           fi
+
+    - name: publish
       working-directory: service
-      if: github.ref_name == 'dev'
-      env:
-        OSC_PACKAGE: home:${{ github.actor }}/geopm-service
       run: |
            osc co ${OSC_PACKAGE}
            cp geopm-service.spec ${OSC_PACKAGE}
