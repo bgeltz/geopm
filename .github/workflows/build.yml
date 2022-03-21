@@ -47,75 +47,133 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_and_test:
-    name: "build_and_test: ${{ matrix.config.name }} ${{ matrix.debug-flag }}"
+  # build_and_test:
+  #   name: "build_and_test: ${{ matrix.config.name }} ${{ matrix.debug-flag }}"
+  #   runs-on: ubuntu-20.04
+  #   strategy:
+  #     matrix:
+  #       config:
+  #       - {
+  #         name: clang-12,
+  #         cc: "clang-12", cxx: "clang++-12"
+  #       }
+  #       - {
+  #         name: gcc-9,
+  #         cc: "gcc-9", cxx: "g++-9"
+  #       }
+  #       python-version: [3.7]
+  #       debug-flag: ["enable-debug", "disable-debug"]
+  #   env:
+  #     CC: ${{ matrix.config.cc }}
+  #     CXX: ${{ matrix.config.cxx }}
+  #     FC: gfortran-9
+  #     F77: gfortran-9
+
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - uses: actions/setup-python@v2
+  #     with:
+  #       python-version: ${{ matrix.python-version }}
+  #   - name: install system dependencies
+  #     run: sudo apt-get update && sudo apt-get install libelf-dev mpich libmpich-dev libomp-11-dev libsystemd-dev libgirepository1.0-dev
+  #   - name: install base and service dir python dependencies
+  #     run: |
+  #          python3 -m pip install --upgrade pip setuptools wheel pep517
+  #          python3 -m pip install -r service/requirements.txt
+  #          python3 -m pip install -r scripts/requirements.txt
+    # - name: check include guards
+    #   shell: bash
+    #   run: .github/include_guards.sh
+    # - name: configure service dir
+    #   working-directory: service
+    #   run: ./autogen.sh && ./configure --${{ matrix.debug-flag }}
+    # - name: make service dir
+    #   working-directory: service
+    #   run: make -j2
+    # - name: configure base dir
+    #   run: ./autogen.sh && ./configure --enable-beta --disable-openmp --with-geopmd-lib=./service/.libs --with-geopmd-include=./service/src --${{ matrix.debug-flag }}
+    # - name: make base dir
+    #   run: make -j2
+    # - name: make checkprogs service
+    #   working-directory: service
+    #   run: make checkprogs -j2
+    # - name: make checkprogs base dir
+    #   run: make checkprogs -j2
+    # - name: make check service
+    #   working-directory: service
+    #   env:
+    #     LD_LIBRARY_PATH: .libs:${LD_LIBRARY_PATH}
+    #   run: make check
+    # - name: make check basedir
+    #   run: make check
+    #   env:
+    #     LD_LIBRARY_PATH: .libs:./service/.libs:${LD_LIBRARY_PATH}
+    #     PYTHONPATH: scripts:${PYTHONPATH}
+    # - name: test-dist
+    #   run: ./copying_headers/test-dist
+    # - name: show failure logs
+    #   if: ${{ failure() }}
+    #   run: |
+    #        cat scripts/py3k_lint.log || true
+    #        cat scripts/test/pytest_links/*.log || true
+    #        cat service/geopmdpy_test/pytest_links/*.log || true
+    #        cat test/gtest_links/*.log || true
+    #        cat service/test/gtest_links/*.log || true
+  print_context:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          EVENT_CONTEXT: ${{ toJSON(github.event) }}
+          EVENT_NAME: ${{ toJSON(github.event_name) }}
+        run: |
+          echo $EVENT_CONTEXT
+          echo $EVENT_NAME
+          echo "BRG Branch = ${{ github.ref_name }}"
+  publish_obs_dev:
+    if: github.event_name == 'push'
+    name: "publish_obs"
     runs-on: ubuntu-20.04
     strategy:
       matrix:
         config:
         - {
-          name: clang-12,
-          cc: "clang-12", cxx: "clang++-12"
-        }
-        - {
           name: gcc-9,
           cc: "gcc-9", cxx: "g++-9"
         }
         python-version: [3.7]
-        debug-flag: ["enable-debug", "disable-debug"]
     env:
       CC: ${{ matrix.config.cc }}
       CXX: ${{ matrix.config.cxx }}
-      FC: gfortran-9
-      F77: gfortran-9
-
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: install system dependencies
-      run: sudo apt-get update && sudo apt-get install libelf-dev mpich libmpich-dev libomp-11-dev libsystemd-dev libgirepository1.0-dev
+      run: sudo apt-get update && sudo apt-get install libsystemd-dev libgirepository1.0-dev osc python3-m2crypto
     - name: install base and service dir python dependencies
       run: |
            python3 -m pip install --upgrade pip setuptools wheel pep517
            python3 -m pip install -r service/requirements.txt
-           python3 -m pip install -r scripts/requirements.txt
-    - name: check include guards
-      shell: bash
-      run: .github/include_guards.sh
     - name: configure service dir
       working-directory: service
-      run: ./autogen.sh && ./configure --${{ matrix.debug-flag }}
-    - name: make service dir
+      run: ./autogen.sh && ./configure
+    - name: make service dist
       working-directory: service
-      run: make -j2
-    - name: configure base dir
-      run: ./autogen.sh && ./configure --enable-beta --disable-openmp --with-geopmd-lib=./service/.libs --with-geopmd-include=./service/src --${{ matrix.debug-flag }}
-    - name: make base dir
-      run: make -j2
-    - name: make checkprogs service
-      working-directory: service
-      run: make checkprogs -j2
-    - name: make checkprogs base dir
-      run: make checkprogs -j2
-    - name: make check service
+      run: make -j2 dist
+    - name: Publish to OBS
       working-directory: service
       env:
-        LD_LIBRARY_PATH: .libs:${LD_LIBRARY_PATH}
-      run: make check
-    - name: make check basedir
-      run: make check
-      env:
-        LD_LIBRARY_PATH: .libs:./service/.libs:${LD_LIBRARY_PATH}
-        PYTHONPATH: scripts:${PYTHONPATH}
-    - name: test-dist
-      run: ./copying_headers/test-dist
-    - name: show failure logs
-      if: ${{ failure() }}
+        OSC_CREDENTIALS: ${{ secrets.OSC_CREDENTIALS }}
+        OSC_USER: ${{ github.actor }}
+        OSC_PACKAGE: home:${{ github.actor }}/geopm-service
       run: |
-           cat scripts/py3k_lint.log || true
-           cat scripts/test/pytest_links/*.log || true
-           cat service/geopmdpy_test/pytest_links/*.log || true
-           cat test/gtest_links/*.log || true
-           cat service/test/gtest_links/*.log || true
+           echo -e "[general]\n\n[https://api.opensuse.org]\ncredentials_mgr_class=osc.credentials.ObfuscatedConfigFileCredentialsManager" > ~/.oscrc
+           echo "user = ${OSC_USER}" >> ~/.oscrc
+           echo "pass = ${OSC_CREDENTIALS}" >> ~/.oscrc
+           osc co ${OSC_PACKAGE}
+           cp geopm-service.spec ${OSC_PACKAGE}
+           cp geopm-service*.tar.gz ${OSC_PACKAGE}/geopm-service.tar.gz
+           osc add ${OSC_PACKAGE}/geopm-service.spec ${OSC_PACKAGE}/geopm-service.tar.gz
+           osc ci -m ${{ github.sha }} ${OSC_PACKAGE}
+
