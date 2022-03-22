@@ -125,24 +125,16 @@ jobs:
     needs: build_and_test
     name: "publish_obs"
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        config:
-        - {
-          name: gcc-9,
-          cc: "gcc-9", cxx: "g++-9"
-        }
-        python-version: [3.7]
     env:
-      CC: ${{ matrix.config.cc }}
-      CXX: ${{ matrix.config.cxx }}
+      CC: "gcc-9"
+      CXX: "g++-9"
     steps:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v3
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.7"
     - name: install system dependencies
       run: sudo apt-get update && sudo apt-get install libsystemd-dev libgirepository1.0-dev osc python3-m2crypto
     - name: install base and service dir python dependencies
