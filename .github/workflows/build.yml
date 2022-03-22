@@ -135,8 +135,6 @@ jobs:
     env:
       CC: ${{ matrix.config.cc }}
       CXX: ${{ matrix.config.cxx }}
-      OSC_CREDENTIALS: ${{ secrets.OSC_CREDENTIALS }}
-      OSC_USER: ${{ github.actor }}
     steps:
     - uses: actions/checkout@v3
       with:
@@ -157,6 +155,9 @@ jobs:
       working-directory: service
       run: make -j2 dist
     - name: set OSC credentials
+      env:
+        OSC_CREDENTIALS: ${{ secrets.OSC_CREDENTIALS }}
+        OSC_USER: ${{ github.actor }}
       run: |
            echo -e "[general]\n\n[https://api.opensuse.org]\ncredentials_mgr_class=osc.credentials.ObfuscatedConfigFileCredentialsManager" > ~/.oscrc
            echo "user = ${OSC_USER}" >> ~/.oscrc
