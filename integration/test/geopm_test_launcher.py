@@ -16,6 +16,8 @@ import geopmpy.launcher
 from integration.test import util as test_util
 from integration.experiment import util
 
+from geopmdpy import topo
+
 
 # TODO: update tests to use util
 def detect_launcher():
@@ -181,30 +183,21 @@ class TestLauncher(object):
             outfile.write(message + '\n\n')
 
     def set_num_cpu(self):
+        # TODO Revisit all of this pinning logic
         # Figure out the number of CPUs per rank leaving one for the
         # OS and one (potentially, may/may not be use depending on pmpi_ctl)
         # for the controller.
-        argv = ['dummy', detect_launcher(), '--geopm-ctl-disable', 'lscpu']
-        launcher = geopmpy.launcher.Factory().create(argv, 1, 1)
-        ostream = io.StringIO()
-        launcher.run(stdout=ostream)
-        out = ostream.getvalue()
-        cpu_thread_core_socket = [int(line.split(':')[1])
-                       for line in out.splitlines()
-                       if line.find('CPU(s):') == 0 or
-                          line.find('Thread(s) per core:') == 0 or
-                          line.find('Core(s) per socket:') == 0 or
-                          line.find('Socket(s):') == 0]
         if self._performance == True:
             # Mulitply num core per socket by num sockets, subtract 1, then multiply by threads per core.
             # Remove one CPU for BSP to calculate number of CPU for application.
             # Use hyper-threads.
-            self._num_cpu = ((cpu_thread_core_socket[2] * cpu_thread_core_socket[3]) - 1) * cpu_thread_core_socket[1]
+            threads_per_core = topo.num_domain(topo.DOMAIN_CPU) // topo.num_domain(topo.DOMAIN_CORE)
+            self._num_cpu = (topo.num_domain(topo.DOMAIN_CORE) - 1) * threads_per_core
         else:
             # Mulitply num core per socket by num socket and remove one
             # CPU for BSP to calculate number of CPU for application.
             # Don't use hyper-threads.
-            self._num_cpu = cpu_thread_core_socket[2] * cpu_thread_core_socket[3] - 1
+            self._num_cpu = topo.num_domain(topo.DOMAIN_CORE) - 1
 
     def set_cpu_per_rank(self, cpu_per_rank=None):
         if cpu_per_rank is not None:
