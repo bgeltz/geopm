@@ -380,27 +380,6 @@ namespace geopm
                                                    geopm::LevelZero::M_DOMAIN_MEMORY);
                                   },
                                   1 / 1e6
-                                  }},
-                              {M_NAME_PREFIX + "GPU_CORE_FREQUENCY_CONTROL", {
-                                  "Last value written to both the minimum and maximum frequency request for "
-                                  "the GPU Compute Hardware to a single user provided value (min=max)."
-                                  "\nOnly valid as a signal after being written, NAN returned otherwise."
-                                  "\nReadings are valid only after writing to this control",
-                                  GEOPM_DOMAIN_GPU_CHIP,
-                                  Agg::average,
-                                  IOGroup::M_SIGNAL_BEHAVIOR_VARIABLE,
-                                  string_format_double,
-                                  {},
-                                  [this](unsigned int domain_idx) -> double
-                                  {
-                                      auto range_pair =  this->m_levelzero_device_pool.frequency_range(
-                                                               GEOPM_DOMAIN_GPU_CHIP,
-                                                               domain_idx,
-                                                               geopm::LevelZero::M_DOMAIN_COMPUTE);
-                                      return range_pair.first == range_pair.second ? range_pair.first
-                                                              : NAN;
-                                  },
-                                  1e6
                                   }}
                              })
         , m_control_available({{M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL", {
@@ -412,15 +391,6 @@ namespace geopm
                                     }},
                                {M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_CONTROL", {
                                     "Sets the maximum frequency request for the GPU Compute Hardware.",
-                                    {},
-                                    GEOPM_DOMAIN_GPU_CHIP,
-                                    Agg::average,
-                                    string_format_double
-                                    }},
-                               {M_NAME_PREFIX + "GPU_CORE_FREQUENCY_CONTROL", {
-                                    "Sets both the minimum and maximum frequency request for the GPU Compute Hardware"
-                                    " to a single user provided value (min=max)."
-                                    "\nOnly valid as a signal after being written, NAN returned otherwise.",
                                     {},
                                     GEOPM_DOMAIN_GPU_CHIP,
                                     Agg::average,
@@ -498,10 +468,6 @@ namespace geopm
         register_signal_alias("GPU_CORE_FREQUENCY_STATUS", M_NAME_PREFIX + "GPU_CORE_FREQUENCY_STATUS");
         register_signal_alias("GPU_ENERGY", M_NAME_PREFIX + "GPU_ENERGY");
         register_signal_alias("GPU_POWER", M_NAME_PREFIX + "GPU_POWER");
-        register_signal_alias("GPU_CORE_FREQUENCY_CONTROL",
-                               M_NAME_PREFIX + "GPU_CORE_FREQUENCY_CONTROL");
-        register_control_alias("GPU_CORE_FREQUENCY_CONTROL",
-                               M_NAME_PREFIX + "GPU_CORE_FREQUENCY_CONTROL");
         register_signal_alias("GPU_UTILIZATION", M_NAME_PREFIX + "GPU_UTILIZATION");
         register_signal_alias("GPU_CORE_ACTIVITY", M_NAME_PREFIX + "GPU_CORE_UTILIZATION");
         register_signal_alias("GPU_UNCORE_ACTIVITY", M_NAME_PREFIX + "GPU_UNCORE_UTILIZATION");
@@ -537,16 +503,6 @@ namespace geopm
                          domain_idx < m_platform_topo.num_domain(control_domain_type(sv.first));
                          ++domain_idx) {
                         init_setting = read_signal(sv.first, control_domain_type(sv.first), domain_idx);
-
-                        if(std::isnan(init_setting)) {
-                            // Specialized handling for signals that may be NAN
-                            if(sv.first == "GPU_CORE_FREQUENCY_CONTROL" ||
-                               sv.first == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_CONTROL") {
-
-                                init_setting = read_signal(M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_AVAIL",
-                                                           control_domain_type(sv.first), domain_idx);
-                            }
-                        }
 
                         //Try to write the signals
                         write_control(sv.first, control_domain_type(sv.first), domain_idx, init_setting);
@@ -930,21 +886,7 @@ namespace geopm
                             __FILE__, __LINE__);
         }
 
-        if (control_name == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_CONTROL" ||
-            control_name == "GPU_CORE_FREQUENCY_CONTROL") {
-            if (std::isnan(setting)) {
-                // At initialization before this control has ever been written the "signal"
-                // version of this control will return NAN.  If this NAN is later used as the
-                // setting, intercept it and instead restore the values cached at startup.
-                restore_control();
-            }
-            else {
-                m_levelzero_device_pool.frequency_control(domain_type, domain_idx,
-                                                          geopm::LevelZero::M_DOMAIN_COMPUTE,
-                                                          setting / 1e6, setting / 1e6);
-            }
-        }
-        else if(control_name == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL") {
+        if(control_name == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL") {
             double curr_max = read_signal(M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_CONTROL",
                                           domain_type, domain_idx);
             m_levelzero_device_pool.frequency_control(domain_type, domain_idx,
