@@ -665,11 +665,11 @@ namespace geopm
             result = (double) m_nvml_device_pool.throttle_reasons(domain_idx);
         }
         else if (signal_name == M_NAME_PREFIX + "GPU_POWER" || signal_name == "GPU_POWER") {
-            result = (double) m_nvml_device_pool.power(domain_idx) / 1e3;
+            result = (double) m_nvml_device_pool.power(domain_idx) * 1e-3;
         }
         else if (signal_name == M_NAME_PREFIX + "GPU_POWER_LIMIT_CONTROL" ||
                  signal_name == "GPU_POWER_LIMIT_CONTROL") {
-            result = (double) m_nvml_device_pool.power_limit(domain_idx) / 1e3;
+            result = (double) m_nvml_device_pool.power_limit(domain_idx) * 1e-3;
         }
         else if (signal_name == M_NAME_PREFIX + "GPU_UNCORE_FREQUENCY_STATUS") {
             result = (double) m_nvml_device_pool.frequency_status_mem(domain_idx) * 1e6;
@@ -678,7 +678,7 @@ namespace geopm
             result = (double) m_nvml_device_pool.temperature(domain_idx);
         }
         else if (signal_name == M_NAME_PREFIX + "GPU_ENERGY_CONSUMPTION_TOTAL" || signal_name == "GPU_ENERGY") {
-            result = (double) m_nvml_device_pool.energy(domain_idx) / 1e3;
+            result = (double) m_nvml_device_pool.energy(domain_idx) * 1e-3;
         }
         else if (signal_name == M_NAME_PREFIX + "GPU_PERFORMANCE_STATE") {
             result = (double) m_nvml_device_pool.performance_state(domain_idx);
@@ -690,7 +690,7 @@ namespace geopm
             result = (double) m_nvml_device_pool.throughput_tx_pcie(domain_idx) * 1024;
         }
         else if (signal_name == M_NAME_PREFIX + "GPU_UNCORE_UTILIZATION") {
-            result = (double) m_nvml_device_pool.utilization_mem(domain_idx) / 100;
+            result = (double) m_nvml_device_pool.utilization_mem(domain_idx) * 1e-2;
         }
         else if (signal_name == M_NAME_PREFIX + "GPU_CPU_ACTIVE_AFFINITIZATION") {
             std::map<pid_t, double> process_map = gpu_process_map();
@@ -741,8 +741,8 @@ namespace geopm
             else {
                 min_request = m_supported_freq.at(domain_idx).front();
             }
-            m_nvml_device_pool.frequency_control_sm(domain_idx, min_request, setting / 1e6);
-            m_frequency_min_control_request.at(domain_idx) = setting;
+            m_nvml_device_pool.frequency_control_sm(domain_idx, min_request * 1e-6, setting * 1e-6);
+            m_frequency_max_control_request.at(domain_idx) = setting;
         }
         else if (control_name == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL" || control_name == "GPU_CORE_FREQUENCY_MIN_CONTROL") {
             double max_request;
@@ -752,8 +752,8 @@ namespace geopm
             else {
                 max_request = m_supported_freq.at(domain_idx).back();
             }
-            m_nvml_device_pool.frequency_control_sm(domain_idx, setting / 1e6, max_request);
-            m_frequency_max_control_request.at(domain_idx) = setting;
+            m_nvml_device_pool.frequency_control_sm(domain_idx, setting * 1e-6, max_request * 1e-6);
+            m_frequency_min_control_request.at(domain_idx) = setting;
         }
         else if (control_name == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_RESET_CONTROL") {
             m_nvml_device_pool.frequency_reset_control(domain_idx);
@@ -790,6 +790,9 @@ namespace geopm
                 m_nvml_device_pool.power_control(domain_idx, m_initial_power_limit.at(domain_idx));
                 // Reset NVML Frequency Limit
                 m_nvml_device_pool.frequency_reset_control(domain_idx);
+
+                m_frequency_max_control_request.at(domain_idx) = NAN;
+                m_frequency_min_control_request.at(domain_idx) = NAN;
             }
             catch (const geopm::Exception &ex) {
 #ifdef GEOPM_DEBUG
