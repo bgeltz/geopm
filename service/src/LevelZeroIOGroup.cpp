@@ -471,10 +471,14 @@ namespace geopm
         register_signal_alias("GPU_UTILIZATION", M_NAME_PREFIX + "GPU_UTILIZATION");
         register_signal_alias("GPU_CORE_ACTIVITY", M_NAME_PREFIX + "GPU_CORE_UTILIZATION");
         register_signal_alias("GPU_UNCORE_ACTIVITY", M_NAME_PREFIX + "GPU_UNCORE_UTILIZATION");
-        register_control_alias("GPU_CORE_FREQUENCY_MIN_AVAIL",
-                               M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_AVAIL");
-        register_control_alias("GPU_CORE_FREQUENCY_MAX_AVAIL",
-                               M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_AVAIL");
+        register_signal_alias("GPU_CORE_FREQUENCY_MIN_AVAIL",
+                              M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_AVAIL");
+        register_signal_alias("GPU_CORE_FREQUENCY_MAX_AVAIL",
+                              M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_AVAIL");
+        register_signal_alias("GPU_CORE_FREQUENCY_MIN_CONTROL",
+                              M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL");
+        register_signal_alias("GPU_CORE_FREQUENCY_MAX_CONTROL",
+                              M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_CONTROL");
 
         // populate controls for each domain
         for (auto &sv : m_control_available) {
@@ -523,6 +527,12 @@ namespace geopm
         }
 
         restore_control();
+
+        register_control_alias("GPU_CORE_FREQUENCY_MIN_CONTROL",
+                              M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL");
+        register_control_alias("GPU_CORE_FREQUENCY_MAX_CONTROL",
+                               M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_CONTROL");
+
     }
 
     void LevelZeroIOGroup::register_derivative_signals(void) {
@@ -774,15 +784,37 @@ namespace geopm
     // Write all controls that have been pushed and adjusted
     void LevelZeroIOGroup::write_batch(void)
     {
-        for (auto &sv : m_control_available) {
-            for (unsigned int domain_idx = 0;
-                 domain_idx < sv.second.m_controls.size(); ++domain_idx) {
-                if (sv.second.m_controls.at(domain_idx)->m_is_adjusted) {
-                    write_control(sv.first, sv.second.m_domain_type, domain_idx,
-                                  sv.second.m_controls.at(domain_idx)->m_setting);
+        // If there are any two controls that have an ordering requirement, the retry logic in this
+        // loop enables them to be written in the proper order.
+        // This situation arises due to requirements of minimum settings being less than maximum settings.
+        bool do_throw = false;
+        bool do_retry = false;
+        do {
+            // If the retry succeeds and we do not reset do_retry
+            // then an infinite loop occurs
+            if (do_throw) {
+                do_retry = false;
+            }
+            for (auto &sv : m_control_available) {
+                for (unsigned int domain_idx = 0;
+                     domain_idx < sv.second.m_controls.size(); ++domain_idx) {
+                    if (sv.second.m_controls.at(domain_idx)->m_is_adjusted) {
+                        try{
+                            write_control(sv.first, sv.second.m_domain_type, domain_idx,
+                                          sv.second.m_controls.at(domain_idx)->m_setting);
+                            sv.second.m_controls.at(domain_idx)->m_is_adjusted = false;
+                        }
+                        catch (...) {
+                            if (do_throw) {
+                                throw;
+                            }
+                            do_retry = true;
+                        }
+                    }
                 }
             }
-        }
+            do_throw = true;
+        } while (do_retry);
     }
 
     // Return the latest value read by read_batch()
