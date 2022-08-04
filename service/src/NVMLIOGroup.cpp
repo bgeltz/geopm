@@ -571,13 +571,31 @@ namespace geopm
     // Write all controls that have been pushed and adjusted
     void NVMLIOGroup::write_batch(void)
     {
-        for (auto &sv : m_control_available) {
-            for (unsigned int domain_idx = 0; domain_idx < sv.second.controls.size(); ++domain_idx) {
-                if (sv.second.controls.at(domain_idx)->m_is_adjusted) {
-                    write_control(sv.first, sv.second.domain, domain_idx, sv.second.controls.at(domain_idx)->m_setting);
+
+        // If there are any two controls that have an ordering requirement, the retry logic in this
+        // loop enables them to be written in the proper order.
+        // This situation arises due to requirements of minimum settings being less than maximum settings.
+        bool do_throw = false;
+        bool do_retry = false;
+        do {
+            for (auto &sv : m_control_available) {
+                for (unsigned int domain_idx = 0; domain_idx < sv.second.controls.size(); ++domain_idx) {
+                    if (sv.second.controls.at(domain_idx)->m_is_adjusted) {
+                        try{
+                            write_control(sv.first, sv.second.domain, domain_idx, sv.second.controls.at(domain_idx)->m_setting);
+                            sv.second.controls.at(domain_idx)->m_is_adjusted = false;
+                        }
+                        catch (...) {
+                            if (do_throw) {
+                                throw;
+                            }
+                            do_retry = true;
+                        }
+                    }
                 }
             }
-        }
+            do_throw = true;
+        } while (do_retry);
     }
 
     // Return the latest value read by read_batch()
