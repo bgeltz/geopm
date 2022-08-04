@@ -252,6 +252,11 @@ namespace geopm
             // sort guarantees the ordering for min & max calls
             std::sort(supported_frequency.begin(), supported_frequency.end());
             m_supported_freq.push_back(supported_frequency);
+
+            // Since we cannot read the min & max control setting we're defaulting
+            // to the min & max supported frequency for the associated signals
+            m_frequency_max_control_request.at(domain_idx) = m_supported_freq.at(domain_idx).back() * 1e6;
+            m_frequency_min_control_request.at(domain_idx) = m_supported_freq.at(domain_idx).front() * 1e6;
         }
 
         std::vector <std::string> unsupported_signal_names;
@@ -749,9 +754,6 @@ namespace geopm
                 m_nvml_device_pool.power_control(domain_idx, m_initial_power_limit.at(domain_idx));
                 // Reset NVML Frequency Limit
                 m_nvml_device_pool.frequency_reset_control(domain_idx);
-
-                m_frequency_max_control_request.at(domain_idx) = NAN;
-                m_frequency_min_control_request.at(domain_idx) = NAN;
             }
             catch (const geopm::Exception &ex) {
 #ifdef GEOPM_DEBUG

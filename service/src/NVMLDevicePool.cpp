@@ -366,25 +366,6 @@ namespace geopm
                           std::to_string(gpu_idx) + ".", __LINE__);
     }
 
-    bool NVMLDevicePoolImp::is_frequency_control_sm_avail(void) const
-    {
-        if (m_num_gpu == 0) {
-            return false;
-        }
-        // TODO: Assumption here is that if control was enabled for one of the connected GPUs, it was enabled
-        //       for *all* connected GPUs.  Is this accurate?
-        nvmlDevice_t device = m_nvml_device.at(0);
-        nvmlEnableState_t control_avail = false;
-
-        nvmlReturn_t nvml_result = nvmlDeviceGetAPIRestriction (device, NVML_RESTRICTED_API_SET_APPLICATION_CLOCKS, &control_avail);
-
-        check_nvml_result(nvml_result, GEOPM_ERROR_RUNTIME, "NVMLDevicePool::" + std::string(__func__) +
-                          ": NVML failed query for frequency control availability " +
-                          std::to_string(0) + ".", __LINE__);
-
-        return (control_avail == NVML_FEATURE_ENABLED);
-    }
-
     bool NVMLDevicePoolImp::is_privileged_access(void) const
     {
         return (geteuid() == 0);
