@@ -739,7 +739,7 @@ namespace geopm
                 min_request = m_frequency_min_control_request.at(domain_idx);
             }
             else {
-                min_request = m_supported_freq.at(domain_idx).front();
+                min_request = m_supported_freq.at(domain_idx).front() * 1e6;
             }
             m_nvml_device_pool.frequency_control_sm(domain_idx, min_request * 1e-6, setting * 1e-6);
             m_frequency_max_control_request.at(domain_idx) = setting;
@@ -750,7 +750,7 @@ namespace geopm
                 max_request = m_frequency_max_control_request.at(domain_idx);
             }
             else {
-                max_request = m_supported_freq.at(domain_idx).back();
+                max_request = m_supported_freq.at(domain_idx).back() * 1e6;
             }
             m_nvml_device_pool.frequency_control_sm(domain_idx, setting * 1e-6, max_request * 1e-6);
             m_frequency_min_control_request.at(domain_idx) = setting;
