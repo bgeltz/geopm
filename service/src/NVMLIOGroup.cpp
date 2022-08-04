@@ -542,6 +542,11 @@ namespace geopm
         bool do_throw = false;
         bool do_retry = false;
         do {
+            // If the retry succeeds and we do not reset do_retry
+            // then an infinite loop occurs
+            if (do_throw) {
+                do_retry = false;
+            }
             for (auto &sv : m_control_available) {
                 for (unsigned int domain_idx = 0; domain_idx < sv.second.controls.size(); ++domain_idx) {
                     if (sv.second.controls.at(domain_idx)->m_is_adjusted) {
