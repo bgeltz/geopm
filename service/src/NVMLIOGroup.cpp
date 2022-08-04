@@ -295,11 +295,11 @@ namespace geopm
 
         // Only a user with elevated priviledges will be able to control
         // frequency and power.  Prune the controls if we don't have access.
-        if (geteuid() != 0) {
-            m_control_available.erase("GPU_CORE_FREQUENCY_MAX_CONTROL");
-            m_control_available.erase("GPU_CORE_FREQUENCY_MIN_CONTROL");
-            m_control_available.erase("GPU_CORE_FREQUENCY_RESET_CONTROL");
-            m_control_available.erase("GPU_POWER_LIMIT_CONTROL");
+        if (!m_nvml_device_pool.is_privileged_access()) {
+            m_control_available.erase(M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_CONTROL");
+            m_control_available.erase(M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL");
+            m_control_available.erase(M_NAME_PREFIX + "GPU_CORE_FREQUENCY_RESET_CONTROL");
+            m_control_available.erase(M_NAME_PREFIX + "GPU_POWER_LIMIT_CONTROL");
         }
 
         register_control_alias("GPU_POWER_LIMIT_CONTROL", M_NAME_PREFIX + "GPU_POWER_LIMIT_CONTROL");
