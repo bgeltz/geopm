@@ -16,6 +16,7 @@
 #include <string>
 #include <sched.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "geopm/IOGroup.hpp"
 #include "geopm/PlatformTopo.hpp"
@@ -292,56 +293,14 @@ namespace geopm
             sv.second.controls = result;
         }
 
-        // Cache the initial settings
-        save_control();
-
-        std::vector <std::string> unsupported_control_names;
-        for (auto &sv : m_control_available) {
-            try {
-                double init_setting = NAN;
-                if(is_valid_signal(sv.first) &&
-                   signal_domain_type(sv.first) == control_domain_type(sv.first)) {
-                    for (int domain_idx = 0;
-                         domain_idx < m_platform_topo.num_domain(control_domain_type(sv.first));
-                         ++domain_idx) {
-                        init_setting = read_signal(sv.first, control_domain_type(sv.first), domain_idx);
-
-                        if(std::isnan(init_setting)) {
-                            // Specialized handling for signals that may be NAN
-                            if (sv.first == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_CONTROL" ||
-                                 sv.first == "GPU_CORE_FREQUENCY_MAX_CONTROL") {
-                                init_setting = read_signal(M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_AVAIL",
-                                                           control_domain_type(sv.first), domain_idx);
-                            }
-                            else if (sv.first == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL" ||
-                                 sv.first == "GPU_CORE_FREQUENCY_MIN_CONTROL") {
-                                init_setting = read_signal(M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_AVAIL",
-                                                           control_domain_type(sv.first), domain_idx);
-                            }
-                            else if (sv.first == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_RESET_CONTROL") {
-                                init_setting = 0;
-                            }
-                        }
-
-                        //Try to write the signals
-                        write_control(sv.first, control_domain_type(sv.first), domain_idx, init_setting);
-                    }
-                }
-            }
-            catch (const geopm::Exception &ex) {
-                if (ex.err_value() != GEOPM_ERROR_RUNTIME &&
-                    ex.err_value() != GEOPM_ERROR_INVALID) {
-                    throw;
-                }
-                unsupported_control_names.push_back(sv.first);
-            }
+        // Only a user with elevated priviledges will be able to control
+        // frequency and power.  Prune the controls if we don't have access.
+        if (geteuid() != 0) {
+            m_control_available.erase("GPU_CORE_FREQUENCY_MAX_CONTROL");
+            m_control_available.erase("GPU_CORE_FREQUENCY_MIN_CONTROL");
+            m_control_available.erase("GPU_CORE_FREQUENCY_RESET_CONTROL");
+            m_control_available.erase("GPU_POWER_LIMIT_CONTROL");
         }
-
-        for(const auto &name : unsupported_control_names) {
-            m_control_available.erase(name);
-        }
-
-        restore_control();
 
         register_control_alias("GPU_POWER_LIMIT_CONTROL", M_NAME_PREFIX + "GPU_POWER_LIMIT_CONTROL");
         register_signal_alias("GPU_POWER_LIMIT_CONTROL", M_NAME_PREFIX + "GPU_POWER_LIMIT_CONTROL");
