@@ -334,7 +334,7 @@ TEST_F(NVMLIOGroupTest, read_signal)
 
         frequency = nvml_io.read_signal(M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_CONTROL",
                                         GEOPM_DOMAIN_GPU, gpu_idx);
-        EXPECT_TRUE(std::isnan(frequency));
+        EXPECT_DOUBLE_EQ(mock_supported_freq.back() * 1e6, frequency);
     }
 
     for (int cpu_idx = 0; cpu_idx < num_cpu; ++cpu_idx) {
@@ -426,7 +426,7 @@ TEST_F(NVMLIOGroupTest, error_path)
 
 TEST_F(NVMLIOGroupTest, save_restore_control)
 {
-    EXPECT_CALL(*m_device_pool, is_privileged_access()).WillRepeatedly(Return(false));
+    EXPECT_CALL(*m_device_pool, is_privileged_access()).WillRepeatedly(Return(true));
     NVMLIOGroup nvml_io(*m_platform_topo, *m_device_pool, m_mock_save_ctl);
 
     const int num_gpu = m_platform_topo->num_domain(GEOPM_DOMAIN_GPU);
@@ -463,9 +463,10 @@ TEST_F(NVMLIOGroupTest, signal_and_control_trimming)
 
     std::vector<int> active_process_list = {40961, 40962, 40963};
 
+    EXPECT_CALL(*m_device_pool, frequency_status_sm(0)).WillOnce(Throw(geopm::Exception("Not Supported", GEOPM_ERROR_RUNTIME, __FILE__, __LINE__)));
+    EXPECT_CALL(*m_device_pool, frequency_status_mem(0)).WillOnce(Throw(geopm::Exception("Invalid", GEOPM_ERROR_INVALID, __FILE__, __LINE__)));
+
     for (int gpu_idx = 0; gpu_idx < num_gpu; ++gpu_idx) {
-        EXPECT_CALL(*m_device_pool, frequency_status_sm(gpu_idx)).WillOnce(Throw(geopm::Exception("Not Supported", GEOPM_ERROR_RUNTIME, __FILE__, __LINE__)));
-        EXPECT_CALL(*m_device_pool, frequency_status_mem(gpu_idx)).WillOnce(Throw(geopm::Exception("Invalid", GEOPM_ERROR_INVALID, __FILE__, __LINE__)));
         EXPECT_CALL(*m_device_pool, frequency_supported_sm(gpu_idx)).WillOnce(Return(mock_supported_freq));
         EXPECT_CALL(*m_device_pool, utilization(gpu_idx)).WillOnce(Return(mock_utilization_gpu.at(gpu_idx)));
         EXPECT_CALL(*m_device_pool, power(gpu_idx)).WillOnce(Return(mock_power.at(gpu_idx)));;
