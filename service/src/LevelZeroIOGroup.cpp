@@ -918,14 +918,16 @@ namespace geopm
                             __FILE__, __LINE__);
         }
 
-        if(control_name == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL") {
+        if(control_name == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL" ||
+           control_name == "GPU_CORE_FREQUENCY_MIN_CONTROL") {
             double curr_max = read_signal(M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_CONTROL",
                                           domain_type, domain_idx);
             m_levelzero_device_pool.frequency_control(domain_type, domain_idx,
                                                       geopm::LevelZero::M_DOMAIN_COMPUTE,
                                                       setting / 1e6, curr_max / 1e6);
         }
-        else if(control_name == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_CONTROL") {
+        else if(control_name == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MAX_CONTROL" ||
+                control_name == "GPU_CORE_FREQUENCY_MAX_CONTROL") {
             double curr_min = read_signal(M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL",
                                           domain_type, domain_idx);
             m_levelzero_device_pool.frequency_control(domain_type, domain_idx,
