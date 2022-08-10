@@ -47,6 +47,7 @@ namespace geopm
         , m_is_batch_read(false)
         , m_frequency_max_control_request(m_platform_topo.num_domain(GEOPM_DOMAIN_GPU), NAN)
         , m_frequency_min_control_request(m_platform_topo.num_domain(GEOPM_DOMAIN_GPU), NAN)
+        , m_initial_power_limit(m_platform_topo.num_domain(GEOPM_DOMAIN_GPU), 0)
         , m_signal_available({{M_NAME_PREFIX + "GPU_CORE_FREQUENCY_STATUS", {
                                   "Streaming multiprocessor frequency in hertz",
                                   {},
@@ -744,7 +745,7 @@ namespace geopm
     {
         // Read NVML Power Limit
         for (int domain_idx = 0; domain_idx < m_platform_topo.num_domain(GEOPM_DOMAIN_GPU); ++domain_idx) {
-            m_initial_power_limit.push_back(m_nvml_device_pool.power_limit(domain_idx));
+            m_initial_power_limit.at(domain_idx) = m_nvml_device_pool.power_limit(domain_idx);
         }
     }
 

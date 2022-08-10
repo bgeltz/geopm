@@ -213,22 +213,13 @@ TEST_F(LevelZeroIOGroupTest, save_restore)
                                                               {20, 400}, {53, 123}, {1600, 1700}, {500, 500}};
 
     for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
-        EXPECT_CALL(*m_device_pool, frequency_range(GEOPM_DOMAIN_GPU_CHIP, sub_idx, geopm::LevelZero::M_DOMAIN_COMPUTE)).WillRepeatedly(Return(mock_freq_range.at(sub_idx)));
+        EXPECT_CALL(*m_device_pool, // save_control caches current values
+                    frequency_range(GEOPM_DOMAIN_GPU_CHIP, sub_idx, geopm::LevelZero::M_DOMAIN_COMPUTE)).
+                    WillOnce(Return(mock_freq_range.at(sub_idx)));
 
-        // Commenting in the next 3 lines make the test pass, but this is bad:
-        //   save_control() was already called once, in the constructor.  When that happened,
-        //   m_frequency_range was pushed back into for every GPU.
-        //   In this test, we call save_control() *AGAIN* then call restore_control().
-        //   When restore_control() is called, m_frequency_range is size 16!
-        //
-        //   Real bug: save_control called in constructor, values cached.  Sometime later the controller calls
-        //   save_control.  If controls were changed in between IOGroup construction and the Controller
-        //   or any entity calling save_control, the changes will be lost because we keep pushing back into
-        //   m_frequency_range on save_control().
-        //
-        // EXPECT_CALL(*m_device_pool, // restore_control() will try to set 0, 0 from SetUp()
-        //             frequency_control(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE,
-        //                               0, 0));
+        EXPECT_CALL(*m_device_pool, // restore_control restores cached values
+                    frequency_control(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE,
+                                      mock_freq_range.at(sub_idx).first, mock_freq_range.at(sub_idx).second));
     }
 
     levelzero_io.save_control();

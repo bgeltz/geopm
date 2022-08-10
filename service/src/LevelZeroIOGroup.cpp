@@ -431,6 +431,7 @@ namespace geopm
                      M_NAME_PREFIX + "GPU_UNCORE_ACTIVE_TIME_TIMESTAMP",
                      IOGroup::M_SIGNAL_BEHAVIOR_VARIABLE}},
         })
+        , m_frequency_range(m_platform_topo.num_domain(GEOPM_DOMAIN_GPU_CHIP), std::make_pair(0, 0))
         , m_mock_save_ctl(save_control_test)
     {
         std::vector <std::string> unsupported_signal_names;
@@ -954,9 +955,9 @@ namespace geopm
             try {
                 // Currently only the levelzero compute domain control is supported.
                 // As new controls are added they should be included
-                m_frequency_range.push_back(m_levelzero_device_pool.frequency_range(
-                                            GEOPM_DOMAIN_GPU_CHIP, domain_idx,
-                                            geopm::LevelZero::M_DOMAIN_COMPUTE));
+                m_frequency_range.at(domain_idx) =
+                    m_levelzero_device_pool.frequency_range(GEOPM_DOMAIN_GPU_CHIP, domain_idx,
+                                                            geopm::LevelZero::M_DOMAIN_COMPUTE);
             }
             catch (const geopm::Exception &ex) {
                 throw Exception("LevelZeroIOGroup::" + std::string(__func__) + ": "
