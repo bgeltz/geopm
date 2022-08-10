@@ -132,72 +132,9 @@ void LevelZeroIOGroupTest::SetUp()
 
     EXPECT_CALL(*m_device_pool, num_gpu(GEOPM_DOMAIN_GPU)).WillRepeatedly(Return(num_gpu));
     EXPECT_CALL(*m_device_pool, num_gpu(GEOPM_DOMAIN_GPU_CHIP)).WillRepeatedly(Return(num_gpu_subdevice));
-}
 
-void LevelZeroIOGroupTest::TearDown()
-{
-}
-
-TEST_F(LevelZeroIOGroupTest, valid_signals)
-{
-    LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, nullptr);
-    for (const auto &sig : levelzero_io.signal_names()) {
-        EXPECT_TRUE(levelzero_io.is_valid_signal(sig));
-        EXPECT_NE(GEOPM_DOMAIN_INVALID, levelzero_io.signal_domain_type(sig));
-        EXPECT_LT(-1, levelzero_io.signal_behavior(sig));
-    }
-}
-
-
-TEST_F(LevelZeroIOGroupTest, save_restore)
-{
-    const int num_gpu_subdevice = m_platform_topo->num_domain(GEOPM_DOMAIN_GPU_CHIP);
-    std::map<int, double> batch_value;
-    LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, nullptr);
-
-    std::vector<std::pair<double,double> > mock_freq_range = {{0,1530}, {1000,1320}, {30,420}, {130,135},
-                                                              {20,400}, {53,123}, {1600,1700}, {500,500}};
-
+    // Expectations for signal/control pruning code in the constructor
     for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
-        EXPECT_CALL(*m_device_pool, frequency_range(GEOPM_DOMAIN_GPU_CHIP, sub_idx, geopm::LevelZero::M_DOMAIN_COMPUTE)).WillRepeatedly(Return(mock_freq_range.at(sub_idx)));
-    }
-
-    levelzero_io.save_control();
-    levelzero_io.restore_control();
-}
-
-TEST_F(LevelZeroIOGroupTest, push_control_adjust_write_batch)
-{
-    const int num_gpu_subdevice = m_platform_topo->num_domain(GEOPM_DOMAIN_GPU_CHIP);
-    std::map<int, double> batch_value;
-    LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, nullptr);
-
-    std::vector<double> mock_freq = {1530, 1320, 420, 135, 1620, 812, 199, 1700};
-
-    for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
-        batch_value[(levelzero_io.push_control("LEVELZERO::GPU_CORE_FREQUENCY_CONTROL",
-                                        GEOPM_DOMAIN_GPU_CHIP, sub_idx))] = mock_freq.at(sub_idx)*1e6;
-        batch_value[(levelzero_io.push_control("GPU_CORE_FREQUENCY_CONTROL",
-                                        GEOPM_DOMAIN_GPU_CHIP, sub_idx))] = mock_freq.at(sub_idx)*1e6;
-        EXPECT_CALL(*m_device_pool,
-                    frequency_control(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE, mock_freq.at(sub_idx), mock_freq.at(sub_idx))).Times(2);
-    }
-
-    for (auto& sv: batch_value) {
-        // Given that we are mocking LEVELZERODevicePool the actual setting here doesn't matter
-        EXPECT_NO_THROW(levelzero_io.adjust(sv.first, sv.second));
-    }
-    EXPECT_NO_THROW(levelzero_io.write_batch());
-}
-
-TEST_F(LevelZeroIOGroupTest, write_control)
-{
-
-    const int num_gpu = m_platform_topo->num_domain(GEOPM_DOMAIN_GPU);
-    const int num_gpu_subdevice = m_platform_topo->num_domain(GEOPM_DOMAIN_GPU_CHIP);
-
-    for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
-        // Expectations for signal pruning code in the constructor
         EXPECT_CALL(*m_device_pool, // GPU_ACTIVE_TIME
                     active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_ALL));
         EXPECT_CALL(*m_device_pool, // GPU_ACTIVE_TIME_TIMESTAMP
@@ -249,12 +186,86 @@ TEST_F(LevelZeroIOGroupTest, write_control)
         EXPECT_CALL(*m_device_pool, // GPU_POWER_LIMIT_MIN_AVAIL
                     power_limit_min(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL));
     }
-    // End constructor expectations
+}
 
+void LevelZeroIOGroupTest::TearDown()
+{
+}
+
+TEST_F(LevelZeroIOGroupTest, valid_signals)
+{
+    LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, nullptr);
+    for (const auto &sig : levelzero_io.signal_names()) {
+        EXPECT_TRUE(levelzero_io.is_valid_signal(sig));
+        EXPECT_NE(GEOPM_DOMAIN_INVALID, levelzero_io.signal_domain_type(sig));
+        EXPECT_LT(-1, levelzero_io.signal_behavior(sig));
+    }
+}
+
+
+TEST_F(LevelZeroIOGroupTest, save_restore)
+{
+    const int num_gpu_subdevice = m_platform_topo->num_domain(GEOPM_DOMAIN_GPU_CHIP);
+    std::map<int, double> batch_value;
+    LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, nullptr);
+
+    std::vector<std::pair<double,double> > mock_freq_range = {{0, 1530}, {1000, 1320}, {30, 420}, {130, 135},
+                                                              {20, 400}, {53, 123}, {1600, 1700}, {500, 500}};
+
+    for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
+        EXPECT_CALL(*m_device_pool, frequency_range(GEOPM_DOMAIN_GPU_CHIP, sub_idx, geopm::LevelZero::M_DOMAIN_COMPUTE)).WillRepeatedly(Return(mock_freq_range.at(sub_idx)));
+
+        // Commenting in the next 3 lines make the test pass, but this is bad:
+        //   save_control() was already called once, in the constructor.  When that happened,
+        //   m_frequency_range was pushed back into for every GPU.
+        //   In this test, we call save_control() *AGAIN* then call restore_control().
+        //   When restore_control() is called, m_frequency_range is size 16!
+        //
+        //   Real bug: save_control called in constructor, values cached.  Sometime later the controller calls
+        //   save_control.  If controls were changed in between IOGroup construction and the Controller
+        //   or any entity calling save_control, the changes will be lost because we keep pushing back into
+        //   m_frequency_range on save_control().
+        //
+        // EXPECT_CALL(*m_device_pool, // restore_control() will try to set 0, 0 from SetUp()
+        //             frequency_control(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE,
+        //                               0, 0));
+    }
+
+    levelzero_io.save_control();
+    levelzero_io.restore_control();
+}
+
+TEST_F(LevelZeroIOGroupTest, push_control_adjust_write_batch)
+{
+    const int num_gpu_subdevice = m_platform_topo->num_domain(GEOPM_DOMAIN_GPU_CHIP);
+    std::map<int, double> batch_value;
+    LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, nullptr);
+
+    std::vector<double> mock_freq = {1530, 1320, 420, 135, 1620, 812, 199, 1700};
+
+    for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
+        batch_value[(levelzero_io.push_control("LEVELZERO::GPU_CORE_FREQUENCY_CONTROL",
+                                        GEOPM_DOMAIN_GPU_CHIP, sub_idx))] = mock_freq.at(sub_idx)*1e6;
+        batch_value[(levelzero_io.push_control("GPU_CORE_FREQUENCY_CONTROL",
+                                        GEOPM_DOMAIN_GPU_CHIP, sub_idx))] = mock_freq.at(sub_idx)*1e6;
+        EXPECT_CALL(*m_device_pool,
+                    frequency_control(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE, mock_freq.at(sub_idx), mock_freq.at(sub_idx))).Times(2);
+    }
+
+    for (auto& sv: batch_value) {
+        // Given that we are mocking LEVELZERODevicePool the actual setting here doesn't matter
+        EXPECT_NO_THROW(levelzero_io.adjust(sv.first, sv.second));
+    }
+    EXPECT_NO_THROW(levelzero_io.write_batch());
+}
+
+TEST_F(LevelZeroIOGroupTest, write_control)
+{
     LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, nullptr);
 
     std::vector<double> mock_freq = {1530, 1320, 420, 135, 900, 9001, 8010, 4500};
 
+    const int num_gpu_subdevice = m_platform_topo->num_domain(GEOPM_DOMAIN_GPU_CHIP);
     for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
 
         EXPECT_CALL(*m_device_pool,
