@@ -235,15 +235,26 @@ TEST_F(LevelZeroIOGroupTest, push_control_adjust_write_batch)
     std::vector<double> mock_freq = {1530, 1320, 420, 135, 1620, 812, 199, 1700};
 
     for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
-        batch_value[(levelzero_io.push_control("LEVELZERO::GPU_CORE_FREQUENCY_CONTROL",
-                                        GEOPM_DOMAIN_GPU_CHIP, sub_idx))] = mock_freq.at(sub_idx)*1e6;
-        batch_value[(levelzero_io.push_control("GPU_CORE_FREQUENCY_CONTROL",
-                                        GEOPM_DOMAIN_GPU_CHIP, sub_idx))] = mock_freq.at(sub_idx)*1e6;
+        // When calling write_control() to write a new MAX, the MIN will be read first.
+        // This MIN will be written a max.  The opposite occurs when writing MIN.
         EXPECT_CALL(*m_device_pool,
-                    frequency_control(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE, mock_freq.at(sub_idx), mock_freq.at(sub_idx))).Times(2);
+                    frequency_range(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).
+                    WillRepeatedly(Return(std::make_pair(geopm::Agg::min(mock_freq), geopm::Agg::max(mock_freq))));
+
+        batch_value[(levelzero_io.push_control("LEVELZERO::GPU_CORE_FREQUENCY_MAX_CONTROL",
+                                        GEOPM_DOMAIN_GPU_CHIP, sub_idx))] = mock_freq.at(sub_idx) * 1e6;
+        batch_value[(levelzero_io.push_control("GPU_CORE_FREQUENCY_MAX_CONTROL",
+                                        GEOPM_DOMAIN_GPU_CHIP, sub_idx))] = mock_freq.at(sub_idx) * 1e6;
+
+        // Only 1 call to frequency_control is expected even though 2 controls were pushed:
+        //  push_control() has logic to see if a control was already pushed, including aliased controls.
+        //  If it has already been pushed, a subsequent push is a no-op and will return the previous index.
+        EXPECT_CALL(*m_device_pool,
+                    frequency_control(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE,
+                                      geopm::Agg::min(mock_freq), mock_freq.at(sub_idx))).Times(1);
     }
 
-    for (auto& sv: batch_value) {
+    for (auto& sv: batch_value) { // batch_value will have a size of num_gpu_subdevice (note: not 2 * num_gpu_subdevice)
         // Given that we are mocking LEVELZERODevicePool the actual setting here doesn't matter
         EXPECT_NO_THROW(levelzero_io.adjust(sv.first, sv.second));
     }
