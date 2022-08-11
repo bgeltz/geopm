@@ -776,6 +776,9 @@ namespace geopm
     {
         m_is_batch_read = true;
         for (size_t ii = 0; ii < m_signal_pushed.size(); ++ii) {
+            // If the current signal index (ii) is in the derivative_signal_pushed_set do not read().
+            // Derivative signals are comprised of base signals, and thus cannot be read directly.
+            // The base signals are automatically pushed when a derivative signal is requested.
             if (m_derivative_signal_pushed_set.find(ii) == m_derivative_signal_pushed_set.end()) {
                 m_signal_pushed[ii]->set_sample(m_signal_pushed[ii]->read());
             }
