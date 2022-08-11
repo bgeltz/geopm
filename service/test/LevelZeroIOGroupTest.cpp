@@ -744,6 +744,7 @@ TEST_F(LevelZeroIOGroupTest, signal_and_control_trimming)
 
 TEST_F(LevelZeroIOGroupTest, save_restore_control)
 {
+    SetUpDefaultExpectCalls();
     LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, m_mock_save_ctl);
 
     // Verify that all controls can be read as signals
