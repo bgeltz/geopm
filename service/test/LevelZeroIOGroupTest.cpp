@@ -657,91 +657,90 @@ TEST_F(LevelZeroIOGroupTest, error_path)
 
 TEST_F(LevelZeroIOGroupTest, signal_and_control_trimming)
 {
-    const int num_gpu_subdevice = m_platform_topo->num_domain(GEOPM_DOMAIN_GPU_CHIP);
+    // The following was copy/pasted from SetUpDefaultExpect calls, with the lines commented out that will be
+    // specifically examined by this test.
+    //
+    // Expectations for signal/control pruning code in the constructor
+    for (int sub_idx = 0; sub_idx < m_num_gpu_subdevice; ++sub_idx) {
+        EXPECT_CALL(*m_device_pool, // GPU_ACTIVE_TIME
+                    active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_ALL));
+        EXPECT_CALL(*m_device_pool, // GPU_ACTIVE_TIME_TIMESTAMP
+                    active_time_timestamp(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_ALL));
+        EXPECT_CALL(*m_device_pool, // GPU_CORE_ACTIVE_TIME
+                    active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE));
+        EXPECT_CALL(*m_device_pool, // GPU_CORE_ACTIVE_TIME_TIMESTAMP
+                    active_time_timestamp(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE));
+        EXPECT_CALL(*m_device_pool, // GPU_CORE_FREQUENCY_MAX_AVAIL
+                    frequency_max(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE));
+        // GPU_CORE_FREQUENCY_MAX_CONTROL (signal pruning), GPU_CORE_FREQUENCY_MIN_CONTROL (signal pruning),
+        // the save_control() call, GPU_CORE_FREQUENCY_MAX_CONTROL (control pruning) * 2,
+        // and GPU_CORE_FREQUENCY_MIN_CONTROL (control pruning) * 2 = 7 times
+        // EXPECT_CALL(*m_device_pool,
+        //             frequency_range(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).Times(7);
+        EXPECT_CALL(*m_device_pool, // GPU_CORE_FREQUENCY_MIN_AVAIL
+                    frequency_min(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE));
+        // EXPECT_CALL(*m_device_pool, // GPU_CORE_FREQUENCY_STATUS
+        //             frequency_status(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE));
+        EXPECT_CALL(*m_device_pool, // GPU_CORE_THROTTLE_REASONS
+                    frequency_throttle_reasons(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE));
+        EXPECT_CALL(*m_device_pool, // GPU_UNCORE_ACTIVE_TIME
+                    active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY));
+        EXPECT_CALL(*m_device_pool, // GPU_UNCORE_ACTIVE_TIME_TIMESTAMP
+                    active_time_timestamp(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY));
+        EXPECT_CALL(*m_device_pool, // GPU_UNCORE_FREQUENCY_MAX_AVAIL
+                    frequency_max(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY));
+        EXPECT_CALL(*m_device_pool, // GPU_UNCORE_FREQUENCY_MIN_AVAIL
+                    frequency_min(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY));
+        // EXPECT_CALL(*m_device_pool, // GPU_UNCORE_FREQUENCY_STATUS
+        //             frequency_status(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY));
+        // control pruning expectations
+        // GPU_CORE_FREQUENCY_MAX_CONTROL, GPU_CORE_FREQUENCY_MIN_CONTROL, and the restore_control() direct call.
+        // EXPECT_CALL(*m_device_pool,
+        //             frequency_control(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE,
+        //                               0, 0)).Times(3);
+    }
 
+    // Expectations for signal pruning code in the constructor
+    for (int gpu_idx = 0; gpu_idx < m_num_gpu; ++gpu_idx) {
+        EXPECT_CALL(*m_device_pool, // GPU_ENERGY
+                    energy(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL));
+        EXPECT_CALL(*m_device_pool, // GPU_ENERGY_TIMESTAMP
+                    energy_timestamp(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL));
+        EXPECT_CALL(*m_device_pool, // GPU_POWER_LIMIT_DEFAULT
+                    power_limit_tdp(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL));
+        EXPECT_CALL(*m_device_pool, // GPU_POWER_LIMIT_MAX_AVAIL
+                    power_limit_max(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL));
+        EXPECT_CALL(*m_device_pool, // GPU_POWER_LIMIT_MIN_AVAIL
+                    power_limit_min(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL));
+    }
+    // End copy/paste from SetUpDefualtExpectCalls
+
+    // The implementation of the pruning code only tests each control on a
+    // single domain index if a problem is encountered.  If there is a problem
+    // on any chip, the signal is pruned and the remaining GPU_CHIPs are not
+    // checked.
     //Frequency
-    std::vector<double> mock_freq_gpu = {1530, 1320, 420, 135, 900, 927, 293, 400};
-    std::vector<double> mock_freq_mem = {130, 1020, 200, 150, 300, 442, 782, 1059};
-    std::vector<double> mock_freq_min_gpu = {200, 320, 400, 350, 111, 222, 333, 444};
-    std::vector<double> mock_freq_max_gpu = {2000, 3200, 4200, 1350, 555, 666, 777, 888};
-    std::vector<double> mock_freq_min_mem = {100, 220, 300, 450, 999, 1010, 1111, 1212};
-    std::vector<double> mock_freq_max_mem = {1000, 2200, 3200, 1450, 1313, 1414, 1515, 1616};
-    //Active time
-    std::vector<uint64_t> mock_active_time = {123, 970, 550, 20, 52, 567, 888, 923};
-    std::vector<uint64_t> mock_active_time_compute = {1, 90, 50, 0, 123, 144, 521, 445};
-    std::vector<uint64_t> mock_active_time_copy = {12, 20, 30, 40, 44, 55, 66, 77};
-    //Power & energy
-    std::vector<int32_t> mock_power_limit_min = {30000, 80000, 20000, 70000};
-    std::vector<int32_t> mock_power_limit_max = {310000, 280000, 320000, 270000};
-    std::vector<int32_t> mock_power_limit_tdp = {320000, 290000, 330000, 280000};
-    std::vector<uint64_t> mock_energy = {630000000, 280000000, 470000000, 950000000};
+    EXPECT_CALL(*m_device_pool, frequency_status(GEOPM_DOMAIN_GPU_CHIP, 0, MockLevelZero::M_DOMAIN_COMPUTE)).
+                WillOnce(Throw(geopm::Exception("Not Supported", GEOPM_ERROR_RUNTIME, __FILE__, __LINE__)));
+    EXPECT_CALL(*m_device_pool, frequency_status(GEOPM_DOMAIN_GPU_CHIP, 0, MockLevelZero::M_DOMAIN_MEMORY)).
+                WillRepeatedly(Throw(geopm::Exception("Invalid", GEOPM_ERROR_INVALID, __FILE__, __LINE__)));
 
-    // The implementation of the pruning code only tests each control one time.  If there
-    // is a problem on any card, the signal is pruned.
-    // The expectations in SetUp assume i.e. frequency_status is called on each GPU_CHIP.
-    // Since we throw on the first call and prune, no more calls to frequency_status are made
-    // and thus the EXPECT_CALL on the remainder of the chips fails.
-
-    for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
-        //Frequency
-        ON_CALL(*m_device_pool, frequency_status(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).WillByDefault(Throw(geopm::Exception("Not Supported", GEOPM_ERROR_RUNTIME, __FILE__, __LINE__)));
-        // EXPECT_CALL(*m_device_pool, frequency_status(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY)).WillRepeatedly(Throw(geopm::Exception("Invalid", GEOPM_ERROR_INVALID, __FILE__, __LINE__)));
-        // EXPECT_CALL(*m_device_pool, frequency_min(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).WillRepeatedly(Return(mock_freq_min_gpu.at(sub_idx)));
-        // EXPECT_CALL(*m_device_pool, frequency_max(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).WillRepeatedly(Return(mock_freq_max_gpu.at(sub_idx)));
-        // EXPECT_CALL(*m_device_pool, frequency_min(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY)).WillRepeatedly(Return(mock_freq_min_mem.at(sub_idx)));
-        // EXPECT_CALL(*m_device_pool, frequency_max(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY)).WillRepeatedly(Return(mock_freq_max_mem.at(sub_idx)));
-
-        // EXPECT_CALL(*m_device_pool, frequency_control(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE, _, _)).WillRepeatedly(Throw(geopm::Exception("Not Supported", GEOPM_ERROR_RUNTIME, __FILE__, __LINE__)));
-
-        // //Active time
-        // EXPECT_CALL(*m_device_pool, active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_ALL)).WillRepeatedly(Return(mock_active_time.at(sub_idx)));
-        // EXPECT_CALL(*m_device_pool, active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).WillRepeatedly(Return(mock_active_time_compute.at(sub_idx)));
-        // EXPECT_CALL(*m_device_pool, active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY)).WillRepeatedly(Return(mock_active_time_copy.at(sub_idx)));
+    for (int sub_idx = 0; sub_idx < m_num_gpu_subdevice; ++sub_idx) {
+        EXPECT_CALL(*m_device_pool, frequency_control(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE, _, _)).
+                    WillRepeatedly(Throw(geopm::Exception("Not Supported", GEOPM_ERROR_RUNTIME, __FILE__, __LINE__)));
+        // frequency_range is called a non-standard number of times due to the implemetation of the pruning code.
+        // Only one chip is checked if there is a failure.
+        EXPECT_CALL(*m_device_pool,
+                    frequency_range(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).Times(AtLeast(3));
     }
 
     LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, nullptr);
 
     EXPECT_FALSE(levelzero_io.is_valid_signal("LEVELZERO::GPU_CORE_FREQUENCY_STATUS"));
-    // EXPECT_FALSE(levelzero_io.is_valid_signal("LEVELZERO::GPU_UNCORE_FREQUENCY_STATUS"));
-    // EXPECT_FALSE(levelzero_io.is_valid_control("LEVELZERO::GPU_CORE_FREQUENCY_CONTROL"));
-    // EXPECT_FALSE(levelzero_io.is_valid_control("LEVELZERO::GPU_CORE_FREQUENCY_MIN_CONTROL"));
-    // EXPECT_FALSE(levelzero_io.is_valid_control("LEVELZERO::GPU_CORE_FREQUENCY_MAX_CONTROL"));
+    EXPECT_FALSE(levelzero_io.is_valid_signal("LEVELZERO::GPU_UNCORE_FREQUENCY_STATUS"));
+    EXPECT_FALSE(levelzero_io.is_valid_control("LEVELZERO::GPU_CORE_FREQUENCY_MIN_CONTROL"));
+    EXPECT_FALSE(levelzero_io.is_valid_control("LEVELZERO::GPU_CORE_FREQUENCY_MAX_CONTROL"));
 }
-
-TEST_F(LevelZeroIOGroupTest, signal_and_control_trimming_writes)
-{
-    const int num_gpu_subdevice = m_platform_topo->num_domain(GEOPM_DOMAIN_GPU_CHIP);
-
-    //Frequency
-    std::vector<double> mock_freq_gpu = {1530, 1320, 420, 135, 900, 927, 293, 400};
-    std::vector<double> mock_freq_mem = {130, 1020, 200, 150, 300, 442, 782, 1059};
-    std::vector<double> mock_freq_min_gpu = {200, 320, 400, 350, 111, 222, 333, 444};
-    std::vector<double> mock_freq_max_gpu = {2000, 3200, 4200, 1350, 555, 666, 777, 888};
-    std::vector<double> mock_freq_min_mem = {100, 220, 300, 450, 999, 1010, 1111, 1212};
-    std::vector<double> mock_freq_max_mem = {1000, 2200, 3200, 1450, 1313, 1414, 1515, 1616};
-
-    for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
-        //Frequency
-        EXPECT_CALL(*m_device_pool, frequency_status(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).WillOnce(Return(mock_freq_gpu.at(sub_idx)));
-        EXPECT_CALL(*m_device_pool, frequency_status(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY)).WillOnce(Return(mock_freq_mem.at(sub_idx)));
-        EXPECT_CALL(*m_device_pool, frequency_min(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).WillOnce(Return(mock_freq_min_gpu.at(sub_idx)));
-        EXPECT_CALL(*m_device_pool, frequency_max(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).WillOnce(Return(mock_freq_max_gpu.at(sub_idx)));
-        EXPECT_CALL(*m_device_pool, frequency_min(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY)).WillOnce(Return(mock_freq_min_mem.at(sub_idx)));
-        EXPECT_CALL(*m_device_pool, frequency_max(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY)).WillOnce(Return(mock_freq_max_mem.at(sub_idx)));
-
-        EXPECT_CALL(*m_device_pool, frequency_range(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).WillRepeatedly(Return(std::pair<double, double>(mock_freq_min_gpu.at(sub_idx), mock_freq_max_gpu.at(sub_idx))));
-
-        EXPECT_CALL(*m_device_pool, frequency_control(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE, mock_freq_min_gpu.at(sub_idx), mock_freq_max_gpu.at(sub_idx))).Times(3);
-    }
-
-    LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, nullptr);
-
-    EXPECT_TRUE(levelzero_io.is_valid_signal("LEVELZERO::GPU_CORE_FREQUENCY_STATUS"));
-    EXPECT_TRUE(levelzero_io.is_valid_signal("LEVELZERO::GPU_UNCORE_FREQUENCY_STATUS"));
-    EXPECT_TRUE(levelzero_io.is_valid_control("LEVELZERO::GPU_CORE_FREQUENCY_MIN_CONTROL"));
-    EXPECT_TRUE(levelzero_io.is_valid_control("LEVELZERO::GPU_CORE_FREQUENCY_MAX_CONTROL"));
-}
-
 
 TEST_F(LevelZeroIOGroupTest, save_restore_control)
 {
