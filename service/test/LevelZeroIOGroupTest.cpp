@@ -173,8 +173,8 @@ void LevelZeroIOGroupTest::SetUp()
                                       0, 0)).Times(3);
     }
 
+    // Expectations for signal pruning code in the constructor
     for (int gpu_idx = 0; gpu_idx < num_gpu; ++gpu_idx) {
-        // Expectations for signal pruning code in the constructor
         EXPECT_CALL(*m_device_pool, // GPU_ENERGY
                     energy(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL));
         EXPECT_CALL(*m_device_pool, // GPU_ENERGY_TIMESTAMP
@@ -505,6 +505,8 @@ TEST_F(LevelZeroIOGroupTest, read_signal)
     std::vector<int32_t> mock_power_limit_tdp = {320000, 290000, 330000, 280000};
     std::vector<uint64_t> mock_energy = {630000000, 280000000, 470000000, 950000000};
 
+    LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, nullptr);
+
     for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
         //Frequency
         EXPECT_CALL(*m_device_pool, frequency_status(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).WillRepeatedly(Return(mock_freq_gpu.at(sub_idx)));
@@ -515,20 +517,19 @@ TEST_F(LevelZeroIOGroupTest, read_signal)
         EXPECT_CALL(*m_device_pool, frequency_max(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY)).WillRepeatedly(Return(mock_freq_max_mem.at(sub_idx)));
 
         //Active time
-        EXPECT_CALL(*m_device_pool, active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_ALL)).WillRepeatedly(Return(mock_active_time.at(sub_idx)));
-        EXPECT_CALL(*m_device_pool, active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).WillRepeatedly(Return(mock_active_time_compute.at(sub_idx)));
-        EXPECT_CALL(*m_device_pool, active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY)).WillRepeatedly(Return(mock_active_time_copy.at(sub_idx)));
+        EXPECT_CALL(*m_device_pool, active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_ALL)).WillOnce(Return(mock_active_time.at(sub_idx)));
+        EXPECT_CALL(*m_device_pool, active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_COMPUTE)).WillOnce(Return(mock_active_time_compute.at(sub_idx)));
+        EXPECT_CALL(*m_device_pool, active_time(GEOPM_DOMAIN_GPU_CHIP, sub_idx, MockLevelZero::M_DOMAIN_MEMORY)).WillOnce(Return(mock_active_time_copy.at(sub_idx)));
     }
 
     for (int gpu_idx = 0; gpu_idx < num_gpu; ++gpu_idx) {
         //Power & energy
-        EXPECT_CALL(*m_device_pool, power_limit_min(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL)).WillRepeatedly(Return(mock_power_limit_min.at(gpu_idx)));
-        EXPECT_CALL(*m_device_pool, power_limit_max(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL)).WillRepeatedly(Return(mock_power_limit_max.at(gpu_idx)));
-        EXPECT_CALL(*m_device_pool, power_limit_tdp(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL)).WillRepeatedly(Return(mock_power_limit_tdp.at(gpu_idx)));
+        EXPECT_CALL(*m_device_pool, power_limit_min(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL)).WillOnce(Return(mock_power_limit_min.at(gpu_idx)));
+        EXPECT_CALL(*m_device_pool, power_limit_max(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL)).WillOnce(Return(mock_power_limit_max.at(gpu_idx)));
+        EXPECT_CALL(*m_device_pool, power_limit_tdp(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL)).WillOnce(Return(mock_power_limit_tdp.at(gpu_idx)));
         EXPECT_CALL(*m_device_pool, energy(GEOPM_DOMAIN_GPU, gpu_idx, MockLevelZero::M_DOMAIN_ALL)).WillRepeatedly(Return(mock_energy.at(gpu_idx)));
     }
 
-    LevelZeroIOGroup levelzero_io(*m_platform_topo, *m_device_pool, nullptr);
 
     for (int sub_idx = 0; sub_idx < num_gpu_subdevice; ++sub_idx) {
         //Frequency
