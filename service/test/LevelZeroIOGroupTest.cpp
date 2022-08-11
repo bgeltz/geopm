@@ -33,6 +33,7 @@ using testing::Return;
 using testing::Throw;
 using testing::AtLeast;
 using testing::_;
+using testing::StrictMock;
 
 class LevelZeroIOGroupTest : public :: testing :: Test
 {
@@ -57,9 +58,9 @@ void LevelZeroIOGroupTest::SetUp()
     const int num_core = 20;
     const int num_cpu = 40;
 
-    m_device_pool = std::make_shared<MockLevelZeroDevicePool>();
-    m_platform_topo = geopm::make_unique<MockPlatformTopo>();
-    m_mock_save_ctl = std::make_shared<MockSaveControl>();
+    m_device_pool = std::make_shared<StrictMock<MockLevelZeroDevicePool> >();
+    m_platform_topo = geopm::make_unique<StrictMock<MockPlatformTopo> >();
+    m_mock_save_ctl = std::make_shared<StrictMock<MockSaveControl> >();
 
     //Platform Topo prep
     ON_CALL(*m_platform_topo, num_domain(GEOPM_DOMAIN_BOARD))
