@@ -1,0 +1,152 @@
+#  Copyright (c) 2015 - 2022, Intel Corporation
+#  SPDX-License-Identifier: BSD-3-Clause
+#
+Summary: Global Extensible Open Power Manager
+Name: geopmpolicy
+Version: @VERSION@
+Release: 1
+License: BSD-3-Clause
+Group: System Environment/Libraries
+Vendor: Intel Corporation
+URL: https://geopm.github.io
+Source0: geopm.tar.gz
+Source1: geopm-service.tar.gz
+BuildRoot: %{_tmppath}/geopm-%{version}-%{release}-root
+BuildRequires: gcc-c++
+BuildRequires: unzip
+BuildRequires: libtool
+BuildRequires: geopm-service-devel
+
+%if 0%{?suse_version}
+BuildRequires: libelf-devel
+%else
+BuildRequires: elfutils-libelf-devel
+%endif
+
+%if 0%{?rhel} >= 8
+# Needed to generate debuginfo packages
+BuildRequires: gdb-headless
+%endif
+
+%define python_major_version 3
+%if %{defined rhel}
+%if 0%{?rhel} < 8
+BuildRequires: python3-rpm-macros
+BuildRequires: python3
+BuildRequires: python3-devel
+%else
+BuildRequires: python36-rpm-macros
+BuildRequires: python36
+BuildRequires: python36-devel
+%endif
+%define python_bin %{__python3}
+%else
+%if ((%{defined suse_version}) && (0%{?suse_version} < 1500))
+%define python_bin /usr/bin/python3
+%else
+BuildRequires: python-rpm-macros
+%define python_bin %{__python3}
+%endif
+BuildRequires: python3
+BuildRequires: python3-devel
+%endif
+
+%if 0%{?suse_version} >= 1320
+BuildRequires: openssh
+%endif
+
+Prefix: %{_prefix}
+
+%if %{defined suse_version}
+%define docdir %{_defaultdocdir}/geopm
+%else
+%define docdir %{_defaultdocdir}/geopm-%{version}
+%endif
+
+%define compdir %(pkg-config --variable=completionsdir bash-completion)
+%if "x%{compdir}" == "x"
+%define compdir "%{_sysconfdir}/bash_completion.d"
+%endif
+
+%description
+@BLURB@
+
+%prep
+
+%setup -n geopm-%{version}
+%setup -b 1 -n geopm-service-%{version} -c service
+
+%package devel
+Summary: Global Extensible Open Power Manager - development
+Group: Development/Libraries
+Requires: geopmpolicy
+
+%description devel
+Development package for GEOPM.
+
+%package -n python%{python_major_version}-geopmpy
+Summary: Global Extensible Open Power Manager - python %{python_major_version}
+Group: System Environment/Libraries
+Requires: geopmpolicy
+Requires: python%{python_major_version}-geopmdpy
+%{?python_provide:%python_provide python%{python_major_version}-geopmpy}
+
+%description -n python%{python_major_version}-geopmpy
+Python %{python_major_version} package for GEOPM.
+
+%build
+test -f configure || ./autogen.sh
+
+./configure --prefix=%{_prefix} --libdir=%{_libdir} --libexecdir=%{_libexecdir} \
+            --includedir=%{_includedir} --sbindir=%{_sbindir} \
+            --mandir=%{_mandir} --docdir=%{docdir} \
+            --with-python=%{python_bin} \
+            --with-bash-completion-dir=%{compdir} \
+            --disable-geopmd-local \
+            || ( cat config.log && false )
+
+%{__make} %{?_smp_mflags}
+
+%install
+%{python_bin} -m pip install --ignore-installed \
+              --target=%{buildroot}/opt/clmgr/python-39/lib/python3.9/site-packages \
+              -r ./service/requirements.txt
+
+%{python_bin} -m pip install --ignore-installed \
+              --target=%{buildroot}/opt/clmgr/python-39/lib/python3.9/site-packages \
+              -r ./scripts/requirements.txt
+
+%{__make} DESTDIR=%{buildroot} install
+rm -f $(find %{buildroot}/%{_libdir} -name '*.a'; \
+        find %{buildroot}/%{_libdir} -name '*.la')
+
+%clean
+
+%post
+/sbin/ldconfig
+
+%preun
+
+%postun
+/sbin/ldconfig
+
+%files
+%defattr(-,root,root,-)
+%dir %{_libdir}/geopm
+%{_libdir}/*
+%{_bindir}/*
+%{compdir}
+%doc %{docdir}/*
+%doc %{_mandir}/man1/*
+%doc %{_mandir}/man3/*
+%doc %{_mandir}/man7/*
+
+%files devel
+%defattr(-,root,root,-)
+%dir %{_includedir}/geopm
+%{_includedir}/geopm/*
+
+%files -n python%{python_major_version}-geopmpy
+%defattr(-,root,root,-)
+/opt/clmgr/python-39/lib/python3.9/site-packages/*
+%doc %{_mandir}/man7/geopmpy.7.gz

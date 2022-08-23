@@ -651,6 +651,15 @@ rpm-dudley: dist
 	cp specs/geopm-pyyaml-req.patch $(rpm_topdir)/SOURCES/
 	rpmbuild $(rpmbuild_flags) --buildroot=$(rpm_topdir)-root --define "_sourcedir $(rpm_topdir)/SOURCES" -ba $(rpm_topdir)/SPECS/geopm-$(VERSION).spec
 
+rpm-australis: dist
+	mkdir -p $(rpm_topdir)/SOURCES
+	mkdir -p $(rpm_topdir)/SPECS
+	cp ./service/geopm-service-$(VERSION).tar.gz $(rpm_topdir)/SOURCES/geopm-service.tar.gz
+	cp geopm-$(VERSION).tar.gz $(rpm_topdir)/SOURCES/geopm.tar.gz
+	cp specs/geopm-australis.spec $(rpm_topdir)/SPECS/geopm-$(VERSION).spec
+	rpmbuild $(rpmbuild_flags) --define "_topdir $(rpm_topdir)" -ba $(rpm_topdir)/SPECS/geopm-$(VERSION).spec
+	#
+
 geopm-tutorial.tar.gz: $(TUTORIAL_DIST)
 	tar --transform='s|^|geopm-|' -zcf $@ $^
 
