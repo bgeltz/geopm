@@ -74,7 +74,7 @@ Prefix: %{_prefix}
 %prep
 
 %setup -n geopm-%{version}
-%setup -b 1 -n geopm-service-%{version} -c service
+%setup -b 1 -n geopm-service-%{version}
 
 %package devel
 Summary: Global Extensible Open Power Manager - development
@@ -110,11 +110,15 @@ test -f configure || ./autogen.sh
 %install
 %{python_bin} -m pip install --ignore-installed \
               --target=%{buildroot}/opt/clmgr/python-39/lib/python3.9/site-packages \
-              -r ./service/requirements.txt
+              -r %{_sourcedir}/geopm-service-%{version}/requirements.txt
 
 %{python_bin} -m pip install --ignore-installed \
               --target=%{buildroot}/opt/clmgr/python-39/lib/python3.9/site-packages \
               -r ./scripts/requirements.txt
+
+cd %{_sourcedir}/geopm-service-%{version}
+%{python_bin} ./setup.py install -O1 --root %{buildroot}/ --prefix /opt/clmgr/python-39/lib/python3.9/site-packages
+cd -
 
 %{__make} DESTDIR=%{buildroot} install
 rm -f $(find %{buildroot}/%{_libdir} -name '*.a'; \
