@@ -95,7 +95,6 @@ Python %{python_major_version} package for GEOPM.
 %build
 test -f configure || ./autogen.sh
 
-%if %{defined suse_version}
 ./configure --prefix=%{_prefix} --libdir=%{_libdir} --libexecdir=%{_libexecdir} \
             --includedir=%{_includedir} --sbindir=%{_sbindir} \
             --mandir=%{_mandir} --docdir=%{docdir} \
@@ -105,17 +104,6 @@ test -f configure || ./autogen.sh
             --with-bash-completion-dir=%{compdir} \
             --disable-geopmd-local \
             || ( cat config.log && false )
-%else
-./configure --prefix=%{_prefix} --libdir=%{_libdir} --libexecdir=%{_libexecdir} \
-            --includedir=%{_includedir} --sbindir=%{_sbindir} \
-            --mandir=%{_mandir} --docdir=%{docdir} \
-            --disable-mpi --disable-openmp \
-            --disable-fortran \
-            --with-python=%{python_bin} \
-            --with-bash-completion-dir=%{compdir} \
-            --disable-geopmd-local \
-            || ( cat config.log && false )
-%endif
 
 %{__make} %{?_smp_mflags}
 
