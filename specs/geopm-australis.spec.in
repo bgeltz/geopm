@@ -1,156 +1,103 @@
-#  Copyright (c) 2015 - 2022, Intel Corporation
-#  SPDX-License-Identifier: BSD-3-Clause
-#
-Summary: Global Extensible Open Power Manager
-Name: geopmpolicy
-Version: @VERSION@
-Release: 1
-License: BSD-3-Clause
-Group: System Environment/Libraries
-Vendor: Intel Corporation
-URL: https://geopm.github.io
-Source0: geopm.tar.gz
-Source1: geopm-service.tar.gz
-BuildRoot: %{_tmppath}/geopm-%{version}-%{release}-root
-BuildRequires: gcc-c++
-BuildRequires: unzip
+%define pname geopm
+%define PNAME GEOPM
+
+%define python_family python3
+%define pip_family pip3
+%define install_prefix /opt/ohpc/pub/libs/%{pname}/%{pname}-%{version}
+%define install_prefix_short /opt/ohpc/pub/libs/%{pname}/%{pname}-
+%define module_prefix /opt/ohpc/pub/modulefiles/%{pname}
+%define module_name %{version}
+%define python_family_lib_dir /lib/python%{expand:%{%{python_family}_version}}/site-packages
+%global __requires_exclude_from ^%{install_prefix_short}.*%{python_family_lib_dir}/.*$
+
+Name:          %{pname}
+Summary:       Global Extensible Open Power Manager
+Version:       @VERSION@
+Release:       1
+License:       BSD-3-Clause
+Group:         System Environment/Libraries
+URL:           https://geopm.github.io
+Source0:       https://github.com/geopm/geopm/releases/download/v%{version}/geopm-%{version}.tar.gz
+Patch1:        geopm-pyyaml-req.patch
+BuildRequires: autoconf
+BuildRequires: automake
 BuildRequires: libtool
-BuildRequires: geopm-service-devel
-
-%if 0%{?suse_version}
-BuildRequires: libelf-devel
-%else
-BuildRequires: elfutils-libelf-devel
-%endif
-
-%if 0%{?rhel} >= 8
-# Needed to generate debuginfo packages
-BuildRequires: gdb-headless
-%endif
-
-%define python_major_version 3
-%if %{defined rhel}
-%if 0%{?rhel} < 8
-BuildRequires: python3-rpm-macros
-BuildRequires: python3
-BuildRequires: python3-devel
-%else
-BuildRequires: python36-rpm-macros
-BuildRequires: python36
-BuildRequires: python36-devel
-%endif
-%define python_bin %{__python3}
-%else
-%if ((%{defined suse_version}) && (0%{?suse_version} < 1500))
-%define python_bin /usr/bin/python3
-%else
-BuildRequires: python-rpm-macros
-%define python_bin %{__python3}
-%endif
-BuildRequires: python3
-BuildRequires: python3-devel
-%endif
-
-%if 0%{?suse_version} >= 1320
+BuildRequires: libtool-ltdl-devel
+BuildRequires: %{python_family}
+BuildRequires: %{python_family}-devel
+BuildRequires: unzip
+BuildRequires: zlib-devel
 BuildRequires: openssh
-%endif
+BuildRequires: libelf-devel
 
-Prefix: %{_prefix}
-
-%if %{defined suse_version}
-%define docdir %{_defaultdocdir}/geopm
-%else
-%define docdir %{_defaultdocdir}/geopm-%{version}
-%endif
-
-%define compdir %(pkg-config --variable=completionsdir bash-completion)
-%if "x%{compdir}" == "x"
-%define compdir "%{_sysconfdir}/bash_completion.d"
-%endif
 
 %description
 @BLURB@
 
 %prep
 
-%setup -n geopm-%{version}
-%setup -b 1 -n geopm-service-%{version}
-
-%package devel
-Summary: Global Extensible Open Power Manager - development
-Group: Development/Libraries
-Requires: geopmpolicy
-
-%description devel
-Development package for GEOPM.
-
-%package -n python%{python_major_version}-geopmpy
-Summary: Global Extensible Open Power Manager - python %{python_major_version}
-Group: System Environment/Libraries
-Requires: geopmpolicy
-Requires: python%{python_major_version}-geopmdpy
-%{?python_provide:%python_provide python%{python_major_version}-geopmpy}
-
-%description -n python%{python_major_version}-geopmpy
-Python %{python_major_version} package for GEOPM.
+%setup -q -n %{pname}-%{version}
+%patch1 -p1
 
 %build
 test -f configure || ./autogen.sh
-
-./configure --prefix=%{_prefix} --libdir=%{_libdir} --libexecdir=%{_libexecdir} \
-            --includedir=%{_includedir} --sbindir=%{_sbindir} \
-            --mandir=%{_mandir} --docdir=%{docdir} \
-            --with-python=%{python_bin} \
-            --with-bash-completion-dir=%{compdir} \
-            --disable-geopmd-local \
+CC=icc CXX=icpc FC=ifort F77=ifort \
+./configure --prefix=%{install_prefix} \
+            --with-python=%{python_family} \
             || ( cat config.log && false )
 
 %{__make} %{?_smp_mflags}
 
 %install
-%{python_bin} -m pip install --ignore-installed \
-              --target=%{buildroot}/opt/clmgr/python-39/lib/python3.9/site-packages \
-              -r %{_sourcedir}/geopm-service-%{version}/requirements.txt
-
-%{python_bin} -m pip install --ignore-installed \
-              --target=%{buildroot}/opt/clmgr/python-39/lib/python3.9/site-packages \
-              -r ./scripts/requirements.txt
-
-cd %{_sourcedir}/geopm-service-%{version}
-%{python_bin} ./setup.py install -O1 --root %{buildroot}/ --prefix /opt/clmgr/python-39/lib/python3.9/site-packages
-cd -
-
+%{pip_family} install --ignore-installed \
+                      --target=%{buildroot}/%{install_prefix}%{python_family_lib_dir} \
+                      -r ./scripts/requirements.txt
 %{__make} DESTDIR=%{buildroot} install
-rm -f $(find %{buildroot}/%{_libdir} -name '*.a'; \
-        find %{buildroot}/%{_libdir} -name '*.la')
+rm -f $(find %{buildroot}/%{install_prefix} -name '*.a'; \
+        find %{buildroot}/%{install_prefix} -name '*.la')
 
-%clean
+# Module file
+%{__mkdir_p} %{buildroot}%{module_prefix}
+%{__cat} << EOF > %{buildroot}/%{module_prefix}/%{module_name}
+#%Module1.0#####################################################################
 
-%post
-/sbin/ldconfig
+proc ModulesHelp { } {
 
-%preun
+puts stderr " "
+puts stderr "This module loads the %{pname} package built with the intel compiler"
+puts stderr "toolchain and the mpich MPI stack."
+puts stderr "\nVersion %{version}\n"
 
-%postun
-/sbin/ldconfig
+}
+module-whatis "Name: %{pname}"
+module-whatis "Version: %{version}"
+module-whatis "Category: perftools"
+module-whatis "Description: %{summary}"
+module-whatis "URL: %{url}"
+
+set     version             %{version}
+
+prepend-path    PATH                    %{install_prefix}/bin
+prepend-path    PYTHONPATH              %{install_prefix}%{python_family_lib_dir}
+prepend-path    INCLUDE                 %{install_prefix}/include
+prepend-path    LD_LIBRARY_PATH         %{install_prefix}/lib
+prepend-path    MANPATH                 %{install_prefix}/share/man
+
+setenv          %{PNAME}_DIR            %{install_prefix}
+setenv          %{PNAME}_BIN            %{install_prefix}/bin
+setenv          %{PNAME}_LIB            %{install_prefix}/lib
+setenv          %{PNAME}_INC            %{install_prefix}/include
+
+prereq oneapi
+prereq mpich
+
+EOF
 
 %files
 %defattr(-,root,root,-)
-%dir %{_libdir}/geopm
-%{_libdir}/*
-%{_bindir}/*
-%{compdir}
-%doc %{docdir}/*
-%doc %{_mandir}/man1/*
-%doc %{_mandir}/man3/*
-%doc %{_mandir}/man7/*
+%{install_prefix}/*
+%{module_prefix}/*
 
-%files devel
-%defattr(-,root,root,-)
-%dir %{_includedir}/geopm
-%{_includedir}/geopm/*
-
-%files -n python%{python_major_version}-geopmpy
-%defattr(-,root,root,-)
-/opt/clmgr/python-39/lib/python3.9/site-packages/*
-%doc %{_mandir}/man7/geopmpy.7.gz
+%changelog
+* Wed Aug 15 2018 <christopher.m.cantalupo@intel.com> v0.5.1
+- Initial commit.
