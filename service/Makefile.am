@@ -322,7 +322,7 @@ rpm: dist
 	mkdir -p $(rpm_topdir)/SPECS
 	cp geopm-service-$(VERSION).tar.gz $(rpm_topdir)/SOURCES/geopm-service.tar.gz
 	cp geopm-service.spec $(rpm_topdir)/SPECS/geopm-service.spec
-	rpmbuild $(rpmbuild_flags) -ba $(rpm_topdir)/SPECS/geopm-service.spec
+	rpmbuild --define '_topdir $(rpm_topdir)' $(rpmbuild_flags) -ba $(rpm_topdir)/SPECS/geopm-service.spec
 
 checkprogs: gtest-checkprogs geopmdpy-checkprogs $(check_PROGRAMS) $(check_LTLIBRARIES)
 
