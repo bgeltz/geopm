@@ -1,14 +1,10 @@
 %define pname geopm
 %define PNAME GEOPM
 
-%define python_family python3
-%define pip_family pip3
-%define install_prefix /opt/ohpc/pub/libs/%{pname}/%{pname}-%{version}
-%define install_prefix_short /opt/ohpc/pub/libs/%{pname}/%{pname}-
-%define module_prefix /opt/ohpc/pub/modulefiles/%{pname}
+%define install_prefix /opt/%{pname}/%{pname}-%{version}
+%define local_sitelib /lib/python%{python3_version}
+%define module_prefix /opt/geopm/modulefiles/%{pname}
 %define module_name %{version}
-%define python_family_lib_dir /lib/python%{expand:%{%{python_family}_version}}/site-packages
-%global __requires_exclude_from ^%{install_prefix_short}.*%{python_family_lib_dir}/.*$
 
 Name:          %{pname}
 Summary:       Global Extensible Open Power Manager
@@ -17,19 +13,18 @@ Release:       1
 License:       BSD-3-Clause
 Group:         System Environment/Libraries
 URL:           https://geopm.github.io
-Source0:       https://github.com/geopm/geopm/releases/download/v%{version}/geopm-%{version}.tar.gz
-Patch1:        geopm-pyyaml-req.patch
-BuildRequires: autoconf
-BuildRequires: automake
-BuildRequires: libtool
-BuildRequires: libtool-ltdl-devel
-BuildRequires: %{python_family}
-BuildRequires: %{python_family}-devel
+Source0:       geopm.tar.gz
+Source1:       geopm-service.tar.gz
+BuildRequires: gcc-c++
 BuildRequires: unzip
-BuildRequires: zlib-devel
+BuildRequires: libtool
 BuildRequires: openssh
 BuildRequires: libelf-devel
-
+BuildRequires: geopm-service-devel
+BuildRequires: python3
+BuildRequires: python3-devel
+BuildRequires: python-rpm-macros
+Prefix:        %{install_prefix}
 
 %description
 @BLURB@
@@ -37,26 +32,51 @@ BuildRequires: libelf-devel
 %prep
 
 %setup -q -n %{pname}-%{version}
-%patch1 -p1
+
+%package devel
+Summary: Global Extensible Open Power Manager - development
+Group: Development/Libraries
+Requires: geopmpolicy
+
+%description devel
+Development package for GEOPM.
+
+%package -n python3-geopmpy
+Summary: Global Extensible Open Power Manager - python %{python_major_version}
+Group: System Environment/Libraries
+Requires: geopmpolicy
+Requires: python3-geopmdpy
+Provides: python3-geopmpy
+
+%description -n python3-geopmpy
+Python 3 package for GEOPM's HPC Runtime.
 
 %build
 test -f configure || ./autogen.sh
 CC=icc CXX=icpc FC=ifort F77=ifort \
-./configure --prefix=%{install_prefix} \
-            --with-python=%{python_family} \
+./configure --prefix=%{install_prefix} --libdir=%{install_prefix}/lib64 \
+            --with-python=%{__python3} \
+            --with-bash-completion-dir=%{install_prefix}/share/bash-completion/completions \
+            --disable-geopmd-local \
             || ( cat config.log && false )
 
 %{__make} %{?_smp_mflags}
 
 %install
-%{pip_family} install --ignore-installed \
-                      --target=%{buildroot}/%{install_prefix}%{python_family_lib_dir} \
-                      -r ./scripts/requirements.txt
+%{__python3} -m pip install --ignore-installed \
+                            --target=%{buildroot}%{install_prefix}%{local_sitelib} \
+                            -r ./scripts/requirements.txt
+%{__install} -d %{buildroot}%{install_prefix}
 %{__make} DESTDIR=%{buildroot} install
-rm -f $(find %{buildroot}/%{install_prefix} -name '*.a'; \
-        find %{buildroot}/%{install_prefix} -name '*.la')
+rm -f $(find %{buildroot}%{install_prefix} -name '*.a'; \
+        find %{buildroot}%{install_prefix} -name '*.la')
 
-# Module file
+# %{_rpmconfigdir}/brp-compress %{install_prefix}
+# rm -f %{buildroot}%{install_prefix}/share/man/man1/*.1
+# rm -f %{buildroot}%{install_prefix}/share/man/man3/*.3
+# rm -f %{buildroot}%{install_prefix}/share/man/man7/*.7
+
+# Module file - TODO this needs top be updated to a TCL module
 %{__mkdir_p} %{buildroot}%{module_prefix}
 %{__cat} << EOF > %{buildroot}/%{module_prefix}/%{module_name}
 #%Module1.0#####################################################################
@@ -78,7 +98,7 @@ module-whatis "URL: %{url}"
 set     version             %{version}
 
 prepend-path    PATH                    %{install_prefix}/bin
-prepend-path    PYTHONPATH              %{install_prefix}%{python_family_lib_dir}
+prepend-path    PYTHONPATH              %{install_prefix}%{local_sitelib}
 prepend-path    INCLUDE                 %{install_prefix}/include
 prepend-path    LD_LIBRARY_PATH         %{install_prefix}/lib
 prepend-path    MANPATH                 %{install_prefix}/share/man
@@ -93,11 +113,32 @@ prereq mpich
 
 EOF
 
+%clean
+
+%post
+/sbin/ldconfig
+
+%preun
+
+%postun
+/sbin/ldconfig
+
 %files
 %defattr(-,root,root,-)
-%{install_prefix}/*
-%{module_prefix}/*
+%{install_prefix}/lib64/*
+%{install_prefix}/bin/*
+%{install_prefix}/share/man/*
+%{install_prefix}/share/doc/geopm/*
+%{install_prefix}/share/bash-completion/*
+%{module_prefix}/%{module_name}
 
+%files devel
+%defattr(-,root,root,-)
+%{install_prefix}/include/*
+
+%files -n python3-geopmpy
+%defattr(-,root,root,-)
+%{install_prefix}%{local_sitelib}/*
+%doc %{install_prefix}/share/man/man7/geopmpy.7
 %changelog
-* Wed Aug 15 2018 <christopher.m.cantalupo@intel.com> v0.5.1
-- Initial commit.
+@CHANGELOG@
