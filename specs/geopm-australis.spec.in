@@ -76,6 +76,12 @@ rm -f $(find %{buildroot}%{install_prefix} -name '*.a'; \
 # rm -f %{buildroot}%{install_prefix}/share/man/man3/*.3
 # rm -f %{buildroot}%{install_prefix}/share/man/man7/*.7
 
+%{__mkdir_p} %{buildroot}/etc/profile.d
+%{__cat} << EOF > %{buildroot}/etc/profile.d/geopm.sh
+#!/bin/bash
+export MODULEPATH=/opt/%{pname}/modulefiles:\${MODULEPATH}
+EOF
+
 # Module file - TODO this needs top be updated to a TCL module
 %{__mkdir_p} %{buildroot}%{module_prefix}
 %{__cat} << EOF > %{buildroot}/%{module_prefix}/%{module_name}
@@ -131,6 +137,7 @@ EOF
 %{install_prefix}/share/doc/geopm/*
 %{install_prefix}/share/bash-completion/*
 %{module_prefix}/%{module_name}
+/etc/profile.d/geopm.sh
 
 %files devel
 %defattr(-,root,root,-)
