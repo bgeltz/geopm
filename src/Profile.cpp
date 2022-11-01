@@ -155,7 +155,7 @@ namespace geopm
             m_is_enabled = true;
         }
         catch (const Exception &ex) {
-            if (m_process < 0) {
+            if (m_process >= 0) {
                 std::cerr << "Warning: <geopm> Controller handshake failed at step "
                           << step << ", running without geopm." << std::endl;
                 int err = ex.err_value();
