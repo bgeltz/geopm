@@ -43,17 +43,16 @@ class TestIntegration_cpu_activity(unittest.TestCase):
         Setup applications, execute, and set up class variables.
         """
 
-        # Enable QM to measure total memory bandwidth
-
-        # Assign all cores to resource monitoring association ID 0. This
-        # allows for monitoring the resource usage of all cores.
-        geopm_test_launcher.geopmwrite("MSR::PQR_ASSOC:RMID board 0 {}".format(0))
-        # Assign the resource monitoring ID for QM Events to match the per
-        # core resource association ID above (0)
-        geopm_test_launcher.geopmwrite("MSR::QM_EVTSEL:RMID board 0 {}".format(0))
-        # Select monitoring event ID 0x2 - Total Memory Bandwidth Monitoring.
-        # This is used to determine the Xeon Uncore utilization.
-        geopm_test_launcher.geopmwrite("MSR::QM_EVTSEL:EVENT_ID board 0 {}".format(2))
+        # Setup init control
+        #   Enable QM to measure total memory bandwidth for uncore utilization
+        init_control_path = 'init_control'
+        with open(init_control_path, 'w') as outfile:
+            outfile.write('# Assign all cores to resource monitoring association ID 0'
+                          'MSR::PQR_ASSOC:RMID board 0 0'
+                          '# Assign the resource monitoring ID for QM Events to match ID 0'
+                          'MSR::QM_EVTSEL:RMID board 0 0'
+                          '# Select monitoring event ID 0x2 - Total Memory Bandwidth Monitoring'
+                          'MSR::QM_EVTSEL:EVENT_ID board 0 2')
 
         # Grabbing system frequency parameters for experiment frequency bounds
         cpu_base_freq = geopm_test_launcher.geopmread("CPU_FREQUENCY_STICKER board 0")
