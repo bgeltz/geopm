@@ -134,9 +134,9 @@ namespace geopm
         for (unsigned int gpu_idx = 0; gpu_idx < m_num_gpu; gpu_idx++) {
             frequency_domain_cache(gpu_idx);
             power_domain_cache(gpu_idx);
-            perf_domain_cache(gpu_idx);
+            // perf_domain_cache(gpu_idx);
             engine_domain_cache(gpu_idx);
-            temperature_domain_cache(gpu_idx);
+            // temperature_domain_cache(gpu_idx);
        }
     }
 
