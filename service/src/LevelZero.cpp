@@ -89,52 +89,23 @@ namespace geopm
                                  "setting.  Forcing device to act as sub-device" << std::endl;
                 }
 #endif
-                if (property.core.type == ZE_DEVICE_TYPE_GPU) {
-                    if ((property.core.flags & ZE_DEVICE_PROPERTY_FLAG_INTEGRATED) == 0) {
-                        ++m_num_gpu;
-                        m_num_gpu_subdevice += num_subdevice;
-                        if (num_subdevice == 0) {
-                            // If there are no subdevices we are going to treat the
-                            // device as a subdevice.
-                            m_num_gpu_subdevice += 1;
-                        }
+                ++m_num_gpu;
+                m_num_gpu_subdevice += num_subdevice;
+                if (num_subdevice == 0) {
+                    // If there are no subdevices we are going to treat the
+                    // device as a subdevice.
+                    m_num_gpu_subdevice += 1;
+                }
 
-                        //NOTE: We're only supporting Board GPUs to start with
-                        m_devices.push_back({
-                            device_handle.at(device_idx),
-                            property,
-                            num_subdevice, //if there are no subdevices leave this as 0
-                            {},
-                            {}, //subdevice
-                            {}, //power domain
-                        });
-                    }
-#ifdef GEOPM_DEBUG
-                    else {
-                        std::cerr << "Warning: <geopm> LevelZero: Integrated "
-                                     "GPU access is not currently supported by GEOPM.\n";
-                    }
-#endif
-                }
-#ifdef GEOPM_DEBUG
-                else if (property.core.type == ZE_DEVICE_TYPE_CPU) {
-                    // All CPU functionality is handled by GEOPM & MSR Safe currently
-                    std::cerr << "Warning: <geopm> LevelZero: CPU access "
-                                 "via LevelZero is not currently supported by GEOPM.\n";
-                }
-                else if (property.core.type == ZE_DEVICE_TYPE_FPGA) {
-                    // FPGA functionality is not currently supported by GEOPM, but should not cause
-                    // an error if the devices are present
-                    std::cerr << "Warning: <geopm> LevelZero: Field Programmable "
-                                 "Gate Arrays are not currently supported by GEOPM.\n";
-                }
-                else if (property.core.type == ZE_DEVICE_TYPE_MCA) {
-                    // MCA functionality is not currently supported by GEOPM, but should not cause
-                    // an error if the devices are present
-                    std::cerr << "Warning: <geopm> LevelZero: Memory Copy GPUs "
-                                 "are not currently supported by GEOPM.\n";
-                }
-#endif
+                //NOTE: We're only supporting Board GPUs to start with
+                m_devices.push_back({
+                    device_handle.at(device_idx),
+                    property,
+                    num_subdevice, //if there are no subdevices leave this as 0
+                    {},
+                    {}, //subdevice
+                    {}, //power domain
+                });
             }
 
             if (m_num_gpu != 0 && m_num_gpu_subdevice % m_num_gpu != 0) {
