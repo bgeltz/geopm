@@ -162,14 +162,20 @@ jobs:
       working-directory: service
       run: |
            osc co ${SERVICE_PACKAGE}
+           rm ${SERVICE_PACKAGE}/geopm-service*.tar.gz
            cp geopm-service.spec ${SERVICE_PACKAGE}
-           cp geopm-service*.tar.gz ${SERVICE_PACKAGE}/geopm-service.tar.gz
-           osc add ${SERVICE_PACKAGE}/geopm-service.spec ${SERVICE_PACKAGE}/geopm-service.tar.gz
+           cp geopm-service*.tar.gz ${SERVICE_PACKAGE}
+           cd ${SERVICE_PACKAGE}
+           osc addremove
+           cd -
            osc ci -m "geopm service ${{ github.sha }}" ${SERVICE_PACKAGE}
     - name: publish runtime
       run: |
            osc co ${RUNTIME_PACKAGE}
+           rm ${RUNTIME_PACKAGE}/geopm-runtime*.tar.gz
            cp geopm-runtime.spec ${RUNTIME_PACKAGE}
-           cp geopm-runtime*.tar.gz ${RUNTIME_PACKAGE}/geopm-runtime.tar.gz
-           osc add ${RUNTIME_PACKAGE}/geopm-runtime.spec ${RUNTIME_PACKAGE}/geopm-runtime.tar.gz
+           cp geopm-runtime*.tar.gz ${RUNTIME_PACKAGE}
+           cd ${RUNTIME_PACKAGE}
+           osc addremove
+           cd -
            osc ci -m "geopm runtime ${{ github.sha }}" ${RUNTIME_PACKAGE}
