@@ -264,8 +264,8 @@ AC_ARG_WITH([nvml], [AS_HELP_STRING([--with-nvml=PATH],
             [specify directory for installed nvml package.])])
 if test "x$with_nvml" != x; then
   AM_CPPFLAGS="$AM_CPPFLAGS -I$with_nvml/include"
-  LD_LIBRARY_PATH="$with_nvml/lib64:$with_nvml/lib:$LD_LIBRARY_PATH"
-  AM_LDFLAGS="$AM_LDFLAGS -L$with_nvml/lib -L$with_nvml/lib64"
+  LD_LIBRARY_PATH="$with_nvml/lib64:$with_nvml/lib:$with_nvml/lib/stubs:$LD_LIBRARY_PATH"
+  AM_LDFLAGS="$AM_LDFLAGS -L$with_nvml/lib -L$with_nvml/lib64 -L$with_nvml/lib/stubs"
 fi
 
 AC_ARG_WITH([dcgm], [AS_HELP_STRING([--with-dcgm=PATH],
