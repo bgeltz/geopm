@@ -479,7 +479,7 @@ fortran_source_files = src/geopm_prof.f90 \
                        src/geopm_pmpi_fortran.c \
                        # end
 
-geopmctl_SOURCES = src/geopmctl_main.c
+geopmctl_SOURCES = src/geopmctl_main.cpp
 
 if ENABLE_MPI
     libgeopm_la_SOURCES +=$(mpi_source_files)
