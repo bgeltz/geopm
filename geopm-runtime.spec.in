@@ -106,6 +106,7 @@ test -f configure || ./autogen.sh
             --mandir=%{_mandir} --docdir=%{docdir} \
             --disable-mpi --disable-openmp \
             --disable-fortran \
+            --enable-debug \
             --with-python=%{python_bin} \
             --with-bash-completion-dir=%{compdir} \
             --disable-geopmd-local \
