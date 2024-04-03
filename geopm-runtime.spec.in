@@ -42,7 +42,7 @@ BuildRequires: python-rpm-macros
 %endif
 
 %define compdir %(pkg-config --variable=completionsdir bash-completion)
-%if "x%{compdir}" == "x"
+%if "x%{?compdir}" == "x"
 %define compdir "%{_sysconfdir}/bash_completion.d"
 %endif
 
