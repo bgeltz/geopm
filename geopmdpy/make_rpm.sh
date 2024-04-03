@@ -17,5 +17,5 @@ if [ -x "$(command -v rpmbuild)" ]; then
     mkdir -p ${RPM_TOPDIR}/SPECS
     cp dist/${ARCHIVE} ${RPM_TOPDIR}/SOURCES
     cp geopmdpy.spec ${RPM_TOPDIR}/SPECS
-    rpmbuild --define "archive ${ARCHIVE}" -ba ${RPM_TOPDIR}/SPECS/geopmdpy.spec
+    rpmbuild -ba ${RPM_TOPDIR}/SPECS/geopmdpy.spec
 fi
