@@ -118,10 +118,10 @@ class TestIntegration_cpu_characterization(unittest.TestCase):
         experiment_args.run_max_turbo = False
 
         report_signals="MSR::QM_CTR_SCALED_RATE@package,CPU_UNCORE_FREQUENCY_STATUS@package,MSR::CPU_SCALABILITY_RATIO@package,CPU_FREQUENCY_MAX_CONTROL@package,CPU_UNCORE_FREQUENCY_MIN_CONTROL@package,CPU_UNCORE_FREQUENCY_MAX_CONTROL@package"
-        experiment_cli_args=['--geopm-report-signals={}'.format(report_signals), '--geopm-ctl=process']
+        cls._experiment_cli_args=['--geopm-report-signals={}'.format(report_signals), '--geopm-ctl=process']
 
         # We're using the AIB app conf from above here
-        cls.launch_helper(cls, uncore_frequency_sweep, experiment_args, cls._aib_app_conf, experiment_cli_args, cls._initial_control_config)
+        cls.launch_helper(cls, uncore_frequency_sweep, experiment_args, cls._aib_app_conf, cls._experiment_cli_args, cls._initial_control_config)
 
         ##############
         # Parse data #
@@ -144,7 +144,7 @@ class TestIntegration_cpu_characterization(unittest.TestCase):
         experiment_args.min_uncore_frequency = uncore_efficient_freq
         experiment_args.max_uncore_frequency = uncore_efficient_freq
 
-        cls.launch_helper(cls, uncore_frequency_sweep, experiment_args, cls._aib_app_conf, experiment_cli_args, cls._initial_control_config)
+        cls.launch_helper(cls, uncore_frequency_sweep, experiment_args, cls._aib_app_conf, cls._experiment_cli_args, cls._initial_control_config)
 
         ##############
         # Parse data #
@@ -234,12 +234,12 @@ class TestIntegration_cpu_characterization(unittest.TestCase):
             enable_profile_traces=False,
             verbose=False,
         )
-        self.launch_helper(monitor, experiment_args, self._aib_app_conf, ['--geopm-ctl=process'], self._initial_control_config)
+        self.launch_helper(monitor, experiment_args, self._aib_app_conf, self._experiment_cli_args, self._initial_control_config)
 
         aib_agent_dir = Path(os.path.join('test_cpu_activity_aib_output', 'aib_cpu_activity'))
         experiment_args.output_dir = aib_agent_dir
         experiment_args.phi_list = [0.2, 0.5, 0.7]
-        self.launch_helper(cpu_activity, experiment_args, self._aib_app_conf, ['--geopm-ctl=process'], self._initial_control_config)
+        self.launch_helper(cpu_activity, experiment_args, self._aib_app_conf, self._experiment_cli_args, self._initial_control_config)
 
         df_monitor = geopmpy.io.RawReportCollection('*report', dir_name=aib_monitor_dir).get_df()
         monitor_runtime_16 = df_monitor[df_monitor['region'] == 'intensity_16']['runtime (s)'].mean()
@@ -295,12 +295,12 @@ class TestIntegration_cpu_characterization(unittest.TestCase):
             enable_profile_traces=False,
             verbose=False,
         )
-        self.launch_helper(monitor, experiment_args, self._minife_app_conf, ['--geopm-ctl=process'], self._initial_control_config)
+        self.launch_helper(monitor, experiment_args, self._minife_app_conf, self._experiment_cli_args, self._initial_control_config)
 
         minife_agent_dir = Path(os.path.join('test_cpu_activity_minife_output', 'minife_cpu_activity'))
         experiment_args.output_dir = minife_agent_dir
         experiment_args.phi_list = [0.2, 0.5, 0.7]
-        self.launch_helper(cpu_activity, experiment_args, self._minife_app_conf, ['--geopm-ctl=process'], self._initial_control_config)
+        self.launch_helper(cpu_activity, experiment_args, self._minife_app_conf, self._experiment_cli_args, self._initial_control_config)
 
         monitor_fom = geopmpy.io.RawReportCollection('*report', dir_name=minife_monitor_dir).get_app_df()['FOM'].mean()
         monitor_energy = geopmpy.io.RawReportCollection('*report', dir_name=minife_monitor_dir).get_epoch_df()['package-energy (J)'].mean()
