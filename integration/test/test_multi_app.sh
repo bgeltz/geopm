@@ -19,14 +19,12 @@ export GEOPM_PROGRAM_FILTER=geopmbench,stress-ng
 export LD_PRELOAD=libgeopm.so.2.1.0
 
 GEOPM_REPORT=${TEST_NAME}_report.yaml \
-GEOPM_TRACE=${TEST_NAME}_trace.csv \
-GEOPM_TRACE_PROFILE=${TEST_NAME}_trace_profile.csv \
 GEOPM_REPORT_SIGNALS=TIME@package \
 GEOPM_NUM_PROC=2 \
-GEOPM_CTL_LOCAL=true \
 setsid geopmctl &
 
 # geopmbench
+export GEOPMBENCH_NO_MPI=1
 numactl --cpunodebind=0 -- geopmbench temp_config.json &
 
 # stress-ng
