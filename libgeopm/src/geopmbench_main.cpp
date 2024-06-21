@@ -110,10 +110,14 @@ static int main_imp(int argc, char **argv)
 "\n";
 
     const int ERROR_HELP = -4096;
+    const geopm::GEOPMBenchConfig &config = geopm::geopmbench_config();
+    bool is_mpi_enabled = config.is_mpi_enabled();
 #ifdef GEOPM_ENABLE_MPI
-    err = MPI_Init(&argc, &argv);
-    if (!err) {
-        err = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (is_mpi_enabled) {
+        err = MPI_Init(&argc, &argv);
+        if (!err) {
+            err = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        }
     }
 #endif
 
@@ -191,8 +195,10 @@ static int main_imp(int argc, char **argv)
     }
 
 #ifdef GEOPM_ENABLE_MPI
-    int err_fin = MPI_Finalize();
-    err = err ? err : err_fin;
+    if (is_mpi_enabled) {
+        int err_fin = MPI_Finalize();
+        err = err ? err : err_fin;
+    }
 #endif
 
     return err;
