@@ -73,7 +73,7 @@ if [ ! -x "$(command -v geopmread)" ]; then
 fi
 
 # Check installed version of GEOPM against source version
-cd ${GEOPM_SOURCE}/libgeopmd
+cd ${GEOPM_SOURCE}/libgeopm
 GEOPM_SOURCE_VERSION=$(cat VERSION)
 cd -
 GEOPMREAD_VERSION=$(geopmread --version | head -n1)
