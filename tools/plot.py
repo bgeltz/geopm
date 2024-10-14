@@ -962,16 +962,40 @@ def validate_sweep_dataset(
             print(f"All hosts have complete power-limit coverage ({partial_path})")
 
     # --- Hosts missing FOM -----------------------------------------------
+    # Flag hosts that are missing FOM at ANY power level (not just all).
+    # A host with FOM at only some levels would produce a truncated curve
+    # in downstream analysis (e.g. build_host_curves), leading to
+    # incorrect interpolation.
     missing_fom_hosts: List[str] = []
     if "host" in df.columns and metric in df.columns:
         for host, hdf in df.groupby("host"):
-            if hdf[metric].dropna().empty:
+            total_fom = hdf[metric].notna().sum()
+            if total_fom == 0:
+                # Completely missing FOM
                 files = sorted(hdf["report_file"].unique()) if has_report_file else []
-                entry = host
+                entry = f"{host}  FOM: all missing"
                 if files:
                     entry += f"  report_files: {files}"
                 missing_fom_hosts.append(entry)
                 hosts_to_drop.add(host)
+            else:
+                # Check per power level: does every level have at least
+                # one non-NaN FOM?
+                fom_by_limit = hdf.groupby(col)[metric].apply(
+                    lambda s: s.notna().any()
+                )
+                missing_limits = sorted(
+                    fom_by_limit.index[~fom_by_limit].tolist()
+                )
+                if missing_limits:
+                    files = sorted(hdf["report_file"].unique()) if has_report_file else []
+                    entry = (f"{host}  FOM missing at power limits: "
+                             f"{missing_limits} "
+                             f"(has FOM at {total_fom}/{len(hdf)} rows)")
+                    if files:
+                        entry += f"  report_files: {files}"
+                    missing_fom_hosts.append(entry)
+                    hosts_to_drop.add(host)
 
     fom_path = out / "hosts_missing_fom.txt"
     with open(fom_path, "w") as fh:
