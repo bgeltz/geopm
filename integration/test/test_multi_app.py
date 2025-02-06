@@ -37,26 +37,43 @@ class TestIntegration_multi_app(unittest.TestCase):
                            timeout=cls.TIME_LIMIT, check=True)
 
         cls._report_path = f'{cls.TEST_NAME}_report.yaml'
-        cls._report = geopmpy.io.RawReport(cls._report_path)
-        cls._node_names = cls._report.host_names()
+        try:
+            cls._report = geopmpy.io.RawReport(cls._report_path)
+            cls._node_names = cls._report.host_names()
+        except FileNotFoundError as ex:
+            cls._report_collection = geopmpy.io.RawReportCollection('*report*')
+            cls._node_names = cls._report_collection.get_df()['host'].unique().tolist()
 
     def test_meta_data(self):
         self.assertEqual(len(self._node_names), self.NUM_NODE)
 
     def test_expected_regions_exist(self):
         for node in self._node_names:
-            regions = set(self._report.region_names(node))
+            try:
+                regions = set(self._report.region_names(node))
+            except AttributeError:
+                rdf = self._report_collection.get_df()
+                regions = rdf[rdf['host'] == node]['region'].unique().tolist()
             for rr in self.EXPECTED_REGIONS:
                 self.assertIn(rr, regions, msg=node)
 
     def test_regions_valid(self):
         for node in self._node_names:
-            for region in self._report.region_names(node):
-                region_data = self._report.raw_region(node, region)
+            try:
+                regions = set(self._report.region_names(node))
+            except AttributeError:
+                rdf = self._report_collection.get_df()
+                regions = rdf[rdf['host'] == node]['region'].unique().tolist()
+            for region in regions:
+                try:
+                    region_data = self._report.raw_region(node, region)
+                except AttributeError:
+                    region_data = rdf[(rdf['host'] == node) & (rdf['region'] == region)].to_dict(orient='records')[0]
+
                 if region in ('model-init', 'MPI_Init_thread'):
                     self.assertEqual(region_data['count'], 0.5)
                 else:
-                    self.assertEqual(region_data['count'], 25)
+                    self.assertEqual(region_data['count'], 25, msg=f'{node} - {region}')
                 if region != 'MPI_Init_thread':
                     # We do not sample during PMPI_Init_thread call
                     # but other regions should have non-zero sample time
@@ -65,18 +82,39 @@ class TestIntegration_multi_app(unittest.TestCase):
 
     def test_non_mpi_app_tracked(self):
         for node in self._node_names:
-            unmarked_data = self._report.raw_unmarked(node)
+            try:
+                unmarked_data = self._report.raw_unmarked(node)
+            except AttributeError:
+                udf = self._report_collection.get_unmarked_df()
+                unmarked_data = udf[udf['host'] == node].to_dict(orient='records')[0]
+
             self.assertGreater(unmarked_data['TIME@package-1'], 0, msg=node)
 
     def test_runtime(self):
         for node in self._node_names:
             total_runtime = 0
-            for region in self._report.region_names(node):
-                region_data = self._report.raw_region(node, region)
+            try:
+                regions = set(self._report.region_names(node))
+            except AttributeError:
+                rdf = self._report_collection.get_df()
+                regions = rdf[rdf['host'] == node]['region'].unique().tolist()
+            for region in regions:
+                try:
+                    region_data = self._report.raw_region(node, region)
+                except:
+                    region_data = rdf[(rdf['host'] == node) & (rdf['region'] == region)].to_dict(orient='records')[0]
                 total_runtime += region_data['runtime (s)']
-            unmarked_data = self._report.raw_unmarked(node)
+            try:
+                unmarked_data = self._report.raw_unmarked(node)
+            except AttributeError:
+                udf = self._report_collection.get_unmarked_df()
+                unmarked_data = udf[udf['host'] == node].to_dict(orient='records')[0]
             total_runtime += unmarked_data['runtime (s)']
-            app_totals = self._report.raw_totals(node)
+            try:
+                app_totals = self._report.raw_totals(node)
+            except AttributeError:
+                adf = self._report_collection.get_app_df()
+                app_totals = adf[adf['host'] == node].to_dict(orient='records')[0]
             util.assertNear(self, total_runtime, app_totals['runtime (s)'])
 
 
