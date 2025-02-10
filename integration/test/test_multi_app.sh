@@ -14,13 +14,16 @@ cat > ${INPUT_FILE} << "EOF"
 }
 EOF
 
+export SYSTEMD_BUS_TIMEOUT=600
+# geopmread BOARD_POWER board 0
+# unset SYSTEMD_BUS_TIMEOUT
+
 TEST_NAME=test_multi_app
 export GEOPM_PROFILE=${TEST_NAME}
 export GEOPM_PROGRAM_FILTER=geopmbench,stress-ng
 export LD_PRELOAD=libgeopm.so.2.1.0
 
-export SYSTEMD_BUS_TIMEOUT=600
-
+# GEOPM_CTL_LOCAL=true \
 GEOPM_REPORT=${TEST_NAME}_report.yaml \
 GEOPM_REPORT_SIGNALS=TIME@package \
 GEOPM_NUM_PROC=2 \
@@ -31,14 +34,24 @@ setsid geopmctl &
 # ensures that geopmctl is started before starting geopmbench.
 sleep 2
 
+echo "Before geopmbench timestamp = $(date +%s.%N)"
+
 echo "$(hostname) starting..."
 # geopmbench
 export GEOPMBENCH_NO_MPI=1
 /usr/bin/timeout -v -k 30s 18m numactl --cpunodebind=0 -- /usr/bin/timeout -v -k 30s 15m geopmbench ${INPUT_FILE} &
 
+sleep 2
+echo "geopmbench PID = $(pgrep -al geopmbench)"
+echo "Before stress-ng timestamp = $(date +%s.%N)"
+
 # stress-ng
-export LD_PRELOAD=libgeopm.so.2.1.0
 numactl --cpunodebind=1 -- stress-ng --cpu 1 --timeout 120 &
+
+sleep 2
+echo "stress-ng PID = $(pgrep -al stress-ng)"
+
+echo "Before geopmctl timestamp = $(date +%s.%N)"
 
 wait
 rm ${INPUT_FILE}
