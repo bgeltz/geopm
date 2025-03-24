@@ -25,7 +25,7 @@
 
 int geopm_sched_num_cpu(void)
 {
-    return sysconf(_SC_NPROCESSORS_CONF);
+    return (int)sysconf(_SC_NPROCESSORS_CONF);
 }
 
 int geopm_sched_get_cpu(void)
@@ -106,9 +106,9 @@ int geopm_sched_proc_cpuset_helper(int num_cpu, uint32_t *proc_cpuset, FILE *fid
 static void geopm_proc_cpuset_once(void)
 {
     const int num_cpu = geopm_sched_num_cpu();
-    g_proc_cpuset = CPU_ALLOC(num_cpu);
+    g_proc_cpuset = CPU_ALLOC((size_t)num_cpu);
     if (g_proc_cpuset != NULL) {
-        g_proc_cpuset_size = CPU_ALLOC_SIZE(num_cpu);
+        g_proc_cpuset_size = CPU_ALLOC_SIZE((size_t)num_cpu);
         (void)geopm_sched_proc_cpuset_pid(getpid(), num_cpu, g_proc_cpuset);
     }
 }
@@ -118,7 +118,7 @@ int geopm_sched_proc_cpuset_pid(int pid, int num_cpu, cpu_set_t *cpuset)
     if (num_cpu < 0 || num_cpu == INT_MAX || pid < 0 || cpuset == NULL) {
         return GEOPM_ERROR_INVALID;
     }
-    const size_t cpuset_size = CPU_ALLOC_SIZE(num_cpu);
+    const size_t cpuset_size = CPU_ALLOC_SIZE((size_t)num_cpu);
     const int num_read = num_cpu / 32 + (num_cpu % 32 ? 1 : 0);
     int err = 0;
     uint32_t *proc_cpuset = NULL;
@@ -130,7 +130,7 @@ int geopm_sched_proc_cpuset_pid(int pid, int num_cpu, cpu_set_t *cpuset)
         err = EINVAL;
     }
     if (!err) {
-        proc_cpuset = calloc(num_read, sizeof(*proc_cpuset));
+        proc_cpuset = calloc((size_t)num_read, sizeof(*proc_cpuset));
         if (proc_cpuset == NULL) {
             err = ENOMEM;
         }
@@ -158,7 +158,7 @@ int geopm_sched_proc_cpuset_pid(int pid, int num_cpu, cpu_set_t *cpuset)
          * See the CPU_SET(3) man page for more details about cpu_set_t.
          */
         CPU_ZERO_S(cpuset_size, cpuset);
-        memcpy(cpuset, proc_cpuset, num_read * sizeof(*proc_cpuset));
+        memcpy(cpuset, proc_cpuset, (size_t)num_read * sizeof(*proc_cpuset));
     }
     else if (cpuset) {
         for (size_t cpu_idx = 0; cpu_idx < (size_t)num_cpu; ++cpu_idx) {
@@ -185,7 +185,7 @@ int geopm_sched_proc_cpuset(int num_cpu, cpu_set_t *proc_cpuset)
     if (sched_num_cpu <= 0 || sched_num_cpu == INT_MAX) {
         return GEOPM_ERROR_LOGIC;
     }
-    size_t cpuset_size = CPU_ALLOC_SIZE(num_cpu);
+    size_t cpuset_size = CPU_ALLOC_SIZE((size_t)num_cpu);
     if (!err && cpuset_size < g_proc_cpuset_size) {
         err = GEOPM_ERROR_INVALID;
     }
@@ -195,7 +195,7 @@ int geopm_sched_proc_cpuset(int num_cpu, cpu_set_t *proc_cpuset)
          */
         CPU_ZERO_S(cpuset_size, proc_cpuset);
         memcpy(proc_cpuset, g_proc_cpuset, g_proc_cpuset_size);
-        for (size_t cpu_idx = sched_num_cpu; cpu_idx < (size_t)num_cpu; ++cpu_idx) {
+        for (size_t cpu_idx = (size_t)sched_num_cpu; cpu_idx < (size_t)num_cpu; ++cpu_idx) {
             CPU_CLR_S(cpu_idx, cpuset_size, proc_cpuset);
         }
     }
@@ -222,7 +222,7 @@ int geopm_sched_woomp(int num_cpu, cpu_set_t *woomp)
     if (sched_num_cpu <= 0 || sched_num_cpu == INT_MAX) {
         return GEOPM_ERROR_LOGIC;
     }
-    size_t req_alloc_size = CPU_ALLOC_SIZE(num_cpu);
+    size_t req_alloc_size = CPU_ALLOC_SIZE((size_t)num_cpu);
 
     if (!err && req_alloc_size < g_proc_cpuset_size) {
         err = EINVAL;
@@ -241,7 +241,7 @@ int geopm_sched_woomp(int num_cpu, cpu_set_t *woomp)
         int cpu_index = sched_getcpu();
         if (cpu_index != -1 && cpu_index < num_cpu) {
             /* Clear the bit for this OpenMP thread's CPU. */
-            CPU_CLR_S(cpu_index, g_proc_cpuset_size, woomp);
+            CPU_CLR_S((size_t)cpu_index, g_proc_cpuset_size, woomp);
         }
         else {
             err = errno ? errno : GEOPM_ERROR_LOGIC;
@@ -251,7 +251,7 @@ int geopm_sched_woomp(int num_cpu, cpu_set_t *woomp)
 #endif /* _OPENMP */
     }
     if (!err) {
-        for (size_t cpu_idx = sched_num_cpu; cpu_idx < (size_t)num_cpu; ++cpu_idx) {
+        for (size_t cpu_idx = (size_t)sched_num_cpu; cpu_idx < (size_t)num_cpu; ++cpu_idx) {
             CPU_CLR_S(cpu_idx, req_alloc_size, woomp);
         }
     }

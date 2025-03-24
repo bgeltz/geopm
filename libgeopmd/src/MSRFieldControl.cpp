@@ -94,7 +94,7 @@ namespace geopm
                         throw Exception("MSR::encode(): integer overflow in M_FUNCTION_7_BIT_FLOAT datatype encoding",
                                         EOVERFLOW, __FILE__, __LINE__);
                     }
-                    value_inferred = (1 << float_y) * (1.0 + (float_z / 4.0));
+                    value_inferred = static_cast<double>(1 << float_y) * (1.0 + (static_cast<double>(float_z) / 4.0));
                     if ((value - value_inferred) > (value  * 0.25)) {
                         throw Exception("MSR::encode(): inferred value from encoded value is inaccurate",
                                         GEOPM_ERROR_LOGIC, __FILE__, __LINE__);

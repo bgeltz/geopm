@@ -58,7 +58,7 @@ namespace geopm
     {
         // insert time and signal
         history.insert({time, signal});
-        if (num_fit < history.capacity()) {
+        if (num_fit < static_cast<int>(history.capacity())) {
             ++num_fit;
         }
 
@@ -66,13 +66,13 @@ namespace geopm
         // derivative with noisy data.
         double result = NAN;
         if (num_fit >= 2) {
-            size_t buf_size = history.size();
+            size_t buf_size = static_cast<size_t>(history.size());
             double A = 0.0, B = 0.0, C = 0.0, D = 0.0;
             double E = 1.0 / num_fit;
-            double time_0 = history.value(buf_size - num_fit).time;
-            const double sig_0 = history.value(buf_size - num_fit).sample;
-            for (size_t buf_off = buf_size - num_fit;
-                 buf_off < buf_size; ++buf_off) {
+            double time_0 = history.value(static_cast<int>(buf_size) - num_fit).time;
+            const double sig_0 = history.value(static_cast<int>(buf_size) - num_fit).sample;
+            for (int buf_off = static_cast<int>(buf_size) - num_fit;
+                 buf_off < static_cast<int>(buf_size); ++buf_off) {
                 double tt = history.value(buf_off).time;
                 double dt = tt - time_0;
                 double sig = history.value(buf_off).sample - sig_0;
@@ -102,7 +102,7 @@ namespace geopm
         }
         bool is_sampled = m_time_sig->is_sampled();
         double time = m_time_sig->sample();
-        size_t history_size = m_history.size();
+        size_t history_size = static_cast<size_t>(m_history.size());
         // Check if this is the first call ever to sample() (history_size == 0)
         // Or check if this is the first call to sample() since the last call to read_batch()
         if (history_size == 0ULL || ! is_sampled) {
@@ -122,7 +122,7 @@ namespace geopm
             double time = m_time_sig->read();
             result = compute_next(temp_history, num_fit, time, signal, m_nan_replace);
             if (ii < M_NUM_SAMPLE_HISTORY - 1) {
-                usleep(m_sleep_time * 1e6);
+                usleep(static_cast<useconds_t>(m_sleep_time * 1e6));
             }
         }
         return result;

@@ -41,7 +41,7 @@ namespace geopm
         auto filtered = nan_filter(operand);
         double result = NAN;
         if (filtered.size()) {
-            result = Agg::sum(filtered) / filtered.size();
+            result = Agg::sum(filtered) / static_cast<double>(filtered.size());
         }
         return result;
     }
@@ -157,8 +157,8 @@ namespace geopm
                 it *= it;
             }
             double sum_squares = Agg::sum(operand_squared);
-            double aa = 1.0 / (filtered.size() - 1);
-            double bb = aa / filtered.size();
+            double aa = 1.0 / (static_cast<double>(filtered.size()) - 1);
+            double bb = aa / static_cast<double>(filtered.size());
             result = std::sqrt(aa * sum_squares - bb * sum_squared);
         }
         else if (filtered.size() == 1) {

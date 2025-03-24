@@ -56,8 +56,8 @@ static inline int geopm_time_real(struct geopm_time_s *time)
 
 static inline double geopm_time_diff(const struct geopm_time_s *begin, const struct geopm_time_s *end)
 {
-    return (end->t.tv_sec - begin->t.tv_sec) +
-           (end->t.tv_nsec - begin->t.tv_nsec) * 1E-9;
+    return static_cast<double>(end->t.tv_sec - begin->t.tv_sec) +
+           static_cast<double>(end->t.tv_nsec - begin->t.tv_nsec) * 1E-9;
 }
 
 static inline bool geopm_time_comp(const struct geopm_time_s *aa, const struct geopm_time_s *bb)
@@ -72,9 +72,9 @@ static inline bool geopm_time_comp(const struct geopm_time_s *aa, const struct g
 static inline void geopm_time_add(const struct geopm_time_s *begin, double elapsed, struct geopm_time_s *end)
 {
     *end = *begin;
-    end->t.tv_sec += elapsed;
+    end->t.tv_sec += static_cast<time_t>(elapsed);
     elapsed -= floor(elapsed);
-    end->t.tv_nsec += 1E9 * elapsed;
+    end->t.tv_nsec += static_cast<long>(1E9 * elapsed);
     if (end->t.tv_nsec >= 1000000000) {
         end->t.tv_nsec -= 1000000000;
         ++(end->t.tv_sec);
@@ -89,7 +89,7 @@ static inline int geopm_time_to_string(const struct geopm_time_s *time, int buf_
     struct geopm_time_s ref_time_mono;
     clock_gettime(CLOCK_REALTIME, &(ref_time_real.t));
     clock_gettime(CLOCK_MONOTONIC_RAW, &(ref_time_mono.t));
-    time_t sec_since_1970 = geopm_time_diff(&ref_time_mono, &ref_time_real) + time->t.tv_sec;
+    time_t sec_since_1970 = static_cast<time_t>(geopm_time_diff(&ref_time_mono, &ref_time_real) + static_cast<double>(time->t.tv_sec));
     localtime_r(&sec_since_1970, &tm);
     size_t num_byte = strftime(buf, buf_size, "%a %b %d %H:%M:%S %Y", &tm);
     if (!num_byte) {

@@ -180,7 +180,7 @@ namespace geopm
         }
 
         m_signal_available[signal_name].m_do_read = true;
-        return std::distance(m_signal_available.begin(), m_signal_available.find(signal_name));
+        return static_cast<int>(std::distance(m_signal_available.begin(), m_signal_available.find(signal_name)));
     }
 
     int CNLIOGroup::push_control(const std::string &control_name,

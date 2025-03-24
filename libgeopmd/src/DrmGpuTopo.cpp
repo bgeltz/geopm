@@ -114,10 +114,10 @@ static DriverCards get_cards_from_most_frequent_driver(const CardVector &all_car
             else {
                 // If there are the same number of cards, pick from the driver priority list
                 // Lowest index in priority list wins
-                int lhs_priority = std::find(driver_priority.begin(), driver_priority.end(), lhs.first) -
-                                   driver_priority.begin();
-                int rhs_priority = std::find(driver_priority.begin(), driver_priority.end(), rhs.first) -
-                                   driver_priority.begin();
+                int lhs_priority = static_cast<int>(std::find(driver_priority.begin(), driver_priority.end(), lhs.first) -
+                                   driver_priority.begin());
+                int rhs_priority = static_cast<int>(std::find(driver_priority.begin(), driver_priority.end(), rhs.first) -
+                                   driver_priority.begin());
                 if (lhs_priority > rhs_priority) {
                     return true;
                 }
@@ -169,7 +169,7 @@ namespace geopm
                     get_file_paths_with_pattern(card_path + "/device/tile0", GPU_TILE_REGEX);
             }
             if (tiles_per_card == -1) {
-                tiles_per_card = tile_paths_in_card.size();
+                tiles_per_card = static_cast<int>(tile_paths_in_card.size());
             }
             else {
                 if (tiles_per_card != static_cast<int>(tile_paths_in_card.size())) {
@@ -185,7 +185,7 @@ namespace geopm
             std::sort(tile_paths_in_card.begin(), tile_paths_in_card.end());
             for (const auto &tile_path : tile_paths_in_card) {
                 m_gt_paths.push_back(tile_path);
-                m_gpu_by_gpu_chip.push_back(gpu_idx);
+                m_gpu_by_gpu_chip.push_back(static_cast<int>(gpu_idx));
             }
         }
 
@@ -196,7 +196,7 @@ namespace geopm
             m_cpu_affinity_by_gpu.push_back(linux_cpumask_buf_to_int_set(cpumask_buf));
             gpu_numa_set.insert(std::stoi(geopm::read_file(card_path + "/device/numa_node")));
         }
-        m_num_numa = gpu_numa_set.size();
+        m_num_numa = static_cast<int>(gpu_numa_set.size());
     }
 
     int DrmGpuTopo::num_gpu() const
@@ -208,10 +208,10 @@ namespace geopm
     {
         int result = -1;
         if (domain == GEOPM_DOMAIN_GPU) {
-            result = m_cpu_affinity_by_gpu.size();
+            result = static_cast<int>(m_cpu_affinity_by_gpu.size());
         }
         else if (domain == GEOPM_DOMAIN_GPU_CHIP) {
-            result = m_gpu_by_gpu_chip.size();
+            result = static_cast<int>(m_gpu_by_gpu_chip.size());
         }
         else {
             throw Exception("DrmGpuTopo::" + std::string(__func__) + ": domain " +
@@ -235,8 +235,8 @@ namespace geopm
         }
 
         std::set<int> result = {};
-        int gpu_count = m_cpu_affinity_by_gpu.size();
-        int chip_count = m_gpu_by_gpu_chip.size();
+        int gpu_count = static_cast<int>(m_cpu_affinity_by_gpu.size());
+        int chip_count = static_cast<int>(m_gpu_by_gpu_chip.size());
         std::vector<int> chips;
         int gpu_idx = idx;
 
@@ -264,7 +264,7 @@ namespace geopm
             gpu_idx = m_gpu_by_gpu_chip[chip_idx];
         }
         std::vector<int> cpu_affinity(m_cpu_affinity_by_gpu[gpu_idx].begin(), m_cpu_affinity_by_gpu[gpu_idx].end());
-        int counter_max = cpu_affinity.size();
+        int counter_max = static_cast<int>(cpu_affinity.size());
         int counter_inc = chip_count / m_num_numa;
         for (auto &chip_idx : chips) {
             for (int counter = chip_idx % counter_inc; counter < counter_max; counter += counter_inc ) {

@@ -52,12 +52,12 @@ namespace geopm
     static std::string read_resource_attribute_fd(int fd)
     {
         char buf[SysfsDriver::M_IO_BUFFER_SIZE] = {0};
-        int read_bytes = read(fd, buf, sizeof buf - 1);
+        int read_bytes = static_cast<int>(read(fd, buf, sizeof buf - 1));
         if (read_bytes < 0) {
             throw geopm::Exception("SysfsIOGroup failed to read signal",
                                    errno, __FILE__, __LINE__);
         }
-        if (static_cast<size_t>(read_bytes) >= sizeof buf) {
+        if (read_bytes >= static_cast<int>(sizeof buf)) {
             throw geopm::Exception("SysfsIOGroup truncated read signal",
                                    GEOPM_ERROR_RUNTIME, __FILE__, __LINE__);
         }
@@ -69,12 +69,12 @@ namespace geopm
     // Write a double to a cpufreq resource's opened sysfs attribute file.
     static void write_resource_attribute_fd(int fd, const std::string &value)
     {
-        int write_bytes = pwrite(fd, value.c_str(), value.length() + 1, 0);
+        auto write_bytes = pwrite(fd, value.c_str(), value.length() + 1, 0);
         if (write_bytes < 0) {
             throw geopm::Exception("SysfsIOGroup failed to write control, value: " + value,
                                    errno, __FILE__, __LINE__);
         }
-        if (static_cast<size_t>(write_bytes) < value.length() + 1) {
+        if (write_bytes < static_cast<ssize_t>(value.length() + 1)) {
             throw geopm::Exception("SysfsIOGroup truncated write control",
                                    GEOPM_ERROR_RUNTIME, __FILE__, __LINE__);
         }
@@ -262,7 +262,7 @@ namespace geopm
 
         if (pushed_it != m_pushed_info_signal.end()) {
             // This has already been pushed. Return the same index as before.
-            signal_idx = std::distance(m_pushed_info_signal.begin(), pushed_it);
+            signal_idx = static_cast<int>(std::distance(m_pushed_info_signal.begin(), pushed_it));
         }
         else {
             auto path = m_driver->attribute_path(cname, domain_idx);
@@ -281,7 +281,7 @@ namespace geopm
                     m_driver->signal_parse(cname),
                     m_driver->control_gen(cname)
                 });
-            signal_idx = m_pushed_info_signal.size() - 1;
+            signal_idx = static_cast<int>(m_pushed_info_signal.size()) - 1;
         }
 
         m_do_batch_read = true;
@@ -306,7 +306,7 @@ namespace geopm
 
         if (pushed_it != m_pushed_info_control.end()) {
             // This has already been pushed. Return the same index as before.
-            control_idx = std::distance(m_pushed_info_control.begin(), pushed_it);
+            control_idx = static_cast<int>(std::distance(m_pushed_info_control.begin(), pushed_it));
         }
         else {
             auto path = m_driver->attribute_path(cname, domain_idx);
@@ -325,7 +325,7 @@ namespace geopm
                     m_driver->signal_parse(cname),
                     m_driver->control_gen(cname)
                 });
-            control_idx = m_pushed_info_control.size() - 1;
+            control_idx = static_cast<int>(m_pushed_info_control.size()) - 1;
         }
 
         m_do_batch_write = true;
@@ -337,7 +337,7 @@ namespace geopm
         m_is_batch_read = true;
         if (m_do_batch_read) {
             if (!m_batch_reader) {
-                m_batch_reader = IOUring::make_unique(m_pushed_info_signal.size());
+                m_batch_reader = IOUring::make_unique(static_cast<unsigned int>(m_pushed_info_signal.size()));
             }
             for (auto &info : m_pushed_info_signal) {
                 m_batch_reader->prep_read(
@@ -378,9 +378,8 @@ namespace geopm
         m_is_batch_write = true;
         if (m_do_batch_write) {
             if (!m_batch_writer) {
-                m_batch_writer = IOUring::make_unique(m_pushed_info_control.size());
+                m_batch_writer = IOUring::make_unique(static_cast<unsigned int>(m_pushed_info_control.size()));
             }
-
             for (auto &info : m_pushed_info_control) {
                 if (info.do_write && !std::isnan(info.value)) {
                     std::string setting = info.gen(info.value);

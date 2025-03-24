@@ -284,7 +284,7 @@ namespace geopm
                                    field.second.description, M_SIGNAL_BEHAVIOR_VARIABLE });
                 auto bit_count = field.second.end_bit - field.second.begin_bit + 1;
                 auto field_mask = ((1ull << bit_count) - 1) << field.second.begin_bit;
-                control_read_mask |= field_mask;
+                control_read_mask |= static_cast<uint32_t>(field_mask);
             }
 
             add_mbox_signals(raw_name, raw_desc.command,
@@ -341,7 +341,7 @@ namespace geopm
                                    field.second.description, M_SIGNAL_BEHAVIOR_VARIABLE });
                 auto bit_count = field.second.end_bit - field.second.begin_bit + 1;
                 auto field_mask = ((1ull << bit_count) - 1) << field.second.begin_bit;
-                control_read_mask |= field_mask;
+                control_read_mask |= static_cast<uint32_t>(field_mask);
             }
 
             add_mmio_signals(raw_name, raw_desc.domain_type, raw_desc.register_offset, fields);
@@ -419,12 +419,12 @@ namespace geopm
             auto already_pushed_signal = std::find(m_signal_pushed.begin(),
                                                    m_signal_pushed.end(), signal);
             if (already_pushed_signal == m_signal_pushed.end()) {
-                result = m_signal_pushed.size();
+                result = static_cast<int>(m_signal_pushed.size());
                 m_signal_pushed.push_back(signal);
                 signal->setup_batch();
             }
             else {
-                result = std::distance(m_signal_pushed.begin(), already_pushed_signal);
+                result = static_cast<int>(std::distance(m_signal_pushed.begin(), already_pushed_signal));
             }
         }
         else {
@@ -454,12 +454,12 @@ namespace geopm
             auto already_pushed_control = std::find(
                 m_control_pushed.begin(), m_control_pushed.end(), control);
             if (already_pushed_control == m_control_pushed.end()) {
-                result = m_control_pushed.size();
+                result = static_cast<int>(m_control_pushed.size());
                 m_control_pushed.push_back(control);
                 control->setup_batch();
             }
             else {
-                result = std::distance(m_control_pushed.begin(), already_pushed_control);
+                result = static_cast<int>(std::distance(m_control_pushed.begin(), already_pushed_control));
             }
         }
         else {

@@ -34,11 +34,11 @@ namespace geopm
                          num_signal == 0 ? nullptr :
                             SharedMemory::make_unique_user(
                                 BatchServer::get_signal_shmem_key(
-                                    server_key), timeout),
+                                    server_key), static_cast<unsigned int>(timeout)),
                          num_control == 0 ? nullptr :
                             SharedMemory::make_unique_user(
                                 BatchServer::get_control_shmem_key(
-                                    server_key), timeout))
+                                    server_key), static_cast<unsigned int>(timeout)))
     {
 
     }

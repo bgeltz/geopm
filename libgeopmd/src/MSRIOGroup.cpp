@@ -774,13 +774,13 @@ namespace geopm
                                "NULL Signal pointer was saved in active signals");
             // same location means this signal or its alias was already pushed
             if (m_signal_pushed[ii].get() == signal.get()) {
-                result = ii;
+                result = static_cast<int>(ii);
                 is_found = true;
             }
         }
         if (!is_found) {
             // If not pushed, add to pushed signals and configure for batch reads
-            result = m_signal_pushed.size();
+            result = static_cast<int>(m_signal_pushed.size());
             m_signal_pushed.push_back(signal);
             signal->setup_batch();
         }
@@ -818,7 +818,7 @@ namespace geopm
             GEOPM_DEBUG_ASSERT(m_control_pushed[ii] != nullptr,
                                "NULL Control pointer was saved in active controls");
             if (m_control_pushed[ii].get() == control.get()) {
-                result = ii;
+                result = static_cast<int>(ii);
                 is_found = true;
             }
         }
@@ -830,7 +830,7 @@ namespace geopm
         }
 
         if (!is_found) {
-            result = m_control_pushed.size();
+            result = static_cast<int>(m_control_pushed.size());
             m_control_pushed.push_back(control);
             control->setup_batch();
             m_is_adjusted.push_back(false);

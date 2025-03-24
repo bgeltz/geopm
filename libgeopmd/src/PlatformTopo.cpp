@@ -160,7 +160,7 @@ namespace geopm
                 break;
             case GEOPM_DOMAIN_GPU:
             case GEOPM_DOMAIN_GPU_CHIP:
-                result = m_gpu_info.at(domain_type).size();
+                result = static_cast<int>(m_gpu_info.at(domain_type).size());
                 break;
             case GEOPM_DOMAIN_PACKAGE_INTEGRATED_GPU:
                 result = 0;
@@ -559,7 +559,7 @@ namespace geopm
             }
             int online_cpus = 0;
             for (auto hmc = online_cpu_mask.rbegin(); hmc != online_cpu_mask.rend(); ++hmc) {
-                uint32_t hmb = std::stoul(std::string(1, *hmc), 0, 16);
+                uint32_t hmb = static_cast<uint32_t>(std::stoul(std::string(1, *hmc), 0, 16));
                 for (int bit_idx = 0; bit_idx != 4; ++bit_idx) {
                     if (hmb & 1U) {
                         ++online_cpus;
@@ -594,7 +594,7 @@ namespace geopm
                 }
                 int cpu_idx = 0;
                 for (auto hmc = hex_mask.rbegin(); hmc != hex_mask.rend(); ++hmc) {
-                    uint32_t hmb = std::stoul(std::string(1, *hmc), 0, 16);
+                    uint32_t hmb = static_cast<uint32_t>(std::stoul(std::string(1, *hmc), 0, 16));
                     for (int bit_idx = 0; bit_idx != 4; ++bit_idx) {
                         if (hmb & 1U) {
                             cpu_set_it->insert(cpu_idx);
@@ -657,7 +657,7 @@ namespace geopm
         struct geopm_time_s current_time;
         geopm_time_real(&current_time);
 
-        unsigned int last_boot_time = current_time.t.tv_sec - si.uptime;
+        unsigned int last_boot_time = static_cast<unsigned int>(current_time.t.tv_sec - si.uptime);
         if (static_cast<unsigned int>(file_stat.st_mtime) < last_boot_time) {
             return false; // file is older than last boot
         }

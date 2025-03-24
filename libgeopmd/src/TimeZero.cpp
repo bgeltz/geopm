@@ -119,7 +119,7 @@ extern "C"
             buf_size_u -= buf_off;
             buf_ptr += buf_off;
             int buf_off_s;
-            int buf_size_s = buf_size_u;
+            int buf_size_s = static_cast<int>(buf_size_u);
             buf_off_s = snprintf(buf_ptr, buf_size_u, ".%.9ld", time->t.tv_nsec);
             if (buf_off_s < 0 || buf_off_s >= buf_size_s) {
                 err = EINVAL;

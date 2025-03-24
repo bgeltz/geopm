@@ -51,14 +51,14 @@ namespace geopm
     void BatchStatusImp::send_message(char msg)
     {
         open_fifo();
-        check_return(write(m_write_fd, &msg, sizeof(char)), "write(2)");
+        check_return(static_cast<int>(write(m_write_fd, &msg, sizeof(char))), "write(2)");
     }
 
     char BatchStatusImp::receive_message(void)
     {
         open_fifo();
         char result = '\0';
-        check_return(read(m_read_fd, &result, sizeof(char)), "read(2)");
+        check_return(static_cast<int>(read(m_read_fd, &result, sizeof(char))), "read(2)");
         return result;
     }
 

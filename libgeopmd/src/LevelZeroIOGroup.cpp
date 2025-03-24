@@ -184,10 +184,10 @@ namespace geopm
                                   {},
                                   [this](unsigned int domain_idx) -> double
                                   {
-                                      return this->m_levelzero_device_pool.energy(
+                                      return static_cast<double>(this->m_levelzero_device_pool.energy(
                                                    GEOPM_DOMAIN_GPU_CHIP,
                                                    domain_idx,
-                                                   geopm::LevelZero::M_DOMAIN_ALL);
+                                                   geopm::LevelZero::M_DOMAIN_ALL));
                                   },
                                   1 / 1e6
                                   }},
@@ -219,10 +219,10 @@ namespace geopm
                                   {},
                                   [this](unsigned int domain_idx) -> double
                                   {
-                                      return this->m_levelzero_device_pool.energy_timestamp(
+                                      return static_cast<double>(this->m_levelzero_device_pool.energy_timestamp(
                                                    GEOPM_DOMAIN_GPU_CHIP,
                                                    domain_idx,
-                                                   geopm::LevelZero::M_DOMAIN_ALL);
+                                                   geopm::LevelZero::M_DOMAIN_ALL));
                                   },
                                   1 / 1e6
                                   }},
@@ -236,10 +236,10 @@ namespace geopm
                                   {},
                                   [this](unsigned int domain_idx) -> double
                                   {
-                                      return this->m_levelzero_device_pool.energy(
+                                      return static_cast<double>(this->m_levelzero_device_pool.energy(
                                                    GEOPM_DOMAIN_GPU,
                                                    domain_idx,
-                                                   geopm::LevelZero::M_DOMAIN_ALL);
+                                                   geopm::LevelZero::M_DOMAIN_ALL));
                                   },
                                   1 / 1e6
                                   }},
@@ -254,10 +254,10 @@ namespace geopm
                                   {},
                                   [this](unsigned int domain_idx) -> double
                                   {
-                                      return this->m_levelzero_device_pool.energy_timestamp(
+                                      return static_cast<double>(this->m_levelzero_device_pool.energy_timestamp(
                                                    GEOPM_DOMAIN_GPU,
                                                    domain_idx,
-                                                   geopm::LevelZero::M_DOMAIN_ALL);
+                                                   geopm::LevelZero::M_DOMAIN_ALL));
                                   },
                                   1 / 1e6
                                   }},
@@ -1131,7 +1131,7 @@ namespace geopm
             // check if base signal was pushed
             for (size_t ii = 0; !is_found && ii < m_signal_pushed.size(); ++ii) {
                 if (m_signal_pushed[ii] == base_signal) {
-                    result = ii;
+                    result = static_cast<int>(ii);
                     is_found = true;
                 }
             }
@@ -1150,13 +1150,13 @@ namespace geopm
         // Check if signal was already pushed.
         for (size_t ii = 0; !is_found && ii < m_signal_pushed.size(); ++ii) {
             if (m_signal_pushed[ii] == signal) {
-                result = ii;
+                result = static_cast<int>(ii);
                 is_found = true;
             }
         }
         if (!is_found) {
             // If not pushed, add to pushed signals and configure for batch reads
-            result = m_signal_pushed.size();
+            result = static_cast<int>(m_signal_pushed.size());
             m_signal_pushed.push_back(signal);
             signal->setup_batch();
 
@@ -1211,13 +1211,13 @@ namespace geopm
         for (size_t ii = 0; !is_found && ii < m_control_pushed.size(); ++ii) {
             // same location means this control or its alias was already pushed
             if (m_control_pushed[ii] == control) {
-                result = ii;
+                result = static_cast<int>(ii);
                 is_found = true;
             }
         }
         if (!is_found) {
             // If not pushed, add to pushed control
-            result = m_control_pushed.size();
+            result = static_cast<int>(m_control_pushed.size());
             m_control_pushed.push_back(std::move(control));
         }
 
@@ -1232,7 +1232,7 @@ namespace geopm
             // If the current signal index (ii) is in the derivative_signal_pushed_set do not read().
             // Derivative signals are comprised of base signals, and thus cannot be read directly.
             // The base signals are automatically pushed when a derivative signal is requested.
-            if (m_derivative_signal_pushed_set.find(ii) == m_derivative_signal_pushed_set.end()) {
+            if (m_derivative_signal_pushed_set.find(static_cast<int>(ii)) == m_derivative_signal_pushed_set.end()) {
                 m_signal_pushed[ii]->set_sample(m_signal_pushed[ii]->read());
             }
         }

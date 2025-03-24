@@ -389,7 +389,7 @@ namespace geopm
             pid
         };
         struct __user_cap_data_struct data[2];
-        int err = syscall(SYS_capget, &header, &data);
+        int err = static_cast<int>(syscall(SYS_capget, &header, &data));
         if (err != 0) {
             throw Exception("geopm::has_cap_sysadmin(): syscall(2) to capget(2) failed",
                             GEOPM_ERROR_RUNTIME, __FILE__, __LINE__);
@@ -423,7 +423,7 @@ namespace geopm
             ? stat_buf.st_size
             : GEOPM_MESSAGE_MAX; // May happen for symlinks in sysfs
         target.resize(symlink_strlen);
-        err = readlink(symlink_path.c_str(), &target[0], symlink_strlen);
+        err = static_cast<int>(readlink(symlink_path.c_str(), &target[0], symlink_strlen));
         if (err == -1) {
             throw Exception("read_symlink_target(): failed to readlink " + symlink_path,
                             errno ? errno : GEOPM_ERROR_RUNTIME,

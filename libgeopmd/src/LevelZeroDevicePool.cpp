@@ -180,9 +180,9 @@ namespace geopm
                                                                                   dev_subdev_idx_pair.second);
         if (supported_frequency.size() >= 2) {
             std::sort(supported_frequency.begin(), supported_frequency.end());
-            frequency_step_mhz = (double) (supported_frequency.back() -
-                                           supported_frequency.front()) /
-                                          (supported_frequency.size() - 1);
+            frequency_step_mhz = static_cast<double>(supported_frequency.back() -
+                                                     supported_frequency.front()) /
+                                 static_cast<double>(supported_frequency.size() - 1);
         }
 
         return frequency_step_mhz;
@@ -277,7 +277,7 @@ namespace geopm
             ++rollover_count;
         }
         last_value = value;
-        return rollover_count * overflow_d + value;
+        return static_cast<double>(rollover_count) * overflow_d + static_cast<double>(value);
     }
 
     double LevelZeroDevicePoolImp::active_time_timestamp(int domain,
@@ -297,8 +297,8 @@ namespace geopm
         check_domain_exists(m_levelzero.engine_domain_count(dev_subdev_idx_pair.first, l0_domain),
                             __func__, __LINE__);
 
-        return m_levelzero.active_time_timestamp(dev_subdev_idx_pair.first, l0_domain,
-                                                 dev_subdev_idx_pair.second);
+        return static_cast<double>(m_levelzero.active_time_timestamp(dev_subdev_idx_pair.first, l0_domain,
+                                                                     dev_subdev_idx_pair.second));
     }
 
     double LevelZeroDevicePoolImp::active_time(int domain, unsigned int domain_idx,

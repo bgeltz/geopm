@@ -122,7 +122,7 @@ namespace geopm
         // have at least two samples to estimate the mean time difference.  One
         // degree of freedom is lost due to the differencing.
         if (m_update_count > 1ULL) {
-            time_delta_mean = m_time_delta_m_1 / (m_update_count - 1ULL);
+            time_delta_mean = m_time_delta_m_1 / static_cast<double>(m_update_count - 1ULL);
         }
         // Three samples are required to measure two time differences, so we
         // must have at least three samples to estimate the standard deviation
@@ -132,8 +132,8 @@ namespace geopm
             time_delta_std = std::sqrt(
                 (m_time_delta_m_2 -
                  m_time_delta_m_1 *
-                 m_time_delta_m_1 / (m_update_count - 1ULL)) /
-                (m_update_count - 2ULL));
+                 m_time_delta_m_1 / static_cast<double>(m_update_count - 1ULL)) /
+                static_cast<double>(m_update_count - 2ULL));
         }
 
         report_s result {
@@ -149,10 +149,10 @@ namespace geopm
             std::vector<std::array<double, GEOPM_NUM_METRIC_STATS> > {},
         };
         result.metric_stats.reserve(m_metric_names.size());
-        size_t num_metric = m_metric_names.size();
-        for (size_t metric_idx = 0; metric_idx < num_metric; ++metric_idx) {
+        int num_metric = static_cast<int>(m_metric_names.size());
+        for (auto metric_idx = 0; metric_idx < num_metric; ++metric_idx) {
             result.metric_stats.push_back(std::array<double, GEOPM_NUM_METRIC_STATS> {
-                static_cast<double>(m_stats->count(metric_idx)),
+                static_cast<double>(m_stats->count(static_cast<int>(metric_idx))),
                 m_stats->first(metric_idx),
                 m_stats->last(metric_idx),
                 m_stats->min(metric_idx),

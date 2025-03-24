@@ -42,7 +42,7 @@ static std::map<std::string, std::vector<int>> load_cpufreq_cpus_by_resource(con
             throw geopm::Exception("CpufreqSysfsDriver failed to open " + cpu_map_path,
                                    errno, __FILE__, __LINE__);
         }
-        int read_bytes = pread(cpu_map_fd, cpu_buf, sizeof cpu_buf - 1, 0);
+        int read_bytes = static_cast<int>(pread(cpu_map_fd, cpu_buf, sizeof cpu_buf - 1, 0));
         close(cpu_map_fd);
         if (read_bytes < 0) {
             throw geopm::Exception("CpufreqSysfsDriver failed to read " + cpu_map_path,

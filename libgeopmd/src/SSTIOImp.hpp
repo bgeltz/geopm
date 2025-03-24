@@ -105,7 +105,7 @@ namespace geopm
                         [](OuterStruct *outer_struct) {
                             delete[] reinterpret_cast<char *>(outer_struct);
                         });
-                    outer_structs.back()->num_entries = batch_size;
+                    outer_structs.back()->num_entries = static_cast<uint32_t>(batch_size);
                     std::copy(commands.data() + handled_commands,
                               commands.data() + handled_commands + batch_size,
                               outer_structs.back()->interfaces);

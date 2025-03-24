@@ -29,7 +29,7 @@ namespace geopm
     {
         if (m_batch_idx == -1) {
             if (m_signal_type == M_MMIO) {
-                m_batch_idx = m_sstio->add_mmio_read(m_cpu_idx, m_subcommand_arg);
+                m_batch_idx = m_sstio->add_mmio_read(m_cpu_idx, static_cast<uint16_t>(m_subcommand_arg));
             }
             else {
                 m_batch_idx = m_sstio->add_mbox_read(
@@ -47,7 +47,7 @@ namespace geopm
     {
         uint32_t ret;
         if (m_signal_type == M_MMIO) {
-            ret = m_sstio->read_mmio_once(m_cpu_idx, m_subcommand_arg);
+            ret = m_sstio->read_mmio_once(m_cpu_idx, static_cast<uint16_t>(m_subcommand_arg));
         }
         else {
             ret = m_sstio->read_mbox_once(m_cpu_idx, m_command, m_subcommand,

@@ -153,7 +153,7 @@ namespace geopm
         m_pushed_signals.push_back({.signal_info = it->second,
                                     .domain_idx = domain_idx});
 
-        return m_pushed_signals.size() - 1;
+        return static_cast<int>(m_pushed_signals.size()) - 1;
     }
 
     int ConstConfigIOGroup::push_control(const std::string &control_name,

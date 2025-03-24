@@ -102,7 +102,7 @@ namespace geopm
 
     int NVMLGPUTopo::num_gpu(void) const
     {
-        return m_cpu_affinity_ideal.size();
+        return static_cast<int>(m_cpu_affinity_ideal.size());
     }
 
     int NVMLGPUTopo::num_gpu(int domain_type) const

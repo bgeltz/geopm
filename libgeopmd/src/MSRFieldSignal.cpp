@@ -72,19 +72,19 @@ namespace geopm
                 // Y in bits [0:5) and Z in bits [5:7)
                 float_y = subfield & 0x1F;
                 float_z = subfield >> 5;
-                result = (1ULL << float_y) * (1.0 + float_z / 4.0);
+                result = static_cast<double>(1ULL << float_y) * (1.0 + static_cast<double>(float_z) / 4.0);
                 break;
             case MSR::M_FUNCTION_OVERFLOW:
                 if (subfield_last > subfield) {
                     ++num_overflow;
                 }
-                result = subfield + ((m_subfield_max + 1.0) * num_overflow);
+                result = static_cast<double>(subfield) + (static_cast<double>(m_subfield_max) + 1.0) * num_overflow;
                 break;
             case MSR::M_FUNCTION_SCALE:
-                result = subfield;
+                result = static_cast<double>(subfield);
                 break;
             case MSR::M_FUNCTION_LOGIC:
-                result = subfield;
+                result = static_cast<double>(subfield);
                 break;
             default:
                 GEOPM_DEBUG_ASSERT(false, "invalid function type for MSRFieldSignal");

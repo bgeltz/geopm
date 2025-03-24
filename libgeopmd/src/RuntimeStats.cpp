@@ -21,7 +21,7 @@ namespace geopm
 
     int RuntimeStats::num_metric(void) const
     {
-        return m_metric_names.size();
+        return static_cast<int>(m_metric_names.size());
     }
 
     void RuntimeStats::check_index(int metric_idx, const std::string &func, int line) const
@@ -90,7 +90,7 @@ namespace geopm
         double result = NAN;
         if (m_metric_stats[metric_idx].count != 0) {
             result = m_metric_stats[metric_idx].m_1 /
-                     m_metric_stats[metric_idx].count;
+                     static_cast<double>(m_metric_stats[metric_idx].count);
         }
         return result;
     }
@@ -102,8 +102,8 @@ namespace geopm
         if (m_metric_stats[metric_idx].count > 1) {
             result = (m_metric_stats[metric_idx].m_2 -
                       m_metric_stats[metric_idx].m_1 *
-                      m_metric_stats[metric_idx].m_1 / m_metric_stats[metric_idx].count) /
-                     (m_metric_stats[metric_idx].count - 1);
+                      m_metric_stats[metric_idx].m_1 / static_cast<double>(m_metric_stats[metric_idx].count)) /
+                     (static_cast<double>(m_metric_stats[metric_idx].count) - 1);
             if (result > 0) {
                 result = std::sqrt(result);
             }

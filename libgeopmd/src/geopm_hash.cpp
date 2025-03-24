@@ -12,13 +12,13 @@
 
 static uint64_t _crc32(uint64_t begin, uint64_t key)
 {
-    uint32_t key_32 = key;
+    uint32_t key_32 = static_cast<uint32_t>(key);
     return ::crc32(begin, reinterpret_cast<unsigned char*>(&key_32), sizeof(key_32));
 }
 
 static uint64_t _crc32(const char *key)
 {
-    return ::crc32(0, reinterpret_cast<const unsigned char*>(key), strlen(key));
+    return ::crc32(0, reinterpret_cast<const unsigned char*>(key), static_cast<uInt>(strlen(key)));
 }
 
 namespace geopm

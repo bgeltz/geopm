@@ -292,8 +292,8 @@ namespace geopm
 
             // Calculated step size if there are 2 or more supported frequencies
             if (supported_frequency.size() >= 2) {
-                double step = (double) (supported_frequency.back() - supported_frequency.front())
-                              / (supported_frequency.size() - 1);
+                double step = static_cast<double>(supported_frequency.back() - supported_frequency.front())
+                              / static_cast<double>(supported_frequency.size() - 1);
 
                 m_frequency_step.push_back(step);
             }
@@ -444,13 +444,13 @@ namespace geopm
         for (size_t ii = 0; !is_found && ii < m_signal_pushed.size(); ++ii) {
             // same location means this signal or its alias was already pushed
             if (m_signal_pushed[ii].get() == signal.get()) {
-                result = ii;
+                result = static_cast<int>(ii);
                 is_found = true;
             }
         }
         if (!is_found) {
             // If not pushed, add to pushed signals and configure for batch reads
-            result = m_signal_pushed.size();
+            result = static_cast<int>(m_signal_pushed.size());
             signal->m_do_read = true;
             m_signal_pushed.push_back(std::move(signal));
         }
@@ -484,13 +484,13 @@ namespace geopm
         for (size_t ii = 0; !is_found && ii < m_control_pushed.size(); ++ii) {
             // same location means this control or its alias was already pushed
             if (m_control_pushed[ii] == control) {
-                result = ii;
+                result = static_cast<int>(ii);
                 is_found = true;
             }
         }
         if (!is_found) {
             // If not pushed, add to pushed control
-            result = m_control_pushed.size();
+            result = static_cast<int>(m_control_pushed.size());
             m_control_pushed.push_back(std::move(control));
         }
 
@@ -526,7 +526,7 @@ namespace geopm
         double result = -1;
         size_t num_cpu = m_platform_topo.num_domain(GEOPM_DOMAIN_CPU);
         size_t alloc_size = CPU_ALLOC_SIZE(num_cpu);
-	auto proc_cpuset = make_cpu_set(num_cpu, {});
+        auto proc_cpuset = make_cpu_set(static_cast<int>(num_cpu), {});
         if (proc_cpuset == NULL) {
             throw Exception("NVMLIOGroup::" + std::string(__func__) +
                             ": failed to allocate process CPU mask",
@@ -761,7 +761,7 @@ namespace geopm
             else {
                 min_request = m_supported_freq.at(domain_idx).front() * 1e6;
             }
-            m_nvml_device_pool.frequency_control_sm(domain_idx, min_request * 1e-6, setting * 1e-6);
+            m_nvml_device_pool.frequency_control_sm(domain_idx, static_cast<int>(min_request * 1e-6), static_cast<int>(setting * 1e-6));
             m_frequency_max_control_request.at(domain_idx) = setting;
         }
         else if (control_name == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_MIN_CONTROL" || control_name == "GPU_CORE_FREQUENCY_MIN_CONTROL") {
@@ -772,14 +772,14 @@ namespace geopm
             else {
                 max_request = m_supported_freq.at(domain_idx).back() * 1e6;
             }
-            m_nvml_device_pool.frequency_control_sm(domain_idx, setting * 1e-6, max_request * 1e-6);
+            m_nvml_device_pool.frequency_control_sm(domain_idx, static_cast<int>(setting * 1e-6), static_cast<int>(max_request * 1e-6));
             m_frequency_min_control_request.at(domain_idx) = setting;
         }
         else if (control_name == M_NAME_PREFIX + "GPU_CORE_FREQUENCY_RESET_CONTROL") {
             m_nvml_device_pool.frequency_reset_control(domain_idx);
         }
         else if (control_name == M_NAME_PREFIX + "GPU_POWER_LIMIT_CONTROL" || control_name == "GPU_POWER_LIMIT_CONTROL") {
-            m_nvml_device_pool.power_control(domain_idx, setting * 1e3);
+            m_nvml_device_pool.power_control(domain_idx, static_cast<int>(setting * 1e3));
         }
         else {
     #ifdef GEOPM_DEBUG
@@ -795,7 +795,7 @@ namespace geopm
     {
         // Read NVML Power Limit
         for (int domain_idx = 0; domain_idx < m_platform_topo.num_domain(GEOPM_DOMAIN_GPU); ++domain_idx) {
-            m_initial_power_limit.at(domain_idx) = m_nvml_device_pool.power_limit(domain_idx);
+            m_initial_power_limit.at(domain_idx) = static_cast<double>(m_nvml_device_pool.power_limit(domain_idx));
         }
     }
 
@@ -807,7 +807,7 @@ namespace geopm
         for (int domain_idx = 0; domain_idx < m_platform_topo.num_domain(GEOPM_DOMAIN_GPU); ++domain_idx) {
             try {
                 // Write original NVML Power Limit
-                m_nvml_device_pool.power_control(domain_idx, m_initial_power_limit.at(domain_idx));
+                m_nvml_device_pool.power_control(domain_idx, static_cast<int>(m_initial_power_limit.at(domain_idx)));
                 // Reset NVML Frequency Limit
                 m_nvml_device_pool.frequency_reset_control(domain_idx);
             }

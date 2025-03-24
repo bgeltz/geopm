@@ -93,7 +93,7 @@ namespace geopm
 
         // Stage everything in a vector for now. It will be copied to the ioctl
         // buffer later.
-        int mbox_idx = m_mbox_read_interfaces.size();
+        int mbox_idx = static_cast<int>(m_mbox_read_interfaces.size());
         auto it = std::find_if(
             m_mbox_read_interfaces.begin(), m_mbox_read_interfaces.end(),
             [&mbox](const sst_mbox_interface_s &existing_mbox) {
@@ -111,7 +111,7 @@ namespace geopm
             // Multiple ioctls with different data structures are used here,
             // along with multiple ioctl buffers. This vector indicates how a
             // signal ID maps to a buffer, and to which offset in that buffer.
-            idx = m_added_interfaces.size();
+            idx = static_cast<int>(m_added_interfaces.size());
             m_added_interfaces.emplace_back(MBOX, mbox_idx);
         }
         else {
@@ -128,7 +128,7 @@ namespace geopm
                     "signal, but cannot find its signal index",
                     GEOPM_ERROR_LOGIC, __FILE__, __LINE__);
             }
-            idx = std::distance(m_added_interfaces.begin(), index_it);
+            idx = static_cast<int>(std::distance(m_added_interfaces.begin(), index_it));
         }
 
         return idx;
@@ -148,7 +148,7 @@ namespace geopm
             .subcommand = subcommand,
             .reserved = 0
         };
-        int mbox_idx = m_mbox_write_interfaces.size();
+        int mbox_idx = static_cast<int>(m_mbox_write_interfaces.size());
         auto it = std::find_if(
             m_mbox_write_interfaces.begin(), m_mbox_write_interfaces.end(),
             [&mbox](const sst_mbox_interface_s &existing_mbox) {
@@ -171,7 +171,7 @@ namespace geopm
             m_mbox_rmw_read_masks.push_back(read_mask);
             m_mbox_rmw_write_masks.push_back(0);
 
-            idx = m_added_interfaces.size();
+            idx = static_cast<int>(m_added_interfaces.size());
             m_added_interfaces.emplace_back(MBOX, mbox_idx);
         }
         else {
@@ -188,7 +188,7 @@ namespace geopm
                     "control, but cannot find its control index",
                     GEOPM_ERROR_LOGIC, __FILE__, __LINE__);
             }
-            idx = std::distance(m_added_interfaces.begin(), index_it);
+            idx = static_cast<int>(std::distance(m_added_interfaces.begin(), index_it));
         }
 
         // Report the control ID as a separate index that encodes both ioctl
@@ -204,10 +204,10 @@ namespace geopm
             .register_offset = register_offset,
             .value = 0,
         };
-        int mmio_idx = m_mmio_read_interfaces.size();
+        int mmio_idx = static_cast<int>(m_mmio_read_interfaces.size());
         m_mmio_read_interfaces.push_back(mmio);
 
-        int idx = m_added_interfaces.size();
+        int idx = static_cast<int>(m_added_interfaces.size());
         m_added_interfaces.emplace_back(MMIO, mmio_idx);
         return idx;
     }
@@ -221,7 +221,7 @@ namespace geopm
             .register_offset = register_offset,
             .value = register_value,
         };
-        int mmio_idx = m_mmio_write_interfaces.size();
+        int mmio_idx = static_cast<int>(m_mmio_write_interfaces.size());
         m_mmio_write_interfaces.push_back(mmio);
 
         mmio.is_write = 0;
@@ -229,7 +229,7 @@ namespace geopm
         m_mmio_rmw_read_masks.push_back(read_mask);
         m_mmio_rmw_write_masks.push_back(0);
 
-        int idx = m_added_interfaces.size();
+        int idx = static_cast<int>(m_added_interfaces.size());
         m_added_interfaces.emplace_back(MMIO, mmio_idx);
         return idx;
     }
@@ -437,8 +437,8 @@ namespace geopm
                             errno, __FILE__, __LINE__);
         }
         batch.interfaces[0].write_value =
-            write_value |
-            (~write_mask & (batch.interfaces[0].read_value & read_mask));
+            static_cast<uint32_t>(write_value) |
+            static_cast<uint32_t>(~write_mask & (batch.interfaces[0].read_value & read_mask));
         batch.interfaces[0].mbox_interface_param = interface_parameter;
         batch.interfaces[0].read_value = 0;
         batch.interfaces[0].subcommand = subcommand;
@@ -493,7 +493,8 @@ namespace geopm
 
         batch.interfaces[0].is_write = 1;
         batch.interfaces[0].value =
-            write_value | (~write_mask & (batch.interfaces[0].value & read_mask));
+            static_cast<uint32_t>(write_value) |
+            static_cast<uint32_t>(~write_mask & (batch.interfaces[0].value & read_mask));
 
         err = m_ioctl->mmio(&batch);
         if (err == -1) {
@@ -509,16 +510,16 @@ namespace geopm
             interface.first == MMIO
                 ? m_mmio_write_interfaces[interface.second].value
                 : m_mbox_write_interfaces[interface.second].write_value;
-        write_destination &= ~write_mask;
-        write_destination |= write_value;
+        write_destination &= static_cast<unsigned int>(~write_mask);
+        write_destination |= static_cast<unsigned int>(write_value);
 
         // Update the write masks so we know which bits to use in the write
         // phase of the ioctl RMW operations.
         if (interface.first == MBOX) {
-            m_mbox_rmw_write_masks[interface.second] |= write_mask;
+            m_mbox_rmw_write_masks[interface.second] |= static_cast<unsigned int>(write_mask);
         }
         else {
-            m_mmio_rmw_write_masks[interface.second] |= write_mask;
+            m_mmio_rmw_write_masks[interface.second] |= static_cast<unsigned int>(write_mask);
         }
     }
 

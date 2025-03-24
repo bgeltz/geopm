@@ -65,7 +65,7 @@ namespace geopm
         auto signal_info = service_proxy->platform_get_signal_info(signal_names);
         GEOPM_DEBUG_ASSERT(signal_info.size() == signal_names.size(),
                            "platform_get_signal_info() DBus interface returned the wrong size result");
-        int num_signal = signal_names.size();
+        int num_signal = static_cast<int>(signal_names.size());
         for (int signal_idx = 0; signal_idx != num_signal; ++signal_idx) {
             result[signal_names[signal_idx]] = signal_info[signal_idx];
             result[M_PLUGIN_NAME + "::" + signal_names[signal_idx]] = signal_info[signal_idx];
@@ -82,7 +82,7 @@ namespace geopm
         auto control_info = service_proxy->platform_get_control_info(control_names);
         GEOPM_DEBUG_ASSERT(control_info.size() == control_names.size(),
                            "platform_get_control_info() DBus interface returned the wrong size result");
-        int num_control = control_names.size();
+        int num_control = static_cast<int>(control_names.size());
         for (int control_idx = 0; control_idx != num_control; ++control_idx) {
             result[control_names[control_idx]] = control_info[control_idx];
             result[M_PLUGIN_NAME + "::" + control_names[control_idx]] = control_info[control_idx];
@@ -166,7 +166,7 @@ namespace geopm
         request.name[GEOPM_NAME_MAX - 1] = '\0';
         strncpy(request.name, signal_name_strip.c_str(), GEOPM_NAME_MAX - 1);
         m_signal_requests.push_back(request);
-        return m_signal_requests.size() - 1;
+        return static_cast<int>(m_signal_requests.size()) - 1;
     }
 
     int ServiceIOGroup::push_control(const std::string &control_name,
@@ -197,7 +197,7 @@ namespace geopm
         request.name[GEOPM_NAME_MAX - 1] = '\0';
         strncpy(request.name, control_name_strip.c_str(), GEOPM_NAME_MAX - 1);
         m_control_requests.push_back(request);
-        return m_control_requests.size() - 1;
+        return static_cast<int>(m_control_requests.size()) - 1;
     }
 
     void ServiceIOGroup::read_batch(void)
@@ -383,8 +383,8 @@ namespace geopm
                 // Not a unit test
                 m_batch_client = BatchClient::make_unique(server_key,
                                                           1.0,
-                                                          m_signal_requests.size(),
-                                                          m_control_requests.size());
+                                                          static_cast<int>(m_signal_requests.size()),
+                                                          static_cast<int>(m_control_requests.size()));
             }
             m_is_batch_active = true;
             m_batch_settings.resize(m_control_requests.size(), NAN);

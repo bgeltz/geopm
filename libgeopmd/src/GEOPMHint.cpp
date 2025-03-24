@@ -17,7 +17,7 @@ namespace geopm {
         if (hint >= GEOPM_NUM_REGION_HINT) {
             throw geopm::Exception("Helper::" + std::string(__func__) +
                             "(): hint out of range: " +
-                            geopm::string_format_hex(hint),
+                            geopm::string_format_hex(static_cast<double>(hint)),
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
     }

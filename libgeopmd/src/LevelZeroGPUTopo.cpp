@@ -80,10 +80,10 @@ namespace geopm
     {
         int result = -1;
         if (domain == GEOPM_DOMAIN_GPU) {
-            result = m_cpu_affinity_ideal.size();
+            result = static_cast<int>(m_cpu_affinity_ideal.size());
         }
         else if (domain == GEOPM_DOMAIN_GPU_CHIP) {
-            result = m_cpu_affinity_ideal_chip.size();
+            result = static_cast<int>(m_cpu_affinity_ideal_chip.size());
         }
         else {
             throw Exception("LevelZeroGPUTopo::" + std::string(__func__) + ": domain " +

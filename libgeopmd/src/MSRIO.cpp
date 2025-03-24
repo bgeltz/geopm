@@ -171,7 +171,7 @@ namespace geopm
         auto &context = ctx.m_write_batch_idx_map.at(cpu_idx);
         auto batch_it = context.find(offset);
         if (batch_it == context.end()) {
-            result = ctx.m_write_batch_op.size();
+            result = static_cast<int>(ctx.m_write_batch_op.size());
             m_msr_batch_op_s wr {
                 .cpu = (uint16_t)cpu_idx,
                 .isrdmsr = 1,
@@ -240,7 +240,7 @@ namespace geopm
             .wmask = 0
         };
         m_batch_context_s &ctx = m_batch_context.at(batch_ctx);
-        int idx = ctx.m_read_batch_op.size();
+        int idx = static_cast<int>(ctx.m_read_batch_op.size());
         ctx.m_read_batch_op.push_back(rd);
         return idx;
     }
@@ -375,7 +375,7 @@ namespace geopm
                 err_str << "MSRIOImp::msr_batch_io(): failed at offset 0x"
                         << std::hex << batch_op.msr
                         << " system error: "
-                        << ((successful_bytes < 0) ? strerror(-successful_bytes) : "none");
+                        << ((successful_bytes < 0) ? strerror(static_cast<int>(-successful_bytes)) : "none");
                 throw Exception(err_str.str(), batch_op.isrdmsr
                                 ? GEOPM_ERROR_MSR_READ : GEOPM_ERROR_MSR_WRITE,
                                 __FILE__, __LINE__);
@@ -431,7 +431,7 @@ namespace geopm
     void MSRIOImp::read_batch(int batch_ctx)
     {
         m_batch_context_s &ctx = m_batch_context.at(batch_ctx);
-        ctx.m_read_batch.numops = ctx.m_read_batch_op.size();
+        ctx.m_read_batch.numops = static_cast<uint32_t>(ctx.m_read_batch_op.size());
         ctx.m_read_batch.ops = ctx.m_read_batch_op.data();
 
         // Use the batch-oriented MSR-safe ioctl if possible. Otherwise, operate
@@ -453,7 +453,7 @@ namespace geopm
     void MSRIOImp::write_batch(int batch_ctx)
     {
         m_batch_context_s &ctx = m_batch_context.at(batch_ctx);
-        ctx.m_write_batch.numops = ctx.m_write_batch_op.size();
+        ctx.m_write_batch.numops = static_cast<uint32_t>(ctx.m_write_batch_op.size());
         ctx.m_write_batch.ops = ctx.m_write_batch_op.data();
 
         // Use the batch-oriented MSR-safe ioctl twice (batch-read, modify,

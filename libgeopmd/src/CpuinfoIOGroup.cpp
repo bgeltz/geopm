@@ -189,7 +189,7 @@ namespace geopm
                             "not valid for CpuinfoIOGroup",
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
-        return std::distance(m_signal_available.begin(), m_signal_available.find(signal_name));
+        return static_cast<int>(std::distance(m_signal_available.begin(), m_signal_available.find(signal_name)));
     }
 
     int CpuinfoIOGroup::push_control(const std::string &control_name, int domain_type, int domain_idx)

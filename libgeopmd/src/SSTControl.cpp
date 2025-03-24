@@ -42,12 +42,15 @@ namespace geopm
     {
         if (m_control_type == M_MMIO) {
             m_adjust_idx = m_sstio->add_mmio_write(
-                m_cpu_idx, m_interface_parameter, m_write_value, m_rmw_read_mask);
+                static_cast<uint16_t>(m_cpu_idx), static_cast<uint16_t>(m_interface_parameter), 
+                static_cast<uint16_t>(m_write_value), static_cast<uint16_t>(m_rmw_read_mask));
         }
         else {
             m_adjust_idx = m_sstio->add_mbox_write(
-                m_cpu_idx, m_command, m_subcommand, m_interface_parameter,
-                m_rmw_subcommand, m_rmw_interface_parameter, m_rmw_read_mask);
+                static_cast<uint16_t>(m_cpu_idx), static_cast<uint16_t>(m_command), 
+                static_cast<uint16_t>(m_subcommand), static_cast<uint16_t>(m_interface_parameter),
+                static_cast<uint16_t>(m_rmw_subcommand), static_cast<uint16_t>(m_rmw_interface_parameter), 
+                static_cast<uint16_t>(m_rmw_read_mask));
         }
     }
 
@@ -61,18 +64,21 @@ namespace geopm
     void SSTControl::write(double value)
     {
         auto dependency = m_dependency.lock();
-        if (dependency && value == m_trigger_write_value) {
-            dependency->write(m_dependency_write_value);
+        if (dependency && value == static_cast<double>(m_trigger_write_value)) {
+            dependency->write(static_cast<double>(m_dependency_write_value));
         }
         if (m_control_type == M_MMIO) {
             m_sstio->write_mmio_once(
-                m_cpu_idx, m_interface_parameter, m_write_value, m_rmw_read_mask,
+                static_cast<uint16_t>(m_cpu_idx), static_cast<uint16_t>(m_interface_parameter), 
+                static_cast<uint16_t>(m_write_value), static_cast<uint16_t>(m_rmw_read_mask),
                 static_cast<uint64_t>(value * m_multiplier) << m_shift, m_mask);
         }
         else {
             m_sstio->write_mbox_once(
-                m_cpu_idx, m_command, m_subcommand, m_interface_parameter,
-                m_rmw_subcommand, m_rmw_interface_parameter, m_rmw_read_mask,
+                static_cast<uint16_t>(m_cpu_idx), static_cast<uint16_t>(m_command), 
+                static_cast<uint16_t>(m_subcommand), static_cast<uint16_t>(m_interface_parameter),
+                static_cast<uint16_t>(m_rmw_subcommand), static_cast<uint16_t>(m_rmw_interface_parameter), 
+                static_cast<uint16_t>(m_rmw_read_mask),
                 static_cast<uint64_t>(value * m_multiplier) << m_shift, m_mask);
         }
     }
@@ -80,36 +86,41 @@ namespace geopm
     void SSTControl::save(void)
     {
         if (m_control_type == M_MMIO) {
-            m_saved_value = m_sstio->read_mmio_once(m_cpu_idx, m_interface_parameter);
+            m_saved_value = m_sstio->read_mmio_once(static_cast<uint16_t>(m_cpu_idx), 
+                                                    static_cast<uint16_t>(m_interface_parameter));
         }
         else {
             m_saved_value = m_sstio->read_mbox_once(
-                m_cpu_idx, m_command, m_rmw_subcommand,
+                static_cast<uint16_t>(m_cpu_idx), static_cast<uint16_t>(m_command), 
+                static_cast<uint16_t>(m_rmw_subcommand),
                 /* Additional arguments for write operations are used as the
                  * interface parameter. But in read operations, it is preloaded
                  * into the data field to specify which data to read from the
                  * mailbox.
                  */
-                m_rmw_interface_parameter);
+                static_cast<uint16_t>(m_rmw_interface_parameter));
         }
-        m_saved_value &= m_mask;
+        m_saved_value &= static_cast<uint32_t>(m_mask);
     }
 
     void SSTControl::restore(void)
     {
         auto dependency = m_dependency.lock();
-        if (dependency && m_saved_value == m_trigger_write_value) {
-            dependency->write(m_dependency_write_value);
+        if (dependency && m_saved_value == static_cast<double>(m_trigger_write_value)) {
+            dependency->write(static_cast<double>(m_dependency_write_value));
         }
         if (m_control_type == M_MMIO) {
             m_sstio->write_mmio_once(
-                m_cpu_idx, m_interface_parameter, m_write_value, m_rmw_read_mask,
+                static_cast<uint16_t>(m_cpu_idx), static_cast<uint16_t>(m_interface_parameter), 
+                static_cast<uint16_t>(m_write_value), static_cast<uint16_t>(m_rmw_read_mask),
                 m_saved_value, m_mask);
         }
         else {
             m_sstio->write_mbox_once(
-                m_cpu_idx, m_command, m_subcommand, m_interface_parameter,
-                m_rmw_subcommand, m_rmw_interface_parameter, m_rmw_read_mask,
+                static_cast<uint16_t>(m_cpu_idx), static_cast<uint16_t>(m_command), 
+                static_cast<uint16_t>(m_subcommand), static_cast<uint16_t>(m_interface_parameter),
+                static_cast<uint16_t>(m_rmw_subcommand), static_cast<uint16_t>(m_rmw_interface_parameter), 
+                static_cast<uint16_t>(m_rmw_read_mask),
                 m_saved_value, m_mask);
         }
     }

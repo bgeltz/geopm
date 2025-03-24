@@ -245,7 +245,7 @@ extern "C" {
         try {
             auto service_proxy = geopm::ServiceProxy::make_unique();
             auto pid_vec = service_proxy->platform_get_profile_pids(profile_name);
-            int result_len = pid_vec.size();
+            int result_len = static_cast<int>(pid_vec.size());
             bool is_overflow = false;
             if (result_len > max_num_pid) {
                 result_len = max_num_pid;

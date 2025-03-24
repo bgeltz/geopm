@@ -141,13 +141,13 @@ namespace geopm
     template <class type>
     int CircularBuffer<type>::size() const
     {
-        return m_count;
+        return static_cast<int>(m_count);
     }
 
     template <class type>
     int CircularBuffer<type>::capacity() const
     {
-        return m_max_size;
+        return static_cast<int>(m_max_size);
     }
 
     template <class type>
@@ -203,7 +203,7 @@ namespace geopm
                 GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
         if (index < 0) {
-            const int new_index = m_count + index;
+            const int new_index = static_cast<int>(m_count) + index;
             return m_buffer.at((m_head + new_index) % m_max_size);
         } else {
             return m_buffer.at((m_head + index) % m_max_size);
@@ -213,7 +213,7 @@ namespace geopm
     template <class type>
     std::vector<type> CircularBuffer<type>::make_vector(void) const
     {
-        std::vector<type> result(size());
+        std::vector<type> result(static_cast<size_t>(size()));
         if (m_head == 0) {
             std::copy(m_buffer.begin(), m_buffer.begin() + m_count, result.begin());
         }
@@ -238,10 +238,10 @@ namespace geopm
         }
 
         int slice_length = idx_end - idx_start;
-        std::vector<type> result(slice_length);
+        std::vector<type> result(static_cast<size_t>(slice_length));
 
-        unsigned int start=(m_head + idx_start) % capacity();
-        unsigned int end=(((m_head + idx_end) - 1) % capacity()) + 1;
+        unsigned int start=(m_head + idx_start) % static_cast<size_t>(capacity());
+        unsigned int end=(((m_head + idx_end) - 1) % static_cast<size_t>(capacity())) + 1;
 
         if(end > start) {
             std::copy(m_buffer.begin() + start, m_buffer.begin() + end, result.begin());

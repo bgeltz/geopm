@@ -268,7 +268,7 @@ namespace geopm
                     }
                     if (do_push_signal == true) {
                         int group_signal_idx = ii->push_signal(signal_name, domain_type, domain_idx);
-                        result = m_active_signal.size();
+                        result = static_cast<int>(m_active_signal.size());
                         m_existing_signal[sig_tup] = result;
                         m_active_signal.emplace_back(ii, group_signal_idx);
                         m_pushed_signal_names.insert(signal_name);
@@ -326,7 +326,7 @@ namespace geopm
                                             int domain_idx,
                                             const std::vector<int> &sub_signal_idx)
     {
-        int result = m_active_signal.size();
+        int result = static_cast<int>(m_active_signal.size());
         std::unique_ptr<CombinedSignal> combiner = geopm::make_unique<CombinedSignal>(agg_function(signal_name));
         register_combined_signal(result, sub_signal_idx, std::move(combiner));
         m_active_signal.emplace_back(nullptr, result);
@@ -338,11 +338,11 @@ namespace geopm
                                              int domain_idx,
                                              const std::vector<int> &sub_control_idx)
     {
-        int result = m_active_control.size();
+        int result = static_cast<int>(m_active_control.size());
         double factor = 1.0;
         if (!sub_control_idx.empty() &&
             !is_control_adjust_same(control_name)) {
-            factor = 1.0 / sub_control_idx.size();
+            factor = 1.0 / static_cast<double>(sub_control_idx.size());
         }
         std::unique_ptr<CombinedControl> combiner = geopm::make_unique<CombinedControl>(factor);
         register_combined_control(result, sub_control_idx, std::move(combiner));
@@ -400,7 +400,7 @@ namespace geopm
                     int val;
                     try {
                         // Attempt to read then write the control to ensure batch writes will succeed
-                        val = ii->read_signal(control_name, domain_type, domain_idx);
+                        val = static_cast<int>(ii->read_signal(control_name, domain_type, domain_idx));
                         ii->write_control(control_name, domain_type, domain_idx, val);
                         do_push_control = true;
                     }
@@ -415,7 +415,7 @@ namespace geopm
                     }
                     if (do_push_control == true) {
                         int group_control_idx = ii->push_control(control_name, domain_type, domain_idx);
-                        result = m_active_control.size();
+                        result = static_cast<int>(m_active_control.size());
                         m_existing_control[ctl_tup] = result;
                         m_active_control.emplace_back(ii, group_control_idx);
                     }
@@ -470,12 +470,12 @@ namespace geopm
 
     int PlatformIOImp::num_signal_pushed(void) const
     {
-        return m_active_signal.size();
+        return static_cast<int>(m_active_signal.size());
     }
 
     int PlatformIOImp::num_control_pushed(void) const
     {
-        return m_active_control.size();
+        return static_cast<int>(m_active_control.size());
     }
 
     double PlatformIOImp::sample(int signal_idx)
@@ -698,7 +698,7 @@ namespace geopm
                                                                           domain_type, domain_idx);
             if (!base_domain_idx.empty() &&
                 !is_control_adjust_same(control_name)) {
-                setting /= base_domain_idx.size();
+                setting /= static_cast<double>(base_domain_idx.size());
             }
             for (auto idx : base_domain_idx) {
                 write_control(control_name, base_domain_type, idx, setting);
@@ -838,7 +838,7 @@ extern "C" {
     {
         int result = 0;
         try {
-            result = geopm::platform_io().signal_names().size();
+            result = static_cast<int>(geopm::platform_io().signal_names().size());
         }
         catch (...) {
             result = geopm::exception_handler(std::current_exception());
@@ -894,7 +894,7 @@ extern "C" {
     {
         int result = 0;
         try {
-            result = geopm::platform_io().control_names().size();
+            result = static_cast<int>(geopm::platform_io().control_names().size());
         }
         catch (...) {
             result = geopm::exception_handler(std::current_exception());

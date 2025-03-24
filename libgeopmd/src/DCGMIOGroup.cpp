@@ -213,13 +213,13 @@ namespace geopm
         for (size_t ii = 0; !is_found && ii < m_signal_pushed.size(); ++ii) {
             // same location means this signal or its alias was already pushed
             if (m_signal_pushed[ii].get() == signal.get()) {
-                result = ii;
+                result = static_cast<int>(ii);
                 is_found = true;
             }
         }
         if (!is_found) {
             // If not pushed, add to pushed signals and configure for batch reads
-            result = m_signal_pushed.size();
+            result = static_cast<int>(m_signal_pushed.size());
             signal->m_do_read = true;
             m_signal_pushed.push_back(std::move(signal));
         }
@@ -253,13 +253,13 @@ namespace geopm
         for (size_t ii = 0; !is_found && ii < m_control_pushed.size(); ++ii) {
             // same location means this control or its alias was already pushed
             if (m_control_pushed[ii] == control) {
-                result = ii;
+                result = static_cast<int>(ii);
                 is_found = true;
             }
         }
         if (!is_found) {
             // If not pushed, add to pushed control
-            result = m_control_pushed.size();
+            result = static_cast<int>(m_control_pushed.size());
             m_control_pushed.push_back(std::move(control));
         }
 
@@ -384,13 +384,13 @@ namespace geopm
         }
 
         if (control_name == "DCGM::FIELD_UPDATE_RATE") {
-            m_dcgm_device_pool.update_rate(setting*1e6);
+            m_dcgm_device_pool.update_rate(static_cast<int>(setting * 1e6));
         }
         else if (control_name == "DCGM::MAX_STORAGE_TIME") {
-            m_dcgm_device_pool.max_storage_time(setting);
+            m_dcgm_device_pool.max_storage_time(static_cast<int>(setting));
         }
         else if (control_name == "DCGM::MAX_SAMPLES") {
-            m_dcgm_device_pool.max_samples(setting);
+            m_dcgm_device_pool.max_samples(static_cast<int>(setting));
         }
         else {
     #ifdef GEOPM_DEBUG
