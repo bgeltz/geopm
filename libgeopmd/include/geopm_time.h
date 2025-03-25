@@ -91,7 +91,7 @@ static inline int geopm_time_to_string(const struct geopm_time_s *time, int buf_
     clock_gettime(CLOCK_MONOTONIC_RAW, &(ref_time_mono.t));
     time_t sec_since_1970 = static_cast<time_t>(geopm_time_diff(&ref_time_mono, &ref_time_real) + static_cast<double>(time->t.tv_sec));
     localtime_r(&sec_since_1970, &tm);
-    size_t num_byte = strftime(buf, buf_size, "%a %b %d %H:%M:%S %Y", &tm);
+    size_t num_byte = strftime(buf, static_cast<size_t>(buf_size), "%a %b %d %H:%M:%S %Y", &tm);
     if (!num_byte) {
         err = EINVAL;
     }

@@ -115,7 +115,7 @@ namespace geopm
         auto lock = m_policy_shmem->get_scoped_lock();
         auto data = (struct geopm_endpoint_policy_shmem_s *) m_policy_shmem->pointer(); // Managed by shmem subsystem.
 
-        int num_policy = data->count;
+        int num_policy = static_cast<int>(data->count);
         if (policy.size() < (size_t)num_policy) {
             throw Exception("EndpointUserImp::" + std::string(__func__) + "(): Data read from shmem does not fit in policy vector.",
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);

@@ -195,7 +195,7 @@ namespace geopm
 
     uint64_t SampleAggregatorImp::sample_to_hash(double sample)
     {
-        uint64_t result = sample;
+        uint64_t result = static_cast<uint64_t>(sample);
         if (std::isnan(sample)) {
             result = GEOPM_REGION_HASH_INVALID;
         }
@@ -230,7 +230,7 @@ namespace geopm
             m_sum_signal_s &signal = signal_it.second;
             double sample = m_platform_io.sample(signal_idx);
             uint64_t hash = sample_to_hash(m_platform_io.sample(signal.region_hash_idx));
-            int epoch_count = m_platform_io.sample(signal.epoch_count_idx);
+            int epoch_count = static_cast<int>(m_platform_io.sample(signal.epoch_count_idx));
             if (!m_is_updated) {
                 // On first call just initialize the signal values
                 signal.sample_last = sample;
@@ -282,7 +282,7 @@ namespace geopm
             double time = m_platform_io.sample(m_time_idx);
             double sample = m_platform_io.sample(signal_idx);
             uint64_t hash = sample_to_hash(m_platform_io.sample(signal.region_hash_idx));
-            int epoch_count = m_platform_io.sample(signal.epoch_count_idx);
+            int epoch_count = static_cast<int>(m_platform_io.sample(signal.epoch_count_idx));
             if (!m_is_updated) {
                 // On first call just initialize the signal values
                 signal.time_last = 0.0;

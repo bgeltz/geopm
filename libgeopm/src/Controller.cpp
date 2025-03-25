@@ -57,7 +57,7 @@ extern "C"
             ctl_obj->abort();
             err = geopm::exception_handler(std::current_exception(), true);
         }
-        return err;
+        return static_cast<int>(err);
     }
 
     static void *geopm_threaded_run(void *args)

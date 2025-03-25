@@ -633,22 +633,22 @@ namespace geopm
 
     int LevelZeroImp::frequency_domain_count(unsigned int l0_device_idx, int l0_domain) const
     {
-        return m_devices.at(l0_device_idx).subdevice.freq_domain.at(l0_domain).size();
+        return static_cast<int>(m_devices.at(l0_device_idx).subdevice.freq_domain.at(l0_domain).size());
     }
 
     int LevelZeroImp::engine_domain_count(unsigned int l0_device_idx, int l0_domain) const
     {
-        return m_devices.at(l0_device_idx).subdevice.engine_domain.at(l0_domain).size();
+        return static_cast<int>(m_devices.at(l0_device_idx).subdevice.engine_domain.at(l0_domain).size());
     }
 
     int LevelZeroImp::performance_domain_count(unsigned int l0_device_idx, int l0_domain) const
     {
-        return m_devices.at(l0_device_idx).subdevice.perf_domain.at(l0_domain).size();
+        return static_cast<int>(m_devices.at(l0_device_idx).subdevice.perf_domain.at(l0_domain).size());
     }
 
     int LevelZeroImp::temperature_domain_count(unsigned int l0_device_idx, int l0_domain) const
     {
-        return m_devices.at(l0_device_idx).subdevice.temp_domain_max.at(l0_domain).size();
+        return static_cast<int>(m_devices.at(l0_device_idx).subdevice.temp_domain_max.at(l0_domain).size());
     }
 
     double LevelZeroImp::performance_factor(unsigned int l0_device_idx,
@@ -684,112 +684,112 @@ namespace geopm
                                                      int l0_domain,
                                                      int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_RESET, M_ERROR_TYPE_CORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_RESET, M_ERROR_TYPE_CORRECTABLE));
     }
 
     double LevelZeroImp::ras_programming_errcount_correctable(unsigned int l0_device_idx,
                                                               int l0_domain,
                                                               int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_PROGRAMMING_ERRORS, M_ERROR_TYPE_CORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_PROGRAMMING_ERRORS, M_ERROR_TYPE_CORRECTABLE));
     }
 
     double LevelZeroImp::ras_driver_errcount_correctable(unsigned int l0_device_idx,
                                                          int l0_domain,
                                                          int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_DRIVER_ERRORS, M_ERROR_TYPE_CORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_DRIVER_ERRORS, M_ERROR_TYPE_CORRECTABLE));
     }
 
     double LevelZeroImp::ras_compute_errcount_correctable(unsigned int l0_device_idx,
                                                           int l0_domain,
                                                           int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_COMPUTE_ERRORS, M_ERROR_TYPE_CORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_COMPUTE_ERRORS, M_ERROR_TYPE_CORRECTABLE));
     }
 
     double LevelZeroImp::ras_noncompute_errcount_correctable(unsigned int l0_device_idx,
                                                              int l0_domain,
                                                              int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_NON_COMPUTE_ERRORS, M_ERROR_TYPE_CORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_NON_COMPUTE_ERRORS, M_ERROR_TYPE_CORRECTABLE));
     }
 
     double LevelZeroImp::ras_cache_errcount_correctable(unsigned int l0_device_idx,
                                                         int l0_domain,
                                                         int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_CACHE_ERRORS, M_ERROR_TYPE_CORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_CACHE_ERRORS, M_ERROR_TYPE_CORRECTABLE));
     }
 
     double LevelZeroImp::ras_display_errcount_correctable(unsigned int l0_device_idx,
                                                           int l0_domain,
                                                           int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_DISPLAY_ERRORS, M_ERROR_TYPE_CORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_DISPLAY_ERRORS, M_ERROR_TYPE_CORRECTABLE));
     }
 
     double LevelZeroImp::ras_reset_count_uncorrectable(unsigned int l0_device_idx,
                                                        int l0_domain,
                                                        int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_RESET, M_ERROR_TYPE_UNCORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_RESET, M_ERROR_TYPE_UNCORRECTABLE));
     }
 
     double LevelZeroImp::ras_programming_errcount_uncorrectable(unsigned int l0_device_idx,
                                                                 int l0_domain,
                                                                 int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_PROGRAMMING_ERRORS, M_ERROR_TYPE_UNCORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_PROGRAMMING_ERRORS, M_ERROR_TYPE_UNCORRECTABLE));
     }
 
     double LevelZeroImp::ras_driver_errcount_uncorrectable(unsigned int l0_device_idx,
                                                            int l0_domain,
                                                            int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_DRIVER_ERRORS, M_ERROR_TYPE_UNCORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_DRIVER_ERRORS, M_ERROR_TYPE_UNCORRECTABLE));
     }
 
     double LevelZeroImp::ras_compute_errcount_uncorrectable(unsigned int l0_device_idx,
                                                             int l0_domain,
                                                             int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_COMPUTE_ERRORS, M_ERROR_TYPE_UNCORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_COMPUTE_ERRORS, M_ERROR_TYPE_UNCORRECTABLE));
     }
 
     double LevelZeroImp::ras_noncompute_errcount_uncorrectable(unsigned int l0_device_idx,
                                                                int l0_domain,
                                                                int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_NON_COMPUTE_ERRORS, M_ERROR_TYPE_UNCORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_NON_COMPUTE_ERRORS, M_ERROR_TYPE_UNCORRECTABLE));
     }
 
     double LevelZeroImp::ras_cache_errcount_uncorrectable(unsigned int l0_device_idx,
                                                           int l0_domain,
                                                           int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_CACHE_ERRORS, M_ERROR_TYPE_UNCORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_CACHE_ERRORS, M_ERROR_TYPE_UNCORRECTABLE));
     }
 
     double LevelZeroImp::ras_display_errcount_uncorrectable(unsigned int l0_device_idx,
                                                             int l0_domain,
                                                             int l0_domain_idx) const
     {
-        return ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
-                                 ZES_RAS_ERROR_CAT_DISPLAY_ERRORS, M_ERROR_TYPE_UNCORRECTABLE);
+        return static_cast<double>(ras_status_helper(l0_device_idx, l0_domain, l0_domain_idx,
+                                                     ZES_RAS_ERROR_CAT_DISPLAY_ERRORS, M_ERROR_TYPE_UNCORRECTABLE));
     }
 
 

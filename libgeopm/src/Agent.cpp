@@ -158,7 +158,7 @@ namespace geopm
 
     std::vector<std::string> Agent::sample_names(const std::map<std::string, std::string> &dictionary)
     {
-        size_t num_names = num_sample(dictionary);
+        size_t num_names = static_cast<size_t>(num_sample(dictionary));
         std::vector<std::string> result(num_names);
         for (size_t name_idx = 0; name_idx != num_names; ++name_idx) {
             std::string key = m_sample_prefix + std::to_string(name_idx);
@@ -179,7 +179,7 @@ namespace geopm
 
     std::vector<std::string> Agent::policy_names(const std::map<std::string, std::string> &dictionary)
     {
-        size_t num_names = num_policy(dictionary);
+        size_t num_names = static_cast<size_t>(num_policy(dictionary));
         std::vector<std::string> result(num_names);
 
         for (size_t name_idx = 0; name_idx != num_names; ++name_idx) {
@@ -305,7 +305,7 @@ int geopm_agent_policy_name(const char *agent_name,
     }
     if (!err) {
         try {
-            std::string policy_name_cxx = geopm::Agent::policy_names(agent_name).at(policy_idx);
+            std::string policy_name_cxx = geopm::Agent::policy_names(agent_name).at(static_cast<size_t>(policy_idx));
             if (policy_name_cxx.size() >= policy_name_max) {
                 err = E2BIG;
             }
@@ -341,7 +341,7 @@ int geopm_agent_sample_name(const char *agent_name,
     }
     if (!err) {
         try {
-            std::string sample_name_cxx = geopm::Agent::sample_names(agent_name).at(sample_idx);
+            std::string sample_name_cxx = geopm::Agent::sample_names(agent_name).at(static_cast<size_t>(sample_idx));
             if (sample_name_cxx.size() >= sample_name_max) {
                 err = E2BIG;
             }
@@ -374,7 +374,7 @@ int geopm_agent_policy_json(const char *agent_name,
     int num_policy = 0;
     int err = geopm_agent_num_policy(agent_name, &num_policy);
     if (!err) {
-        err = geopm_agent_policy_json_partial(agent_name, num_policy, policy_array,
+        err = geopm_agent_policy_json_partial(agent_name, static_cast<size_t>(num_policy), policy_array,
                                               json_string_max, json_string);
     }
     return err;
@@ -401,7 +401,7 @@ int geopm_agent_policy_json_partial(const char *agent_name,
                 if (i > 0) {
                     output_str << ", ";
                 }
-                err = geopm_agent_policy_name(agent_name, i, GEOPM_NAME_MAX, policy_name);
+                err = geopm_agent_policy_name(agent_name, static_cast<int>(i), GEOPM_NAME_MAX, policy_name);
                 if (std::isnan(policy_array[i])) {
                     policy_value = "\"NAN\"";
                 }
@@ -436,11 +436,11 @@ int geopm_agent_name(int agent_idx,
     int err = 0;
     try {
         std::vector<std::string> agent_names = geopm::Agent::agent_names();
-        if (agent_names.at(agent_idx).size() >= agent_name_max) {
+        if (agent_names.at(static_cast<size_t>(agent_idx)).size() >= agent_name_max) {
             err = GEOPM_ERROR_INVALID;
         }
         if (!err) {
-            strncpy(agent_name, agent_names.at(agent_idx).c_str(), agent_name_max);
+            strncpy(agent_name, agent_names.at(static_cast<size_t>(agent_idx)).c_str(), agent_name_max);
             agent_name[agent_name_max - 1] = '\0';
         }
     }
@@ -455,7 +455,7 @@ int geopm_agent_num_avail(int* num_agent)
     int err = 0;
     try {
         std::vector<std::string> agent_names = geopm::Agent::agent_names();
-        *num_agent = agent_names.size();
+        *num_agent = static_cast<int>(agent_names.size());
     }
     catch (...) {
         err = geopm::exception_handler(std::current_exception(), false);

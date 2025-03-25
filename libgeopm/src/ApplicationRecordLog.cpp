@@ -143,7 +143,7 @@ namespace geopm
                                    "ApplicationRegionLog::exit(): adding a new short region when existing was not an entry.");
                 // Convert the region entry event into a short region event
                 layout.record_table[enter_info.record_idx].event = EVENT_SHORT_REGION;
-                layout.record_table[enter_info.record_idx].signal = region_idx;
+                layout.record_table[enter_info.record_idx].signal = static_cast<uint64_t>(region_idx);
             }
             GEOPM_DEBUG_ASSERT(region_idx >= 0 && region_idx < layout.num_region,
                                "Invalid region index");

@@ -97,7 +97,7 @@ namespace geopm
         , m_name(in_comm->m_name)
     {
         if (in_comm->is_valid()) {
-            check_mpi(PMPI_Cart_create(in_comm->m_comm, m_maxdims, dimension.data(), periods.data(), (int) is_reorder, &m_comm));
+            check_mpi(PMPI_Cart_create(in_comm->m_comm, static_cast<int>(m_maxdims), dimension.data(), periods.data(), static_cast<int>(is_reorder), &m_comm));
         }
     }
 
@@ -235,7 +235,7 @@ namespace geopm
 
     void MPIComm::dimension_create(int num_ranks, std::vector<int> &dimension) const
     {
-        check_mpi(PMPI_Dims_create(num_ranks, dimension.size(), dimension.data()));
+        check_mpi(PMPI_Dims_create(num_ranks, static_cast<int>(dimension.size()), dimension.data()));
     }
 
     void MPIComm::check_window(size_t win_handle) const
@@ -300,7 +300,7 @@ namespace geopm
             throw geopm::Exception(ex_str.str(), GEOPM_ERROR_RUNTIME, __FILE__, __LINE__);
         }
         if (is_valid()) {
-            check_mpi(PMPI_Cart_coords(m_comm, rank, m_maxdims, coord.data()));
+            check_mpi(PMPI_Cart_coords(m_comm, rank, static_cast<int>(m_maxdims), coord.data()));
         }
     }
 
@@ -321,7 +321,7 @@ namespace geopm
     void MPIComm::broadcast(void *buffer, size_t size, int root) const
     {
         if (is_valid()) {
-            check_mpi(PMPI_Bcast(buffer, size, MPI_BYTE, root, m_comm));
+            check_mpi(PMPI_Bcast(buffer, static_cast<int>(size), MPI_BYTE, root, m_comm));
         }
     }
 
@@ -329,7 +329,7 @@ namespace geopm
     void MPIComm::reduce_max(double *send_buf, double *recv_buf, size_t count, int root) const
     {
         if (is_valid()) {
-            check_mpi(PMPI_Reduce(send_buf, recv_buf, count, MPI_DOUBLE, MPI_MAX, root, m_comm));
+            check_mpi(PMPI_Reduce(send_buf, recv_buf, static_cast<int>(count), MPI_DOUBLE, MPI_MAX, root, m_comm));
         }
     }
 
@@ -347,7 +347,7 @@ namespace geopm
                          size_t recv_size, int root) const
     {
         if (is_valid()) {
-            check_mpi(PMPI_Gather(GEOPM_MPI_CONST_CAST(void *)(send_buf), send_size, MPI_BYTE, recv_buf, recv_size, MPI_BYTE, root, m_comm));
+            check_mpi(PMPI_Gather(GEOPM_MPI_CONST_CAST(void *)(send_buf), static_cast<int>(send_size), MPI_BYTE, recv_buf, static_cast<int>(recv_size), MPI_BYTE, root, m_comm));
         }
     }
 
@@ -367,11 +367,11 @@ namespace geopm
             if (*in_size_it > INT_MAX) {
                 throw Exception("Overflow detected in gatherv", GEOPM_ERROR_RUNTIME, __FILE__, __LINE__);
             }
-            *out_size_it = *in_size_it;
-            *out_off_it = *in_off_it;
+            *out_size_it = static_cast<int>(*in_size_it);
+            *out_off_it = static_cast<int>(*in_off_it);
         }
         if (is_valid()) {
-            check_mpi(PMPI_Gatherv(GEOPM_MPI_CONST_CAST(void *)(send_buf), send_size, MPI_BYTE, recv_buf, sizes.data(),
+            check_mpi(PMPI_Gatherv(GEOPM_MPI_CONST_CAST(void *)(send_buf), static_cast<int>(send_size), MPI_BYTE, recv_buf, sizes.data(),
                                    offsets.data(), MPI_BYTE, root, m_comm));
         }
     }
@@ -404,7 +404,7 @@ namespace geopm
 
     void CommWindow::put(const void *send_buf, size_t send_size, int rank, off_t disp)
     {
-        check_mpi(PMPI_Put(GEOPM_MPI_CONST_CAST(void *)(send_buf), send_size, MPI_BYTE, rank, disp,
-                           send_size, MPI_BYTE, m_window));
+        check_mpi(PMPI_Put(GEOPM_MPI_CONST_CAST(void *)(send_buf), static_cast<int>(send_size), MPI_BYTE, rank, disp,
+                           static_cast<int>(send_size), MPI_BYTE, m_window));
     }
 }

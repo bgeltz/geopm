@@ -32,7 +32,7 @@ namespace geopm
 
     void ReduceModelRegion::big_o(double big_o)
     {
-        m_num_elem = 67108864 * big_o; // 64 MiB per big_o
+        m_num_elem = static_cast<int>(67108864 * big_o); // 64 MiB per big_o
         m_send_buffer.resize(m_num_elem);
         m_recv_buffer.resize(m_num_elem);
         std::fill(m_send_buffer.begin(), m_send_buffer.end(), 1.0);

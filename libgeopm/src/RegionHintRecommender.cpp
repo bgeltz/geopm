@@ -108,7 +108,7 @@ namespace geopm
         double freq = 0;
         for (const auto &[region_name, probability] : nn_output) {
             size_t phi_idx =
-                static_cast<size_t>(std::floor(phi * (m_freq_map.at(region_name).size() - 1)));
+                static_cast<size_t>(std::floor(phi * (static_cast<double>(m_freq_map.at(region_name).size()) - 1)));
             freq += exp(probability) * m_freq_map.at(region_name).at(phi_idx);
             zz += exp(probability);
         }

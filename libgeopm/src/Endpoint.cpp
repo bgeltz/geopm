@@ -130,7 +130,7 @@ namespace geopm
         auto lock = m_sample_shmem->get_scoped_lock();
         struct geopm_endpoint_sample_shmem_s *data = (struct geopm_endpoint_sample_shmem_s *) m_sample_shmem->pointer(); // Managed by shmem subsystem.
 
-        int num_sample = data->count;
+        int num_sample = static_cast<int>(data->count);
         std::copy(data->values, data->values + data->count, sample.begin());
         geopm_time_s ts = data->timestamp;
         if (sample.size() != (size_t)num_sample) {
@@ -374,7 +374,7 @@ int geopm_endpoint_num_node(struct geopm_endpoint_c *endpoint,
     geopm::EndpointImp *end = (geopm::EndpointImp*)endpoint;
     try {
         std::set<std::string> hostlist = end->get_hostnames();
-        *num_node = hostlist.size();
+        *num_node = static_cast<int>(hostlist.size());
     }
     catch (...) {
         err = geopm::exception_handler(std::current_exception(), true);

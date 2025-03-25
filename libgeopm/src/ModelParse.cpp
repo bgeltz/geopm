@@ -55,7 +55,7 @@ namespace geopm
             Json val = obj.second;
             if (key_string == "loop-count") {
                 if (val.is_number() && floor(val.number_value()) == val.number_value()) {
-                    loop_count = val.number_value();
+                    loop_count = static_cast<uint64_t>(val.number_value());
                 }
                 else {
                     throw Exception("model_parse_config(): loop-count expected to be an integer type",
@@ -142,7 +142,7 @@ namespace geopm
             throw geopm::Exception("model_parse_config(): array length mismatch",
                                    GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
-        int num_host = hostname.size();
+        int num_host = static_cast<int>(hostname.size());
         std::string this_hostname = geopm::hostname();
         for (int host_idx = 0; host_idx != num_host; ++host_idx) {
             if (hostname.at(host_idx) == this_hostname) {

@@ -99,7 +99,7 @@ namespace geopm
 
     int PowerBalancerAgent::Role::step(size_t step_count) const
     {
-        return (step_count % M_NUM_STEP);
+        return static_cast<int>(step_count % M_NUM_STEP);
     }
 
     int PowerBalancerAgent::Role::step(void) const
@@ -514,7 +514,7 @@ namespace geopm
     {
         for (int pkg_idx = 0; pkg_idx < role.m_num_domain; ++pkg_idx) {
             auto &package = role.m_package[pkg_idx];
-            int epoch_count = role.m_platform_io.sample(role.m_count_pio_idx[pkg_idx]);
+            int epoch_count = static_cast<int>(role.m_platform_io.sample(role.m_count_pio_idx[pkg_idx]));
             if (epoch_count > 1 &&
                 epoch_count != package.last_epoch_count &&
                 !package.is_step_complete) {
@@ -553,7 +553,7 @@ namespace geopm
     void PowerBalancerAgent::ReduceLimitStep::sample_platform(PowerBalancerAgent::LeafRole &role) const
     {
         for (int pkg_idx = 0; pkg_idx != role.m_num_domain; ++pkg_idx) {
-            int epoch_count = role.m_platform_io.sample(role.m_count_pio_idx[pkg_idx]);
+            int epoch_count = static_cast<int>(role.m_platform_io.sample(role.m_count_pio_idx[pkg_idx]));
             // If all of the ranks have observed a new epoch then update
             // the power_balancer.
             auto &package = role.m_package[pkg_idx];
@@ -772,7 +772,7 @@ namespace geopm
 
     std::string PowerBalancerAgent::format_step_count(double step)
     {
-        int64_t step_count = step;
+        int64_t step_count = static_cast<int64_t>(step);
         int64_t step_type = step_count % M_NUM_STEP;
         int64_t loop_count = step_count / M_NUM_STEP;
         std::string result(std::to_string(loop_count));

@@ -126,7 +126,7 @@ namespace geopm
         else {
             m_num_progress_updates = 100;
         }
-        (void)geopm_tprof_init(m_num_progress_updates);
+        (void)geopm_tprof_init(static_cast<uint32_t>(m_num_progress_updates));
     }
 
     void ModelRegion::region(uint64_t hint)
@@ -148,7 +148,7 @@ namespace geopm
             err = geopm_prof_enter(m_region_id);
             if (err != 0) {
                 throw Exception("ModelRegion::region_enter(): geopm_prof_enter() error on region_id: '" +
-                                geopm::string_format_hex(m_region_id)  + "'",
+                                geopm::string_format_hex(static_cast<double>(m_region_id))  + "'",
                                 err, __FILE__, __LINE__);
             }
         }
@@ -161,7 +161,7 @@ namespace geopm
             err = geopm_prof_exit(m_region_id);
             if (err != 0) {
                 throw Exception("ModelRegion::region_exit(): geopm_prof_exit() error on region_id: '" +
-                                geopm::string_format_hex(m_region_id)  + "'",
+                                geopm::string_format_hex(static_cast<double>(m_region_id))  + "'",
                                 err, __FILE__, __LINE__);
             }
         }

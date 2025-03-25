@@ -95,7 +95,7 @@ namespace geopm
             result = it->second;
         }
         if (result == -1) {
-            result = m_active_signal.size();
+            result = static_cast<int>(m_active_signal.size());
             m_active_signal.push_back(domain_idx);
             m_cpu_signal_map[domain_idx] = result;
         }

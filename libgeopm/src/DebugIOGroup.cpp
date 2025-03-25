@@ -37,7 +37,7 @@ namespace geopm
                 throw Exception("DebugIOGroup::register_signal(): number of registered signals was greater than size of shared vector provided.",
                                 GEOPM_ERROR_RUNTIME, __FILE__, __LINE__);
             }
-            m_signal_idx[std::make_pair(name, idx)] = m_num_reg_signals;
+            m_signal_idx[std::make_pair(name, idx)] = static_cast<int>(m_num_reg_signals);
             ++m_num_reg_signals;
         }
         m_signal_name.insert(name);

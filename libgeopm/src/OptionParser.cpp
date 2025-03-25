@@ -105,8 +105,8 @@ namespace geopm
                 do_version = true;
             }
             else {
-                auto bit = m_bool_short_name.find(opt);
-                auto sit = m_str_short_name.find(opt);
+                auto bit = m_bool_short_name.find(static_cast<char>(opt));
+                auto sit = m_str_short_name.find(static_cast<char>(opt));
                 if (bit != m_bool_short_name.end()) {
                     m_bool_opts[bit->second].value = !m_bool_opts.at(bit->second).default_value;  // flip bool value from default if set
                 }

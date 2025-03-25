@@ -128,7 +128,7 @@ namespace geopm
             ++signal_idx;
         }
         if (result == -1) {
-            result = m_active_signal.size();
+            result = static_cast<int>(m_active_signal.size());
             m_active_signal.push_back({signal_type, domain_type, domain_idx});
             m_do_read[signal_type] = true;
         }
@@ -184,7 +184,7 @@ namespace geopm
         if (hash == GEOPM_REGION_HASH_INVALID) {
             return NAN;
         }
-        return hash;
+        return static_cast<double>(hash);
     }
 
     double ProfileIOGroup::hint_to_signal(uint64_t hint)
@@ -192,7 +192,7 @@ namespace geopm
         if (hint == GEOPM_REGION_HINT_INACTIVE) {
             return NAN;
         }
-        return hint;
+        return static_cast<double>(hint);
     }
 
     uint64_t ProfileIOGroup::signal_type_to_hint(int signal_type)
@@ -254,10 +254,10 @@ namespace geopm
         double result = NAN;
         switch (signal_type) {
             case M_SIGNAL_REGION_HASH:
-                result = m_application_sampler.cpu_region_hash(cpu_idx);
+                result = static_cast<double>(m_application_sampler.cpu_region_hash(cpu_idx));
                 break;
             case M_SIGNAL_REGION_HINT:
-                result = m_application_sampler.cpu_hint(cpu_idx);
+                result = static_cast<double>(m_application_sampler.cpu_hint(cpu_idx));
                 break;
             case M_SIGNAL_THREAD_PROGRESS:
                 result = m_application_sampler.cpu_progress(cpu_idx);

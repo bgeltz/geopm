@@ -35,7 +35,7 @@ namespace geopm
     void SpinModelRegion::big_o(double big_o_in)
     {
         num_progress_updates(big_o_in);
-        m_delay = big_o_in / m_num_progress_updates;
+        m_delay = big_o_in / static_cast<double>(m_num_progress_updates);
         m_big_o = big_o_in;
     }
 

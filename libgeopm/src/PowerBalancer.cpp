@@ -102,7 +102,7 @@ namespace geopm
         if (m_runtime_buffer->size() == 0) {
             m_runtime_vec.push_back(measured_runtime);
             if (Agg::sum(m_runtime_vec) > M_MIN_DURATION) {
-                m_num_sample = m_runtime_vec.size();
+                m_num_sample = static_cast<int>(m_runtime_vec.size());
                 if (m_num_sample < M_MIN_NUM_SAMPLE) {
                     m_num_sample = M_MIN_NUM_SAMPLE;
                 }

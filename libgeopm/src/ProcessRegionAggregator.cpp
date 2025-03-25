@@ -27,7 +27,7 @@ namespace geopm
     ProcessRegionAggregatorImp::ProcessRegionAggregatorImp(ApplicationSampler &sampler)
         : m_app_sampler(sampler)
     {
-        m_num_process = m_app_sampler.client_pids().size();
+        m_num_process = static_cast<int>(m_app_sampler.client_pids().size());
     }
 
     void ProcessRegionAggregatorImp::update(void)
@@ -66,7 +66,7 @@ namespace geopm
             }
             else if (rec.event == EVENT_SHORT_REGION) {
                 int process = rec.process;
-                int short_idx = rec.signal;
+                int short_idx = static_cast<int>(rec.signal);
                 auto short_region = m_app_sampler.get_short_region(short_idx);
                 uint64_t region_hash = short_region.hash;
 

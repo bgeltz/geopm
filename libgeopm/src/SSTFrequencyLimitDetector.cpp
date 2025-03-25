@@ -82,7 +82,7 @@ namespace geopm
         , m_core_frequency_limits(m_core_count, {{m_core_count / m_package_count, M_CPU_FREQUENCY_MAX}})
         , m_core_lp_frequencies(m_core_count, M_CPU_FREQUENCY_STICKER)
     {
-        for (size_t i = 0; i < m_core_count; ++i) {
+        for (int i = 0; i < static_cast<int>(m_core_count); ++i) {
             m_clos_association_signals.push_back(m_platform_io.push_signal(
                 "SST::COREPRIORITY:ASSOCIATION", GEOPM_DOMAIN_CORE, i));
             m_frequency_limit_signals.push_back(m_platform_io.push_signal(
@@ -114,11 +114,11 @@ namespace geopm
         for (size_t package_idx = 0; package_idx < m_package_count; ++package_idx) {
             const auto &cores_in_package = m_cores_in_packages[package_idx];
             if (m_platform_io.sample(m_sst_tf_enable_signals[package_idx])) {
-                unsigned int hp_core_count = std::count_if(
+                unsigned int hp_core_count = static_cast<unsigned int>(std::count_if(
                     cores_in_package.begin(), cores_in_package.end(),
                     [this](int idx) {
                         return m_platform_io.sample(m_clos_association_signals[idx]) <= MEDIUM_HIGH_PRIORITY;
-                    });
+                    }));
 
                 double sse_freq, avx2_freq, avx512_freq;
 

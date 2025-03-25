@@ -121,11 +121,11 @@ namespace geopm
         , m_process_map(process_map)
         , m_is_filtered(is_filtered)
         , m_filter_name(filter_name)
-        , m_hint_time(m_num_cpu, std::array<double, GEOPM_NUM_REGION_HINT>{})
+        , m_hint_time(static_cast<size_t>(m_num_cpu), std::array<double, GEOPM_NUM_REGION_HINT>{})
         , m_is_cpu_active(is_cpu_active)
         , m_update_time({{0, 0}})
         , m_is_first_update(true)
-        , m_hint_last(m_num_cpu, uint64_t(GEOPM_REGION_HINT_UNSET))
+        , m_hint_last(static_cast<size_t>(m_num_cpu), uint64_t(GEOPM_REGION_HINT_UNSET))
         , m_profile_name(profile_name)
         , m_client_cpu_map(client_cpu_map)
         , m_scheduler(std::move(scheduler))
@@ -137,7 +137,7 @@ namespace geopm
         , m_num_client(0)
     {
         if (m_is_cpu_active.empty()) {
-            m_is_cpu_active.resize(m_num_cpu, false);
+            m_is_cpu_active.resize(static_cast<size_t>(m_num_cpu), false);
         }
     }
 
@@ -186,7 +186,7 @@ namespace geopm
             // Update the "signal" field for all of the short region
             // events to have the right offset.
             size_t short_region_remain = proc_it.short_regions.size();
-            for (auto record_it = m_record_buffer.begin() + record_offset;
+            for (auto record_it = m_record_buffer.begin() + static_cast<std::ptrdiff_t>(record_offset);
                  short_region_remain > 0 &&
                  record_it != m_record_buffer.end();
                  ++record_it) {
@@ -203,15 +203,15 @@ namespace geopm
         m_status->update_cache();
         double time_delta;
         if (m_is_first_update) {
-            for (int cpu_idx = 0; cpu_idx != m_num_cpu; ++cpu_idx) {
-                m_hint_last[cpu_idx] = cpu_hint(cpu_idx);
+            for (size_t cpu_idx = 0; cpu_idx != static_cast<size_t>(m_num_cpu); ++cpu_idx) {
+                m_hint_last[cpu_idx] = cpu_hint(static_cast<int>(cpu_idx));
             }
         }
         else {
             time_delta = geopm_time_diff(&m_update_time, &curr_time);
-            for (int cpu_idx = 0; cpu_idx != m_num_cpu; ++cpu_idx) {
+            for (size_t cpu_idx = 0; cpu_idx != static_cast<size_t>(m_num_cpu); ++cpu_idx) {
                 m_hint_time[cpu_idx][m_hint_last[cpu_idx]] += time_delta;
-                m_hint_last[cpu_idx] = cpu_hint(cpu_idx);
+                m_hint_last[cpu_idx] = cpu_hint(static_cast<int>(cpu_idx));
             }
         }
         m_is_first_update = false;
@@ -298,7 +298,7 @@ namespace geopm
         if (!m_status) {
             result = GEOPM_REGION_HASH_APP;
         }
-        else if (m_is_cpu_active[cpu_idx]) {
+        else if (m_is_cpu_active[static_cast<size_t>(cpu_idx)]) {
             result = m_status->get_hash(cpu_idx);
         }
         return result;
@@ -310,7 +310,7 @@ namespace geopm
         if (!m_status) {
             result = GEOPM_REGION_HINT_INACTIVE;
         }
-        if (m_status != nullptr && m_is_cpu_active[cpu_idx]) {
+        if (m_status != nullptr && m_is_cpu_active[static_cast<size_t>(cpu_idx)]) {
             result = m_status->get_hint(cpu_idx);
         }
         return result;
@@ -324,9 +324,9 @@ namespace geopm
                             "(): cpu_idx is out of range: " + std::to_string(cpu_idx),
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
-        if (m_is_cpu_active[cpu_idx]) {
+        if (m_is_cpu_active[static_cast<size_t>(cpu_idx)]) {
             geopm::check_hint(hint);
-            result = m_hint_time[cpu_idx][hint];
+            result = m_hint_time[static_cast<size_t>(cpu_idx)][hint];
         }
         return result;
     }
@@ -343,7 +343,7 @@ namespace geopm
     {
         std::map<int, m_process_s> result;
         for (const auto &pid : client_pids) {
-            std::string shmem_path = shmem_path_prof("record-log", pid, geteuid());
+            std::string shmem_path = shmem_path_prof("record-log", pid, static_cast<int>(geteuid()));
             std::shared_ptr<SharedMemory> record_log_shmem =
                 SharedMemory::make_unique_user(shmem_path, 0);
             if (record_log_shmem->size() < ApplicationRecordLog::buffer_size()) {
@@ -366,7 +366,7 @@ namespace geopm
 
     void ApplicationSamplerImp::connect_status(void)
     {
-        std::string shmem_path = shmem_path_prof("status", getpid(), geteuid());
+        std::string shmem_path = shmem_path_prof("status", getpid(), static_cast<int>(geteuid()));
         std::shared_ptr<SharedMemory> status_shmem =
             SharedMemory::make_unique_user(shmem_path, 0);
         if (status_shmem->size() < ApplicationStatus::buffer_size(m_num_cpu)) {
@@ -382,11 +382,11 @@ namespace geopm
         for (const auto &client_it : m_client_cpu_map) {
             const std::set<int> &cpu_set = client_it.second;
             for (int cpu_idx : cpu_set) {
-                m_is_cpu_active[cpu_idx] = true;
+                m_is_cpu_active[static_cast<size_t>(cpu_idx)] = true;
             }
         }
         for (int cpu_idx = 0; cpu_idx != m_num_cpu; ++cpu_idx) {
-            m_hint_last[cpu_idx] = cpu_hint(cpu_idx);
+            m_hint_last[static_cast<size_t>(cpu_idx)] = cpu_hint(cpu_idx);
         }
 
         // Try to pin the sampling thread to a free core
@@ -457,17 +457,17 @@ namespace geopm
     int ApplicationSamplerImp::sampler_cpu(void)
     {
         int result = m_num_cpu - 1;
-        int num_core = m_topo.num_domain(GEOPM_DOMAIN_CORE);
+        size_t num_core = static_cast<size_t>(m_topo.num_domain(GEOPM_DOMAIN_CORE));
         bool found_inactive_core = false;
         bool found_inactive_cpu = false;
         std::vector<bool> is_core_active(num_core, false);
-        for (int cpu_idx = 0; cpu_idx != m_num_cpu; ++cpu_idx) {
+        for (size_t cpu_idx = 0; cpu_idx != static_cast<size_t>(m_num_cpu); ++cpu_idx) {
             if (m_is_cpu_active[cpu_idx]) {
-                is_core_active.at(m_topo.domain_idx(GEOPM_DOMAIN_CORE, cpu_idx)) = true;
+                is_core_active.at(static_cast<size_t>(m_topo.domain_idx(GEOPM_DOMAIN_CORE, static_cast<int>(cpu_idx)))) = true;
             }
         }
-        for (int core_idx = num_core - 1; core_idx != -1; --core_idx) {
-            if (!is_core_active.at(core_idx)) {
+        for (int core_idx = static_cast<int>(num_core) - 1; core_idx != -1; --core_idx) {
+            if (!is_core_active.at(static_cast<size_t>(core_idx))) {
                 std::set<int> inactive_cpu = m_topo.domain_nested(GEOPM_DOMAIN_CPU,
                                                                   GEOPM_DOMAIN_CORE,
                                                                   core_idx);
@@ -481,7 +481,7 @@ namespace geopm
         }
         if (!found_inactive_core) {
             for (int cpu_idx = m_num_cpu - 1; cpu_idx != -1; --cpu_idx) {
-                if(!m_is_cpu_active[cpu_idx]) {
+                if(!m_is_cpu_active[static_cast<size_t>(cpu_idx)]) {
                     result = cpu_idx;
                     found_inactive_cpu = true;
                     break;

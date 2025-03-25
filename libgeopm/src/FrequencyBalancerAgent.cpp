@@ -311,14 +311,14 @@ namespace geopm
 
                 for (auto ctl_idx : m_package_core_indices[package_idx]) {
                     pkg_ctl_frequency.push_back(m_last_ctl_frequency[ctl_idx]);
-                    auto limits = m_frequency_limit_detector->get_core_frequency_limits(ctl_idx);
+                    auto limits = m_frequency_limit_detector->get_core_frequency_limits(static_cast<unsigned int>(ctl_idx));
                     // Assume that the max-achievable frequency is the greatest
                     // of all expected achievable frequencies on app cores in this package
                     for (const auto &limit : limits) {
                         if (limit.second > max_achievable_frequency) {
                             core_frequency_limits = limits;
                             max_achievable_frequency = limit.second;
-                            low_priority_frequency = m_frequency_limit_detector->get_core_low_priority_frequency(ctl_idx);
+                            low_priority_frequency = m_frequency_limit_detector->get_core_low_priority_frequency(static_cast<unsigned int>(ctl_idx));
                         }
                     }
                 }
@@ -362,13 +362,13 @@ namespace geopm
                     // Non-application regions get the expected low-priority
                     // frequency so we can focus our turbo budget on
                     // application regions.
-                    immediate_ctl_frequency[ctl_idx] = m_frequency_limit_detector->get_core_low_priority_frequency(ctl_idx);
+                    immediate_ctl_frequency[ctl_idx] = m_frequency_limit_detector->get_core_low_priority_frequency(static_cast<unsigned int>(ctl_idx));
                 }
                 else if(m_network_hint_sample_length[ctl_idx] >= NETWORK_HINT_MINIMUM_SAMPLE_LENGTH) {
                     // Don't assume that (last hint)==NETWORK alone implies
                     // that we are in a network region because it may be a
                     // short-lasting region that we just happened to sample.
-                    immediate_ctl_frequency[ctl_idx] = m_frequency_limit_detector->get_core_low_priority_frequency(ctl_idx);
+                    immediate_ctl_frequency[ctl_idx] = m_frequency_limit_detector->get_core_low_priority_frequency(static_cast<unsigned int>(ctl_idx));
                 } else if (immediate_ctl_frequency[ctl_idx] >= m_frequency_max) {
                     // This is a HP core that is not in a networking region
                     hp_not_waiting_count += 1;
@@ -398,7 +398,7 @@ namespace geopm
             // missed opportunities from underthrottling cores.
             for (size_t ctl_idx = 0; ctl_idx < frequency_by_core.size(); ++ctl_idx) {
                 clos_by_core[ctl_idx] =
-                    (immediate_ctl_frequency[ctl_idx] > m_frequency_limit_detector->get_core_low_priority_frequency(ctl_idx))
+                    (immediate_ctl_frequency[ctl_idx] > m_frequency_limit_detector->get_core_low_priority_frequency(static_cast<unsigned int>(ctl_idx)))
                         ? SSTClosGovernor::HIGH_PRIORITY
                         : SSTClosGovernor::LOW_PRIORITY;
             }
@@ -632,15 +632,15 @@ namespace geopm
         for (size_t ctl_idx = 0;
              ctl_idx < (size_t)m_frequency_control_domain_count; ++ctl_idx) {
             m_acnt_signal_idx.push_back(m_platform_io.push_signal(
-                "MSR::APERF:ACNT", m_frequency_ctl_domain_type, ctl_idx));
+                "MSR::APERF:ACNT", m_frequency_ctl_domain_type, static_cast<int>(ctl_idx)));
             m_mcnt_signal_idx.push_back(m_platform_io.push_signal(
-                "MSR::MPERF:MCNT", m_frequency_ctl_domain_type, ctl_idx));
+                "MSR::MPERF:MCNT", m_frequency_ctl_domain_type, static_cast<int>(ctl_idx)));
             m_hash_signal_idx.push_back(m_platform_io.push_signal(
-                "REGION_HASH", m_frequency_ctl_domain_type, ctl_idx));
+                "REGION_HASH", m_frequency_ctl_domain_type, static_cast<int>(ctl_idx)));
             m_hint_signal_idx.push_back(m_platform_io.push_signal(
-                "REGION_HINT", m_frequency_ctl_domain_type, ctl_idx));
+                "REGION_HINT", m_frequency_ctl_domain_type, static_cast<int>(ctl_idx)));
             m_time_hint_network_idx.push_back(m_platform_io.push_signal(
-                "TIME_HINT_NETWORK", m_frequency_ctl_domain_type, ctl_idx));
+                "TIME_HINT_NETWORK", m_frequency_ctl_domain_type, static_cast<int>(ctl_idx)));
         }
         m_epoch_signal_idx = m_platform_io.push_signal("EPOCH_COUNT",
                                                        GEOPM_DOMAIN_BOARD, 0);

@@ -142,19 +142,19 @@ namespace geopm
             for (size_t it = 0; it != repeat; ++it) {
                 run_atom();
             }
-            atom_time[trial_idx] = geopm_time_since(&time_0) / repeat;
+            atom_time[trial_idx] = geopm_time_since(&time_0) / static_cast<double>(repeat);
         }
         std::sort(atom_time.begin(), atom_time.end());
         double median_atom_time = atom_time[median_idx];
-        m_num_atom = big_o_in / median_atom_time;
+        m_num_atom = static_cast<size_t>(big_o_in / median_atom_time);
         m_num_atom = m_num_atom ? m_num_atom : 1;
-        m_norm = 1.0 / m_num_atom;
+        m_norm = 1.0 / static_cast<double>(m_num_atom);
         geopm_prof_exit(start_rid);
     }
 
     void ScalingModelRegion::run(void)
     {
-        if (m_array_len != 0.0) {
+        if (static_cast<double>(m_array_len) != 0.0) {
             if (m_verbosity) {
                 std::cout << "Executing stream triad of length " << m_array_len << " elements " << m_num_atom << " times."  << std::endl;
             }

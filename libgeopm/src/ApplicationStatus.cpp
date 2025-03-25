@@ -25,7 +25,7 @@ namespace geopm
 
     size_t ApplicationStatus::buffer_size(int num_cpu)
     {
-        return M_STATUS_SIZE * num_cpu;
+        return M_STATUS_SIZE * static_cast<size_t>(num_cpu);
     }
 
     ApplicationStatusImp::ApplicationStatusImp(int num_cpu,
@@ -43,7 +43,7 @@ namespace geopm
         }
         // Note: no lock; all members of the struct are 32-bits and will be
         // accessed atomically by hardware.
-        m_buffer = (m_app_status_s *)m_shmem->pointer();
+        m_buffer = static_cast<m_app_status_s *>(m_shmem->pointer());
         m_cache.resize(m_shmem->size());
         update_cache();
     }
@@ -57,7 +57,7 @@ namespace geopm
         geopm::check_hint(hint);
         GEOPM_DEBUG_ASSERT(m_buffer != nullptr, "m_buffer not set");
         // pack hint into 32 bits for atomic write
-        m_buffer[cpu_idx].hint = (uint32_t)hint;
+        m_buffer[static_cast<size_t>(cpu_idx)].hint = static_cast<uint32_t>(hint);
     }
 
     uint64_t ApplicationStatusImp::get_hint(int cpu_idx) const
@@ -68,7 +68,7 @@ namespace geopm
         }
         GEOPM_DEBUG_ASSERT(m_cache.size() == buffer_size(m_num_cpu),
                            "Memory for m_cache not sized correctly");
-        uint64_t result = (uint64_t)m_cache[cpu_idx].hint;
+        uint64_t result = static_cast<uint64_t>(m_cache[static_cast<size_t>(cpu_idx)].hint);
         geopm::check_hint(result);
         return result;
     }
@@ -85,8 +85,8 @@ namespace geopm
         }
         geopm::check_hint(hint);
         GEOPM_DEBUG_ASSERT(m_buffer != nullptr, "m_buffer not set");
-        m_buffer[cpu_idx].hash = (uint32_t)hash;
-        m_buffer[cpu_idx].hint = (uint32_t)hint;
+        m_buffer[static_cast<size_t>(cpu_idx)].hash = static_cast<uint32_t>(hash);
+        m_buffer[static_cast<size_t>(cpu_idx)].hint = static_cast<uint32_t>(hint);
     }
 
     uint64_t ApplicationStatusImp::get_hash(int cpu_idx) const
@@ -97,7 +97,7 @@ namespace geopm
         }
         GEOPM_DEBUG_ASSERT(m_cache.size() == buffer_size(m_num_cpu),
                            "Memory for m_cache not sized correctly");
-        return m_cache[cpu_idx].hash;
+        return m_cache[static_cast<size_t>(cpu_idx)].hash;
     }
 
     void ApplicationStatusImp::reset_work_units(int cpu_idx)
@@ -107,8 +107,8 @@ namespace geopm
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
         GEOPM_DEBUG_ASSERT(m_buffer != nullptr, "m_buffer not set");
-        m_buffer[cpu_idx].total_work = 0;
-        m_buffer[cpu_idx].completed_work = 0;
+        m_buffer[static_cast<size_t>(cpu_idx)].total_work = 0;
+        m_buffer[static_cast<size_t>(cpu_idx)].completed_work = 0;
     }
 
     void ApplicationStatusImp::set_total_work_units(int cpu_idx, int work_units)
@@ -124,7 +124,7 @@ namespace geopm
         }
         GEOPM_DEBUG_ASSERT(m_buffer != nullptr, "m_buffer not set");
         // total_work non-zero gates per thread use of completed_work
-        m_buffer[cpu_idx].total_work = work_units;
+        m_buffer[static_cast<size_t>(cpu_idx)].total_work = static_cast<uint32_t>(work_units);
     }
 
     void ApplicationStatusImp::increment_work_unit(int cpu_idx)
@@ -135,8 +135,8 @@ namespace geopm
         }
         GEOPM_DEBUG_ASSERT(m_buffer != nullptr, "m_buffer not set");
 
-        if (m_buffer[cpu_idx].total_work != 0) {
-            ++(m_buffer[cpu_idx].completed_work);
+        if (m_buffer[static_cast<size_t>(cpu_idx)].total_work != 0) {
+            ++(m_buffer[static_cast<size_t>(cpu_idx)].completed_work);
         }
     }
 
@@ -149,9 +149,9 @@ namespace geopm
         GEOPM_DEBUG_ASSERT(m_cache.size() == buffer_size(m_num_cpu),
                            "Memory for m_cache not sized correctly");
         double result = NAN;
-        int total_work = m_cache[cpu_idx].total_work;
+        int total_work = static_cast<int>(m_cache[static_cast<size_t>(cpu_idx)].total_work);
         if (total_work != 0) {
-            result = (double)m_cache[cpu_idx].completed_work / total_work;
+            result = static_cast<double>(m_cache[static_cast<size_t>(cpu_idx)].completed_work) / total_work;
         }
         return result;
     }

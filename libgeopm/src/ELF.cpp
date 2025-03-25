@@ -109,7 +109,7 @@ namespace geopm
                     file_name.find(".so") == std::string::npos) {
                     file_name = "/proc/self/exe";
                     char file_name_cstr[PATH_MAX];
-                    int name_len = readlink(file_name.c_str(), file_name_cstr, PATH_MAX - 1);
+                    int name_len = static_cast<int>(readlink(file_name.c_str(), file_name_cstr, PATH_MAX - 1));
                     if (name_len > 0 && name_len < PATH_MAX) {
                         file_name_cstr[name_len] = '\0';
                         file_name = file_name_cstr;
@@ -210,7 +210,7 @@ namespace geopm
             if (!err) {
                 m_data = elf_getdata(m_section, nullptr);
                 if (num_symbol()) {
-                    err = (gelf_getsym(m_data, m_symbol_idx, m_symbol.get()) == nullptr);
+                    err = (gelf_getsym(m_data, static_cast<int>(m_symbol_idx), m_symbol.get()) == nullptr);
                     if (err) {
                         (void)close(m_file_desc);
                         (void)elf_end(m_elf_handle);
@@ -309,10 +309,10 @@ namespace geopm
         if (m_data && m_symbol_idx < num_symbol()) {
             ++m_symbol_idx;
             if (m_symbol_idx < num_symbol()) {
-                int err = (gelf_getsym(m_data, m_symbol_idx, m_symbol.get()) == nullptr);
+                int err = (gelf_getsym(m_data, static_cast<int>(m_symbol_idx), m_symbol.get()) == nullptr);
                 if (err) {
                     if (next_data()) {
-                        err = (gelf_getsym(m_data, m_symbol_idx, m_symbol.get()) == nullptr);
+                        err = (gelf_getsym(m_data, static_cast<int>(m_symbol_idx), m_symbol.get()) == nullptr);
                     }
                     if (err) {
                         throw Exception("ELFImp::next_symbol(): call to gelf_getsym() failed",

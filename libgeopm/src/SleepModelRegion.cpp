@@ -34,9 +34,9 @@ namespace geopm
     void SleepModelRegion::big_o(double big_o_in)
     {
         num_progress_updates(big_o_in);
-        double seconds = big_o_in / m_num_progress_updates;
-        m_delay = {(time_t)(seconds),
-                   (long)((seconds - (time_t)(seconds)) * 1E9)};
+        double seconds = big_o_in / static_cast<double>(m_num_progress_updates);
+        m_delay = {static_cast<time_t>(seconds),
+                   static_cast<long>((seconds - static_cast<double>(static_cast<time_t>(seconds))) * 1E9)};
 
         m_big_o = big_o_in;
     }

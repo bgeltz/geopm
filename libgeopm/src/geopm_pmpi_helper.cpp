@@ -316,7 +316,7 @@ extern "C" {
         if (!err && g_ctl && pmpi_ctl == geopm::Environment::M_CTL_PTHREAD) {
             void *return_val;
             err = pthread_join(g_ctl_thread, &return_val);
-            err = err ? err : ((long)return_val);
+            err = err ? err : static_cast<int>(reinterpret_cast<intptr_t>(return_val));
         }
 
         if (!err && g_ctl) {

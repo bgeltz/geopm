@@ -43,7 +43,7 @@ namespace geopm
         : m_is_trace_enabled(is_trace_enabled && policy_names.size() > 0)
         , m_platform_io(platform_io)
         , m_time_signal(-1)
-        , m_num_policy(policy_names.size())
+        , m_num_policy(static_cast<int>(policy_names.size()))
     {
         if (m_is_trace_enabled) {
             char time_cstr[GEOPM_TIME_STRING_MAX];

@@ -133,15 +133,15 @@ namespace geopm
                     }
                     while (!loop_done) {
                         int err = 0;
-                        err = MPI_Alltoall(m_send_buffer, m_num_send, MPI_CHAR, m_recv_buffer,
-                                           m_num_send, MPI_CHAR, MPI_COMM_WORLD);
+                        err = MPI_Alltoall(m_send_buffer, static_cast<int>(m_num_send), MPI_CHAR, m_recv_buffer,
+                                           static_cast<int>(m_num_send), MPI_CHAR, MPI_COMM_WORLD);
                         if (err) {
                             throw Exception("MPI_Alltoall()", err, __FILE__, __LINE__);
                         }
                         if (!m_rank) {
                             (void)geopm_time(&curr);
                             timeout = geopm_time_diff(&start, &curr);
-                            if (timeout > (m_big_o / m_num_progress_updates)) {
+                            if (timeout > (m_big_o / static_cast<double>(m_num_progress_updates))) {
                                 loop_done = 1;
                             }
                         }

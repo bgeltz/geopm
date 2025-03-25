@@ -172,7 +172,7 @@ namespace geopm
 
         std::string host_report = create_report(application_io.region_name_set(),
                                                 get_max_memory(),
-                                                tree_comm.overhead_send(),
+                                                static_cast<double>(tree_comm.overhead_send()),
                                                 agent_host_report,
                                                 agent_region_report);
         std::string full_report = gather_report(host_report, std::move(comm));
@@ -287,7 +287,7 @@ namespace geopm
             yaml_write(report, M_INDENT_REGION, "-");
             yaml_write(report, M_INDENT_REGION_FIELD,
                        {{"region", '"' + region.name + '"'},
-                        {"hash", geopm::string_format_hex(region.hash)}});
+                        {"hash", geopm::string_format_hex(static_cast<double>(region.hash))}});
             yaml_write(report, M_INDENT_REGION_FIELD,
                        {{"runtime (s)", region.per_rank_avg_runtime},
                         {"count", region.count}});

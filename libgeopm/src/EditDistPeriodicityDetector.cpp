@@ -130,7 +130,7 @@ namespace geopm
         //     A B A B A B ...
         // find_min_match will find the smallest repeating pattern in it: A B
         size_t bestm_reverse_index = m_record_count - bestm;
-        m_period = find_smallest_repeating_pattern(num_recs_in_hist - bestm_reverse_index);
+        m_period = find_smallest_repeating_pattern(static_cast<int>(num_recs_in_hist - bestm_reverse_index));
     }
 
     int EditDistPeriodicityDetector::get_period(void) const
@@ -161,13 +161,13 @@ namespace geopm
         std::vector<uint64_t> recs = m_history_buffer.make_vector(
             slice_start, m_history_buffer.size());
 
-        int result = recs.size();
+        int result = static_cast<int>(recs.size());
         bool perfect_match = false;
-        int div_max = (recs.size() / 2) + 1;
+        int div_max = static_cast<int>((recs.size() / 2) + 1);
         for (int div = 1; !perfect_match && div < div_max; ++div) {
             if (recs.size() % div == 0) {
                 perfect_match = true;
-                int group_max = recs.size() / div;
+                int group_max = static_cast<int>(recs.size() / div);
                 for (int group = 1; perfect_match && group < group_max; ++group) {
                     int curr = div * group;
                     auto cmp1_begin = recs.begin() + curr - div;

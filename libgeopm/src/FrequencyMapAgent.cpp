@@ -157,7 +157,7 @@ namespace geopm
                 }
                 // A valid region will either set or clear its mapped frequency.
                 // Just make sure it does not have multiple definitions.
-                if (!policy_regions.insert(region).second) {
+                if (!policy_regions.insert(static_cast<double>(region)).second) {
                     throw Exception("FrequencyMapAgent policy has multiple entries for region: " +
                                         std::to_string(region),
                                     GEOPM_ERROR_INVALID, __FILE__, __LINE__);
@@ -274,7 +274,7 @@ namespace geopm
         if (!m_is_adjust_initialized) {
             // adjust all controls once in case not applied by policy
             for (size_t ctl_idx = 0; ctl_idx < (size_t) m_num_freq_ctl_domain; ++ctl_idx) {
-                double val = m_platform_io.read_signal("CPU_FREQUENCY_MAX_CONTROL", m_freq_ctl_domain_type, ctl_idx);
+                double val = m_platform_io.read_signal("CPU_FREQUENCY_MAX_CONTROL", m_freq_ctl_domain_type, static_cast<int>(ctl_idx));
                 m_platform_io.adjust(m_freq_control_idx[ctl_idx], val);
             }
             m_platform_io.adjust(m_uncore_min_ctl_idx, m_uncore_init_min);
@@ -345,7 +345,7 @@ namespace geopm
     void FrequencyMapAgent::sample_platform(std::vector<double> &out_sample)
     {
         for (size_t ctl_idx = 0; ctl_idx < (size_t) m_num_freq_ctl_domain; ++ctl_idx) {
-            m_last_hash[ctl_idx] = m_platform_io.sample(m_hash_signal_idx[ctl_idx]);
+            m_last_hash[ctl_idx] = static_cast<uint64_t>(m_platform_io.sample(m_hash_signal_idx[ctl_idx]));
         }
     }
 
@@ -484,10 +484,10 @@ namespace geopm
         for (size_t ctl_idx = 0; ctl_idx < (size_t) m_num_freq_ctl_domain; ++ctl_idx) {
             m_hash_signal_idx.push_back(m_platform_io.push_signal("REGION_HASH",
                                                                   m_freq_ctl_domain_type,
-                                                                  ctl_idx));
+                                                                  static_cast<int>(ctl_idx)));
             m_freq_control_idx.push_back(m_platform_io.push_control("CPU_FREQUENCY_MAX_CONTROL",
                                                                     m_freq_ctl_domain_type,
-                                                                    ctl_idx));
+                                                                    static_cast<int>(ctl_idx)));
         }
         m_uncore_min_ctl_idx = m_platform_io.push_control("CPU_UNCORE_FREQUENCY_MIN_CONTROL", GEOPM_DOMAIN_BOARD, 0);
         m_uncore_max_ctl_idx = m_platform_io.push_control("CPU_UNCORE_FREQUENCY_MAX_CONTROL", GEOPM_DOMAIN_BOARD, 0);

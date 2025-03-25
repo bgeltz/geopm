@@ -87,7 +87,7 @@ namespace geopm
 
         num_progress_updates(big_o_in);
 
-        m_matrix_size = (int)pow(4e9 * big_o_in / m_num_progress_updates, 1.0/3.0);
+        m_matrix_size = static_cast<int>(pow(4e9 * big_o_in / static_cast<double>(m_num_progress_updates), 1.0/3.0));
         if (big_o_in && m_big_o != big_o_in) {
             size_t mem_size = sizeof(double) * (m_matrix_size * (m_matrix_size + m_pad_size));
             int err = posix_memalign((void **)&m_matrix_a, m_pad_size, mem_size);
@@ -105,8 +105,8 @@ namespace geopm
 #pragma omp parallel for
 #endif
             for (size_t i = 0; i < mem_size / sizeof(double); ++i) {
-                m_matrix_a[i] = 2.0 * i;
-                m_matrix_b[i] = 3.0 * i;
+                m_matrix_a[i] = 2.0 * static_cast<double>(i);
+                m_matrix_b[i] = 3.0 * static_cast<double>(i);
             }
         }
         m_big_o = big_o_in;
@@ -133,12 +133,12 @@ namespace geopm
             for (uint64_t i = 0; i < m_num_progress_updates; ++i) {
                 ModelRegion::loop_enter(i);
 
-                int M = m_matrix_size;
-                int N = m_matrix_size;
-                int K = m_matrix_size;
-                int LDA = m_matrix_size + m_pad_size / sizeof(double);
-                int LDB = m_matrix_size + m_pad_size / sizeof(double);
-                int LDC = m_matrix_size + m_pad_size / sizeof(double);
+                int M = static_cast<int>(m_matrix_size);
+                int N = static_cast<int>(m_matrix_size);
+                int K = static_cast<int>(m_matrix_size);
+                int LDA = static_cast<int>(m_matrix_size + m_pad_size / sizeof(double));
+                int LDB = static_cast<int>(m_matrix_size + m_pad_size / sizeof(double));
+                int LDC = static_cast<int>(m_matrix_size + m_pad_size / sizeof(double));
                 double alpha = 2.0;
                 double beta = 3.0;
                 char transa = 'n';

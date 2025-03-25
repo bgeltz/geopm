@@ -162,9 +162,9 @@ namespace geopm
     {
         // If the requested new capacity is less than the size.
         if (size < m_count && m_max_size > 0) {
-            int size_diff = m_count - size;
+            int size_diff = static_cast<int>(m_count - size);
             std::vector<type> temp;
-            for (size_t idx = size_diff; idx < m_count; ++idx) {
+            for (int idx = size_diff; idx < m_count; ++idx) {
                 temp.push_back(value(idx));
             }
             //now re-size and swap out with tmp vector data
@@ -237,11 +237,11 @@ namespace geopm
             throw Exception("CircularBuffer::make_vector(): end index is smaller than start index", GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
 
-        int slice_length = idx_end - idx_start;
+        unsigned int slice_length = idx_end - idx_start;
         std::vector<type> result(static_cast<size_t>(slice_length));
 
-        unsigned int start=(m_head + idx_start) % static_cast<size_t>(capacity());
-        unsigned int end=(((m_head + idx_end) - 1) % static_cast<size_t>(capacity())) + 1;
+        unsigned int start = static_cast<unsigned int>((m_head + idx_start) % static_cast<size_t>(capacity()));
+        unsigned int end = static_cast<unsigned int>((((m_head + idx_end) - 1) % static_cast<size_t>(capacity())) + 1);
 
         if(end > start) {
             std::copy(m_buffer.begin() + start, m_buffer.begin() + end, result.begin());

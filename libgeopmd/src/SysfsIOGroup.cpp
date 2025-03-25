@@ -341,7 +341,7 @@ namespace geopm
             }
             for (auto &info : m_pushed_info_signal) {
                 m_batch_reader->prep_read(
-                    info.last_io_return, info.fd.get(), info.buf.data(), info.buf.size(), 0);
+                    info.last_io_return, info.fd.get(), info.buf.data(), static_cast<unsigned int>(info.buf.size()), 0);
             }
             m_batch_reader->submit();
             for (auto &info : m_pushed_info_signal) {

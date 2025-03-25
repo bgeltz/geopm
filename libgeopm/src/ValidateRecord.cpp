@@ -30,7 +30,7 @@ namespace geopm
     {
         if (hash == GEOPM_REGION_HASH_INVALID ||
             hash > UINT32_MAX) {
-            throw Exception("ValidateRecord::filter(): Region hash out of bounds: " + string_format_hex(hash),
+            throw Exception("ValidateRecord::filter(): Region hash out of bounds: " + string_format_hex(static_cast<double>(hash)),
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
     }
@@ -58,7 +58,7 @@ namespace geopm
             case EVENT_REGION_ENTRY:
                 validate_hash(record.signal);
                 if (m_region_hash != GEOPM_REGION_HASH_INVALID) {
-                    throw Exception("ValidateRecord::filter(): Nested region entry detected. Region=" + string_format_hex(m_region_hash),
+                    throw Exception("ValidateRecord::filter(): Nested region entry detected. Region=" + string_format_hex(static_cast<double>(m_region_hash)),
                                     GEOPM_ERROR_INVALID, __FILE__, __LINE__);
                 }
                 m_region_hash = record.signal;
@@ -66,12 +66,12 @@ namespace geopm
             case EVENT_REGION_EXIT:
                 validate_hash(record.signal);
                 if (m_region_hash == GEOPM_REGION_HASH_INVALID) {
-                    throw Exception("ValidateRecord::filter(): Region exit without entry Region=" + string_format_hex(m_region_hash),
+                    throw Exception("ValidateRecord::filter(): Region exit without entry Region=" + string_format_hex(static_cast<double>(m_region_hash)),
                                     GEOPM_ERROR_INVALID, __FILE__, __LINE__);
                 }
                 if (record.signal != m_region_hash) {
                     throw Exception("ValidateRecord::filter(): Region exited differs from last region entered Current region="
-                                    + string_format_hex(m_region_hash) + " Received exit for=" + string_format_hex(record.signal),
+                                    + string_format_hex(static_cast<double>(m_region_hash)) + " Received exit for=" + string_format_hex(static_cast<double>(record.signal)),
                                     GEOPM_ERROR_INVALID, __FILE__, __LINE__);
                 }
                 m_region_hash = GEOPM_REGION_HASH_INVALID;

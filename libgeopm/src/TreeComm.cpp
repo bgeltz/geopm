@@ -35,7 +35,7 @@ namespace geopm
                              std::vector<std::shared_ptr<TreeCommLevel> > mock_level)
         : m_comm(comm)
         , m_fan_out(fan_out)
-        , m_root_level(fan_out.size())
+        , m_root_level(static_cast<int>(fan_out.size()))
         , m_num_level_ctl(num_level_ctl)
         , m_max_level(m_root_level == m_num_level_ctl ? m_num_level_ctl : m_num_level_ctl + 1)
         , m_num_node(comm->num_rank()) // Assume that comm has one rank per node

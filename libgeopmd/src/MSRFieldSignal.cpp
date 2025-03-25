@@ -65,7 +65,7 @@ namespace geopm
         switch (m_function) {
             case MSR::M_FUNCTION_LOG_HALF:
                 // F = S * 2.0 ^ -X
-                result = 1.0 / (1ULL << subfield);
+                result = 1.0 / static_cast<double>(1ULL << subfield);
                 break;
             case MSR::M_FUNCTION_7_BIT_FLOAT:
                 // F = S * 2 ^ Y * (1.0 + Z / 4.0)

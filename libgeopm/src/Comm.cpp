@@ -145,7 +145,7 @@ namespace geopm
         }
         else {
             m_window_buffers.emplace_back(size);
-            m_window_buffers_map[m_window_buffers.back().data()] = m_window_buffers.size() - 1;
+            m_window_buffers_map[m_window_buffers.back().data()] = static_cast<int>(m_window_buffers.size() - 1);
             *base = (void *)m_window_buffers.back().data();
         }
     }

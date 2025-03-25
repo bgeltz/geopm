@@ -76,7 +76,7 @@ namespace geopm
                                               min_detectable_period,
                                               stable_period_hysteresis,
                                               unstable_period_hysteresis);
-        return stable_period_hysteresis;
+        return static_cast<int>(stable_period_hysteresis);
     }
 
     static int parse_unstable_period_hysteresis(const std::string &name)
@@ -92,7 +92,7 @@ namespace geopm
                                               min_detectable_period,
                                               stable_period_hysteresis,
                                               unstable_period_hysteresis);
-        return unstable_period_hysteresis;
+        return static_cast<int>(unstable_period_hysteresis);
     }
 
     EditDistEpochRecordFilter::EditDistEpochRecordFilter(const std::string &name)

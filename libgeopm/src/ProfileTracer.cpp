@@ -72,8 +72,8 @@ namespace geopm
         if (!is_signal) {
             // This is a call to format the event column
             // Store the event type for the next call
-            event_type = value;
-            result = event_name((int)value);
+            event_type = static_cast<int>(value);
+            result = event_name(static_cast<int>(value));
             // The next call will format the signal column
             is_signal = true;
         }
@@ -85,24 +85,22 @@ namespace geopm
                     result = string_format_hex(value);
                     break;
                 case EVENT_EPOCH_COUNT:
-                    result = string_format_integer(value);
+                    result = string_format_integer(static_cast<int>(value));
                     break;
                 case EVENT_SHORT_REGION:
                     GEOPM_DEBUG_ASSERT(m_application_sampler != nullptr,
                         "The ProfileTracerImp::ProfileTracerImp() must be called prior to calling ProfileTracerImp::event_format()");
-                    result = string_format_hex(m_application_sampler->get_short_region(value).hash);
+                    result = string_format_hex(static_cast<double>(m_application_sampler->get_short_region(static_cast<uint64_t>(value)).hash));
                     break;
                 case EVENT_AFFINITY:
-                    result = string_format_integer(value);
+                    result = string_format_integer(static_cast<int>(value));
                     break;
                 case EVENT_START_PROFILE:
-                    result = string_format_hex(value);
-                    break;
                 case EVENT_STOP_PROFILE:
                     result = string_format_hex(value);
                     break;
                 case EVENT_OVERHEAD:
-                    result = string_format_double(geopm_field_to_signal(value));
+                    result = string_format_double(geopm_field_to_signal(static_cast<uint64_t>(value)));
                     break;
                 default:
                     result = "INVALID";
@@ -123,9 +121,9 @@ namespace geopm
             for (const auto &it : records) {
                 geopm_time_s tt = {it.time};
                 sample[M_COLUMN_TIME] = geopm_time_diff(&m_time_zero, &tt);
-                sample[M_COLUMN_PROCESS] = it.process;
-                sample[M_COLUMN_EVENT] = it.event;
-                sample[M_COLUMN_SIGNAL] = it.signal;
+                sample[M_COLUMN_PROCESS] = static_cast<double>(it.process);
+                sample[M_COLUMN_EVENT] = static_cast<double>(it.event);
+                sample[M_COLUMN_SIGNAL] = static_cast<double>(it.signal);
                 m_csv->update(sample);
             }
         }
