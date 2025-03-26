@@ -11,9 +11,13 @@
 #include <vector>
 #include <string>
 #include "Comm.hpp"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #ifndef GEOPM_TEST
 #include <mpi.h>
 #endif
+#pragma GCC diagnostic pop
 
 namespace geopm
 {
