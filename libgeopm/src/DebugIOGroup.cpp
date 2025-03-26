@@ -119,7 +119,7 @@ namespace geopm
             throw Exception("DebugIOGroup::sample(): batch_idx out of range",
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
-        return m_value_cache->at(batch_idx);
+        return m_value_cache->at(static_cast<size_t>(batch_idx));
     }
 
     void DebugIOGroup::adjust(int batch_idx, double setting)
@@ -145,7 +145,7 @@ namespace geopm
                             "for domain" + std::to_string(domain_type),
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
-        return m_value_cache->at(m_signal_idx.at({signal_name, domain_idx}));
+        return m_value_cache->at(static_cast<size_t>(m_signal_idx.at({signal_name, domain_idx})));
     }
 
     void DebugIOGroup::write_control(const std::string &control_name, int domain_type, int domain_idx, double setting)

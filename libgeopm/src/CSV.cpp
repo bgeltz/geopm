@@ -25,7 +25,7 @@ namespace geopm
                              {"raw64", string_format_raw64}}
         , M_SEPARATOR('|')
         , m_file_path(file_path)
-        , m_buffer_limit(buffer_size)
+        , m_buffer_limit(static_cast<off_t>(buffer_size))
         , m_is_active(false)
     {
         if (host_name.size()) {

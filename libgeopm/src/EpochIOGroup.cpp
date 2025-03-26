@@ -35,7 +35,7 @@ namespace geopm
         : m_topo(topo)
         , m_app(app)
         , m_num_cpu(m_topo.num_domain(GEOPM_DOMAIN_CPU))
-        , m_per_cpu_count(m_num_cpu, 0.0)
+        , m_per_cpu_count(static_cast<size_t>(m_num_cpu), 0.0)
         , m_is_batch_read(false)
     {
 
@@ -115,17 +115,17 @@ namespace geopm
         for (const auto &record : records) {
             if (record.event == EVENT_EPOCH_COUNT) {
                 for (int cpu_idx : m_app.client_cpu_set(record.process)) {
-                    m_per_cpu_count[cpu_idx] = (double)record.signal;
+                    m_per_cpu_count[static_cast<size_t>(cpu_idx)] = static_cast<double>(record.signal);
                 }
             }
         }
-        std::vector<bool> is_valid(m_num_cpu, false);
+        std::vector<bool> is_valid(static_cast<size_t>(m_num_cpu), false);
         for (int pid : m_app.client_pids()) {
             for (int cpu_idx : m_app.client_cpu_set(pid)) {
-                is_valid[cpu_idx] = true;
+                is_valid[static_cast<size_t>(cpu_idx)] = true;
             }
         }
-        for (int cpu_idx = 0; cpu_idx != m_num_cpu; ++cpu_idx) {
+        for (size_t cpu_idx = 0; cpu_idx != static_cast<size_t>(m_num_cpu); ++cpu_idx) {
             if (!is_valid[cpu_idx] && m_per_cpu_count[cpu_idx] == 0.0) {
                 m_per_cpu_count[cpu_idx] = NAN;
             }
@@ -148,14 +148,14 @@ namespace geopm
             throw Exception("EpochIOGroup::sample(): batch_idx out of range",
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
-        int cpu_idx = m_active_signal[batch_idx];
+        int cpu_idx = m_active_signal[static_cast<size_t>(batch_idx)];
 #ifdef GEOPM_DEBUG
         if (cpu_idx < 0 || cpu_idx >= m_num_cpu) {
             throw Exception("EpochIOGroup::sample(): invalid cpu_idx saved in map.",
                             GEOPM_ERROR_LOGIC, __FILE__, __LINE__);
         }
 #endif
-        return m_per_cpu_count[cpu_idx];
+        return m_per_cpu_count[static_cast<size_t>(cpu_idx)];
     }
 
     void EpochIOGroup::adjust(int batch_idx, double setting)

@@ -10,9 +10,12 @@
 
 #include <algorithm>
 #include <memory>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #ifdef GEOPM_ENABLE_MPI
 #include <mpi.h>
 #endif
+#pragma GCC diagnostic pop
 
 #include "ApplicationIO.hpp"
 #include "geopm/Environment.hpp"
@@ -136,7 +139,7 @@ extern "C"
         try {
             std::string agent_name = geopm::environment().agent();
             std::shared_ptr<geopm::Agent> agent(geopm::Agent::make_unique(agent_name));
-            std::vector<double> policy(geopm::Agent::num_policy(agent_name));
+            std::vector<double> policy(static_cast<size_t>(geopm::Agent::num_policy(agent_name)));
             std::string policy_path = geopm::environment().policy();
             geopm::FilePolicy file_policy(policy_path,
                                           geopm::Agent::policy_names(agent_name));
@@ -248,11 +251,11 @@ namespace geopm
         , m_profile_tracer(std::move(profile_tracer))
         , m_agent(std::move(level_agent))
         , m_is_root(m_num_level_ctl == m_root_level)
-        , m_in_policy(m_num_send_down, NAN)
-        , m_last_policy(m_num_send_down, NAN)
-        , m_out_policy(m_num_level_ctl)
-        , m_in_sample(m_num_level_ctl)
-        , m_out_sample(m_num_send_up, NAN)
+        , m_in_policy(static_cast<size_t>(m_num_send_down), NAN)
+        , m_last_policy(static_cast<size_t>(m_num_send_down), NAN)
+        , m_out_policy(static_cast<size_t>(m_num_level_ctl))
+        , m_in_sample(static_cast<size_t>(m_num_level_ctl))
+        , m_out_sample(static_cast<size_t>(m_num_send_up), NAN)
         , m_endpoint(std::move(endpoint))
         , m_do_endpoint(do_endpoint)
         , m_do_policy(do_policy)
@@ -268,12 +271,12 @@ namespace geopm
         // Three dimensional vector over levels, children, and message
         // index.  These are used as temporary storage when passing
         // messages up and down the tree.
-        for (int level = 0; level != m_num_level_ctl; ++level) {
-            int num_children = m_tree_comm->level_size(level);
-            m_out_policy[level] = std::vector<std::vector<double> >(num_children,
-                                                                    std::vector<double>(m_num_send_down, NAN));
-            m_in_sample[level] = std::vector<std::vector<double> >(num_children,
-                                                                   std::vector<double>(m_num_send_up, NAN));
+        for (size_t level = 0; level != static_cast<size_t>(m_num_level_ctl); ++level) {
+            int num_children = m_tree_comm->level_size(static_cast<int>(level));
+            m_out_policy[level] = std::vector<std::vector<double> >(static_cast<size_t>(num_children),
+                                                                    std::vector<double>(static_cast<size_t>(m_num_send_down), NAN));
+            m_in_sample[level] = std::vector<std::vector<double> >(static_cast<size_t>(num_children),
+                                                                   std::vector<double>(static_cast<size_t>(m_num_send_up), NAN));
         }
         if (m_do_endpoint && m_endpoint == nullptr) {
             m_endpoint = EndpointUser::make_unique(endpoint_path, get_hostnames(hostname()));
@@ -333,14 +336,14 @@ namespace geopm
                             GEOPM_ERROR_LOGIC, __FILE__, __LINE__);
         }
 #endif
-        std::vector<int> fan_in(m_tree_comm->root_level());
+        std::vector<int> fan_in(static_cast<size_t>(m_tree_comm->root_level()));
         int level = 0;
         for (auto &it : fan_in) {
             it = m_tree_comm->level_size(level);
             ++level;
         }
         for (level = 0; level < m_max_level; ++level) {
-            m_agent[level]->init(level, fan_in, (level < m_tree_comm->num_level_controlled()));
+            m_agent[static_cast<size_t>(level)]->init(level, fan_in, (level < m_tree_comm->num_level_controlled()));
         }
     }
 
@@ -352,7 +355,7 @@ namespace geopm
         // resize hostname string to fixed size buffer
         std::string temp = hostname;
         temp.resize(GEOPM_NAME_MAX, 0);
-        std::vector<char> name_buffer(num_rank * GEOPM_NAME_MAX, 0);
+        std::vector<char> name_buffer(static_cast<size_t>(num_rank) * GEOPM_NAME_MAX, 0);
         m_comm->gather((void*)temp.c_str(), GEOPM_NAME_MAX,
                      (void*)name_buffer.data(), GEOPM_NAME_MAX, 0);
         if (rank == 0) {
@@ -407,7 +410,7 @@ namespace geopm
     {
         std::vector<std::pair<std::string, std::string> > agent_report_header;
         if (m_is_root) {
-            agent_report_header = m_agent[m_root_level]->report_header();
+            agent_report_header = m_agent[static_cast<size_t>(m_root_level)]->report_header();
         }
 
         auto agent_host_report = m_agent[0]->report_host();
@@ -462,12 +465,12 @@ namespace geopm
         }
         for (int level = m_num_level_ctl - 1; level > -1; --level) {
             if (do_send) {
-                m_agent[level + 1]->validate_policy(m_in_policy);
-                m_agent[level + 1]->split_policy(m_in_policy, m_out_policy[level]);
-                do_send = m_agent[level + 1]->do_send_policy();
+                m_agent[static_cast<size_t>(level + 1)]->validate_policy(m_in_policy);
+                m_agent[static_cast<size_t>(level + 1)]->split_policy(m_in_policy, m_out_policy[static_cast<size_t>(level)]);
+                do_send = m_agent[static_cast<size_t>(level + 1)]->do_send_policy();
             }
             if (do_send) {
-                m_tree_comm->send_down(level, m_out_policy[level]);
+                m_tree_comm->send_down(level, m_out_policy[static_cast<size_t>(level)]);
             }
             do_send = m_tree_comm->receive_down(level, m_in_policy);
         }
@@ -495,10 +498,10 @@ namespace geopm
             if (do_send) {
                 m_tree_comm->send_up(level, m_out_sample);
             }
-            do_send = m_tree_comm->receive_up(level, m_in_sample[level]);
+            do_send = m_tree_comm->receive_up(level, m_in_sample[static_cast<size_t>(level)]);
             if (do_send) {
-                m_agent[level + 1]->aggregate_sample(m_in_sample[level], m_out_sample);
-                do_send = m_agent[level + 1]->do_send_sample();
+                m_agent[static_cast<size_t>(level + 1)]->aggregate_sample(m_in_sample[static_cast<size_t>(level)], m_out_sample);
+                do_send = m_agent[static_cast<size_t>(level + 1)]->do_send_sample();
             }
         }
         if (do_send) {

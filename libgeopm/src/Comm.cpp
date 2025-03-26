@@ -160,11 +160,11 @@ namespace geopm
             throw Exception("NullComm::" + std::string(__func__) + "(): Passed a base pointer that was not created with NullComm::alloc_mem",
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
-        if (m_window_buffers.at(it->second).size() == 0) {
+        if (m_window_buffers.at(static_cast<size_t>(it->second)).size() == 0) {
             throw Exception("NullComm::" + std::string(__func__) + "(): Requesting a previously freed window",
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
-        return it->second;
+        return static_cast<size_t>(it->second);
     }
 
     void NullComm::window_destroy(size_t window_id)
@@ -294,7 +294,7 @@ namespace geopm
             throw Exception("NullComm::" + std::string(__func__) + "(): window_id is out of bounds",
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }
-        if (disp + send_size > m_window_buffers.at(window_id).size()) {
+        if (static_cast<size_t>(disp) + send_size > m_window_buffers.at(window_id).size()) {
             throw Exception("NullComm::" + std::string(__func__) + "(): copy range is out of bounds",
                             GEOPM_ERROR_INVALID, __FILE__, __LINE__);
         }

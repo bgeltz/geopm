@@ -17,12 +17,12 @@
 namespace geopm
 {
     EditDistPeriodicityDetector::EditDistPeriodicityDetector(int history_buffer_size)
-        : m_history_buffer(history_buffer_size)
+        : m_history_buffer(static_cast<unsigned int>(history_buffer_size))
         , m_history_buffer_size(history_buffer_size)
         , m_period(-1)
         , m_score(-1)
         , m_record_count(0)
-        , m_DP(history_buffer_size * history_buffer_size * history_buffer_size)
+        , m_DP(static_cast<size_t>(history_buffer_size) * static_cast<size_t>(history_buffer_size) * static_cast<size_t>(history_buffer_size))
     {
 
     }
@@ -37,9 +37,9 @@ namespace geopm
     }
 
     size_t EditDistPeriodicityDetector::Didx(int ii, int jj, int mm) const {
-        return (ii % m_history_buffer_size) * m_history_buffer_size * m_history_buffer_size +
-               (jj % m_history_buffer_size) * m_history_buffer_size +
-               (mm % m_history_buffer_size);
+        return (static_cast<size_t>(ii) % static_cast<size_t>(m_history_buffer_size)) * static_cast<size_t>(m_history_buffer_size) * static_cast<size_t>(m_history_buffer_size) +
+               (static_cast<size_t>(jj) % static_cast<size_t>(m_history_buffer_size)) * static_cast<size_t>(m_history_buffer_size) +
+               (static_cast<size_t>(mm) % static_cast<size_t>(m_history_buffer_size));
     }
 
     void EditDistPeriodicityDetector::Dset(int ii, int jj, int mm, uint32_t val) {
@@ -75,7 +75,7 @@ namespace geopm
             Dset(ii, 0, m_record_count - 1, 0);
         }
         for (int mm = std::max({0, m_record_count - m_history_buffer_size}); mm < m_record_count; ++mm) {
-            Dset(0, m_record_count - mm, mm, m_record_count - mm);
+            Dset(0, m_record_count - mm, mm, static_cast<uint32_t>(m_record_count - mm));
         }
 
         uint64_t last_rec_in_history = m_history_buffer.value(num_recs_in_hist - 1);
@@ -105,7 +105,7 @@ namespace geopm
                 // added penalties from all directions (add/subtract/replace).
                 uint32_t d_value = std::min({Dget(ii - 1, m_record_count - mm    , mm) + 1,
                                              Dget(ii    , m_record_count - mm - 1, mm) + 1,
-                                             Dget(ii - 1, m_record_count - mm - 1, mm) + term});
+                                             Dget(ii - 1, m_record_count - mm - 1, mm) + static_cast<uint32_t>(term)});
                 Dset(ii, m_record_count - mm, mm, d_value);
             }
         }
@@ -122,15 +122,15 @@ namespace geopm
             }
         }
 
-        m_score = bestval;
+        m_score = static_cast<int>(bestval);
         // Originally this was:
         //      m_period = n - bestm + 1;
         // However since the algorithm find the bestm with the lowest index it will
         // return a string with a repeating pattern in it. For example:
         //     A B A B A B ...
         // find_min_match will find the smallest repeating pattern in it: A B
-        size_t bestm_reverse_index = m_record_count - bestm;
-        m_period = find_smallest_repeating_pattern(static_cast<int>(num_recs_in_hist - bestm_reverse_index));
+        size_t bestm_reverse_index = static_cast<size_t>(m_record_count - bestm);
+        m_period = find_smallest_repeating_pattern(static_cast<int>(static_cast<size_t>(num_recs_in_hist) - bestm_reverse_index));
     }
 
     int EditDistPeriodicityDetector::get_period(void) const
@@ -159,15 +159,15 @@ namespace geopm
             return 1;
         }
         std::vector<uint64_t> recs = m_history_buffer.make_vector(
-            slice_start, m_history_buffer.size());
+            static_cast<unsigned int>(slice_start), static_cast<unsigned int>(m_history_buffer.size()));
 
         int result = static_cast<int>(recs.size());
         bool perfect_match = false;
         int div_max = static_cast<int>((recs.size() / 2) + 1);
         for (int div = 1; !perfect_match && div < div_max; ++div) {
-            if (recs.size() % div == 0) {
+            if (recs.size() % static_cast<size_t>(div) == 0) {
                 perfect_match = true;
-                int group_max = static_cast<int>(recs.size() / div);
+                int group_max = static_cast<int>(recs.size() / static_cast<size_t>(div));
                 for (int group = 1; perfect_match && group < group_max; ++group) {
                     int curr = div * group;
                     auto cmp1_begin = recs.begin() + curr - div;

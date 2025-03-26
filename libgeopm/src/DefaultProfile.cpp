@@ -45,7 +45,7 @@ extern "C"
         int err = 0;
         if (g_prof_enabled) {
             try {
-                *region_id = geopm::Profile::default_profile().region(std::string(region_name), hint);
+                *region_id = geopm::Profile::default_profile().region(std::string(region_name), static_cast<long>(hint));
             }
             catch (...) {
                 err = geopm::exception_handler(std::current_exception(), true);

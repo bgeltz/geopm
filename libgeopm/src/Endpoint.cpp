@@ -153,8 +153,8 @@ namespace geopm
         std::copy(data->agent, data->agent + GEOPM_ENDPOINT_AGENT_NAME_MAX, agent_name);
         std::string agent = agent_name;
         if (agent != "") {
-            m_num_policy = Agent::num_policy(agent_name);
-            m_num_sample = Agent::num_sample(agent_name);
+            m_num_policy = static_cast<size_t>(Agent::num_policy(agent_name));
+            m_num_sample = static_cast<size_t>(Agent::num_sample(agent_name));
         }
         return agent;
     }
@@ -393,7 +393,7 @@ int geopm_endpoint_node_name(struct geopm_endpoint_c *endpoint,
         std::set<std::string> temp = end->get_hostnames();
         std::vector<std::string> hostlist{temp.begin(), temp.end()};
         try {
-            const std::string &host = hostlist.at(node_idx);
+            const std::string &host = hostlist.at(static_cast<size_t>(node_idx));
             strncpy(node_name, host.c_str(), node_name_max - 1);
             node_name[node_name_max - 1] = '\0';
         }

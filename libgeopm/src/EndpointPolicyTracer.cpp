@@ -63,7 +63,7 @@ namespace geopm
 
             m_time_signal = m_platform_io.push_signal("TIME", GEOPM_DOMAIN_BOARD, 0);
 
-            m_values.resize(1 + m_num_policy);
+            m_values.resize(1 + static_cast<size_t>(m_num_policy));
         }
     }
 

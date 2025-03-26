@@ -47,18 +47,18 @@ namespace geopm
         : m_path(data_path)
         , m_policy_shmem(std::move(policy_shmem))
         , m_sample_shmem(std::move(sample_shmem))
-        , m_num_sample(num_sample)
+        , m_num_sample(static_cast<size_t>(num_sample))
     {
         // Attach to shared memory here and send across agent,
         // profile, hostname list.  Once user attaches to sample
         // shmem, RM knows it has attached to both policy and sample.
         if (m_policy_shmem == nullptr) {
             m_policy_shmem = SharedMemory::make_unique_user(m_path + EndpointImp::shm_policy_postfix(),
-                                                            environment().timeout());
+                                                            static_cast<unsigned int>(environment().timeout()));
         }
         if (m_sample_shmem == nullptr) {
             m_sample_shmem = SharedMemory::make_unique_user(m_path + EndpointImp::shm_sample_postfix(),
-                                                            environment().timeout());
+                                                            static_cast<unsigned int>(environment().timeout()));
         }
         auto lock = m_sample_shmem->get_scoped_lock();
         auto data = (struct geopm_endpoint_sample_shmem_s *)m_sample_shmem->pointer();

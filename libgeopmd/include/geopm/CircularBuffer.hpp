@@ -204,9 +204,9 @@ namespace geopm
         }
         if (index < 0) {
             const int new_index = static_cast<int>(m_count) + index;
-            return m_buffer.at((m_head + new_index) % m_max_size);
+            return m_buffer.at((m_head + static_cast<unsigned long>(new_index)) % m_max_size);
         } else {
-            return m_buffer.at((m_head + index) % m_max_size);
+            return m_buffer.at((m_head + static_cast<unsigned long>(index)) % m_max_size);
         }
     }
 

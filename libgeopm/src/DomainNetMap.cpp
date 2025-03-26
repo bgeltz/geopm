@@ -72,7 +72,7 @@ namespace geopm
         }
 
         std::string buf, err;
-        buf.reserve(length);
+        buf.reserve(static_cast<size_t>(length));
 
         std::getline(file, buf, '\0');
 

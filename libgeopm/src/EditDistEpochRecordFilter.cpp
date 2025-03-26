@@ -151,7 +151,7 @@ namespace geopm
                     m_epoch_count++;
                     record_s epoch_event = record;
                     epoch_event.event = EVENT_EPOCH_COUNT;
-                    epoch_event.signal = m_epoch_count;
+                    epoch_event.signal = static_cast<uint64_t>(m_epoch_count);
                     result.push_back(epoch_event);
                 }
             }
