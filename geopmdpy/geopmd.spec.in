@@ -33,19 +33,19 @@ URL:		https://geopm.github.io
 Source0:	geopmdpy-%{version}.tar.gz
 
 BuildRequires:	gcc
-BuildRequires:	libgeopmd-devel
+# BuildRequires:	libgeopmd-devel
 BuildRequires:	python3-cffi
-BuildRequires:	python3-dasbus
-BuildRequires:	python3-defusedxml
+# BuildRequires:	python3-dasbus
+# BuildRequires:	python3-defusedxml
 BuildRequires:	python3-devel
-BuildRequires:	python3-jsonschema
+# BuildRequires:	python3-jsonschema
 BuildRequires:	python3-psutil
 BuildRequires:	python3-setuptools
-BuildRequires:	python3-setuptools_scm
-BuildRequires:	python3-sdnotify
+# BuildRequires:	python3-setuptools_scm
+# BuildRequires:	python3-sdnotify
 %if %{defined suse_version}
 BuildRequires:	gobject-introspection
-BuildRequires:	python-gobject-common-devel
+# BuildRequires:	python-gobject-common-devel
 BuildRequires:	python3-gobject
 %endif
 %if 0%{?fedora}
@@ -66,7 +66,7 @@ Requires:	python3-cffi
 Requires:	python3-dasbus
 Requires:	python3-jsonschema
 Requires:	python3-psutil
-Requires:	python3-sdnotify
+# Requires:	python3-sdnotify
 Requires:	geopmd-cli
 %if %{defined suse_version}
 Requires:	python3-gobject
