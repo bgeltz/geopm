@@ -52,6 +52,11 @@ class PlatformService(object):
         self._accessed_controls = set()
         self._batch_subp = dict()
         self._write_pid = None
+        # Deferred shutdown management: when last session closes we schedule
+        # a GLib idle callback instead of calling sys.exit() immediately so
+        # that the DBus reply can be sent before the process terminates.
+        self._shutdown_callback = None  # Set by outer service to gracefully stop loop
+        self._shutdown_pending = False  # True after scheduling idle shutdown check
         for client_pid in self._active_sessions.get_clients():
             is_active = self.check_client(client_pid)
             if is_active:
@@ -394,6 +399,9 @@ class PlatformService(object):
         if self._is_client_active(client_pid):
             self._active_sessions.increment_reference_count(client_pid)
         else:
+            # Prevent previously scheduled shutdown when a new client arrives
+            if self._shutdown_pending:
+                self._shutdown_pending = False
             signals, controls = self.get_user_access(user, client_pid)
             watch_id = self._watch_client(client_pid)
             self._active_sessions.add_client(client_pid, signals, controls, watch_id)
@@ -522,8 +530,46 @@ class PlatformService(object):
             with system_files.WriteLock(self._RUN_PATH, self._PROFILER_LOCK_NAME) as lock:
                 if lock.try_lock() == client_pid:
                     lock.unlock(client_pid)
-        if start_num_client != 0 and len(self._active_sessions.get_clients()) == 0:
-            self._pio.reset()
+        if (start_num_client != 0 and
+            len(self._active_sessions.get_clients()) == 0 and
+            not self._shutdown_pending):
+            # Defer service shutdown to an idle handler so current DBus
+            # method can finish and send reply to client before exit.
+            self._shutdown_pending = True
+            GLib.idle_add(self._idle_shutdown_check)
+
+    def _idle_shutdown_check(self):
+        """GLib idle callback to perform a safe shutdown if still idle.
+
+        Re-checks that there are still no active sessions (a new one may
+        have opened between scheduling and execution). If still zero, the
+        registered shutdown callback is invoked. Otherwise, cancel the
+        pending shutdown. Returns False to remove idle source.
+        """
+        if len(self._active_sessions.get_clients()) != 0:
+            # A new client connected; cancel shutdown.
+            self._shutdown_pending = False
+            return False
+        if self._shutdown_callback is not None:
+            try:
+                self._shutdown_callback()
+            except Exception as ex:
+                sys.stderr.write(f'Warning: <geopm-service>: Exception during deferred shutdown: {ex}\n')
+        return False
+
+    def set_shutdown_callback(self, callback):
+        """Register a callable to be invoked when service should exit.
+
+        The callback should gracefully stop the main event loop. It is
+        invoked from a GLib idle handler after the last session closes.
+        """
+        self._shutdown_callback = callback
+        # If callback is registered after all sessions already closed,
+        # schedule immediate check.
+        if (not self._active_sessions.get_clients() and
+            not self._shutdown_pending):
+            self._shutdown_pending = True
+            GLib.idle_add(self._idle_shutdown_check)
 
     def _close_session_write(self, lock, pid):
         save_dir = os.path.join(self._RUN_PATH, self._SAVE_DIR)
@@ -1012,6 +1058,15 @@ class GEOPMService(object):
         self._platform = PlatformService()
         self._dbus_proxy = SystemMessageBus().get_proxy('org.freedesktop.DBus',
                                                         '/org/freedesktop/DBus')
+
+    def register_shutdown(self, callback):
+        """Register a shutdown callback passed through to PlatformService.
+
+        The callback will be invoked once all active sessions have fully
+        closed and no new sessions have started before the idle handler
+        fires. The callback should gracefully stop the event loop.
+        """
+        self._platform.set_shutdown_callback(callback)
 
     def TopoGetCache(self):
         return self._topo.get_cache()

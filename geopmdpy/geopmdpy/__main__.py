@@ -54,6 +54,9 @@ def main_dbus():
             if not os.path.exists('/dev/cpu/msr_batch'):
                 writer.backup_and_try_update('on\n')
             _service = service.GEOPMService()
+            # Register graceful shutdown callback so PlatformService can
+            # request event loop termination after last client disconnects.
+            _service.register_shutdown(pause)
             _service.topo_rm_cache()
             _bus.publish_object("/io/github/geopm", _service)
             _bus.register_service("io.github.geopm")
