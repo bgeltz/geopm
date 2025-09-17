@@ -268,8 +268,8 @@ AC_SUBST([enable_coverage])
 AM_CONDITIONAL([ENABLE_COVERAGE], [test "x$enable_coverage" = "x1"])
 
 if test "x$enable_asan" = "x1" ; then
-  AM_CXXFLAGS="$AM_CXXFLAGS -fsanitize=address -fno-omit-frame-pointer -mllvm -asan-use-private-alias=1"
-  AM_CFLAGS="$AM_CFLAGS -fsanitize=address -fno-omit-frame-pointer -mllvm -asan-use-private-alias=1"
+  AM_CXXFLAGS="$AM_CXXFLAGS -fsanitize=address -fno-omit-frame-pointer -mllvm -asan-use-private-alias=1 -fno-inline -fprofile-instr-generate -fcoverage-mapping"
+  AM_CFLAGS="$AM_CFLAGS -fsanitize=address -fno-omit-frame-pointer -mllvm -asan-use-private-alias=1 -fno-inline -fprofile-instr-generate -fcoverage-mapping"
 else
   AM_CXXFLAGS="$AM_CXXFLAGS $SANITIZE_CFI"
   AM_CFLAGS="$AM_CFLAGS $SANITIZE_CFI"

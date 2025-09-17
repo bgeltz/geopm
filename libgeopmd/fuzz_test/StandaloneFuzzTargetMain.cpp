@@ -18,12 +18,37 @@
 
 
 #include <iostream>
-#include "geopm/Helper.hpp"
+#include <sstream>
+#include <fstream>
+#include "geopm/Exception.hpp"
+//#include "geopm/Helper.hpp"
 
 extern "C"
 {
     extern int LLVMFuzzerTestOneInput(const unsigned char *data, size_t size);
     __attribute__((weak)) extern int LLVMFuzzerInitialize(int *argc, char ***argv);
+}
+
+namespace geopm
+{
+    std::string read_file(const std::string &path)
+    {
+        std::ifstream input_file(path, std::ifstream::in);
+        if (!input_file.is_open()) {
+            throw Exception("Helper::" + std::string(__func__) + "(): file \"" + path +
+                            "\" could not be opened",
+                            errno ? errno : GEOPM_ERROR_INVALID, __FILE__, __LINE__);
+        }
+        std::stringstream buffer;
+        buffer << input_file.rdbuf();
+        input_file.close();
+        if (!buffer.good()) {
+            throw Exception("Helper::" + std::string(__func__) + "(): input file invalid",
+                            GEOPM_ERROR_INVALID, __FILE__, __LINE__);
+        }
+
+        return buffer.str();
+    }
 }
 
 int main(int argc, char **argv)
