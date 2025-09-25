@@ -27,8 +27,10 @@ GEOPM_REPORT_SIGNALS=TIME@package \
 GEOPM_NUM_PROC=2 \
 setsid geopmctl &
 
+sleep 15
+
 # geopmbench
-numactl --cpunodebind=0 -- geopmbench ${INPUT_FILE} &
+numactl --cpunodebind=0 -- geopmbench --verbose ${INPUT_FILE} &
 
 # stress-ng
 numactl --cpunodebind=1 -- stress-ng --cpu 1 --timeout 120 &
