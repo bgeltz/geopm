@@ -336,12 +336,13 @@ def do_power_limit_prologue(event):
 
     resource_dict = load_resources(event, job_id)
 
-    node_power_limit_str = resource_dict.get(_POWER_LIMIT_RESOURCE)
-    if node_power_limit_str is not None:
-        node_power_limit = resource_to_float(event, _POWER_LIMIT_RESOURCE, node_power_limit_str)
-        node_power_limit_requested = (node_power_limit > 0)
-    else:
-        node_power_limit_requested = False
+    server_job = pbs.server().job(job_id)
+    node_power_limit_requested = False
+    try:
+        node_power_limit_str = server_job.Resource_List[_POWER_LIMIT_RESOURCE]
+        node_power_limit_requested = bool(node_power_limit_str)
+    except KeyError:
+        pass
 
     job_power_limit_str = resource_dict.get(_JOB_POWER_LIMIT_RESOURCE)
     if job_power_limit_str is not None:
@@ -356,7 +357,7 @@ def do_power_limit_prologue(event):
 
     if node_power_limit_requested:
         # The user requested a specific node power limit. Do not modify it.
-        power_limit = node_power_limit
+        power_limit = resource_to_float(event, _POWER_LIMIT_RESOURCE, node_power_limit_str)
     elif job_power_limit_requested:
         # A job power limit has been requested without a specific node power limit.
         # Let's use the node power models to distribute the job power limit.
