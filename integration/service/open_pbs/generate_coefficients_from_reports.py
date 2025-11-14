@@ -73,6 +73,13 @@ def get_coefficients(df):
     if not res.success:
         print(res.message, file=sys.stderr)
 
+    # Post-adjust C to exactly satisfy y(1) == 0 to mitigate solver tolerance
+    # drift that can lead to tiny positive baseline slowdown and negative
+    # discriminants during inversion.
+    x0, A, B, C = params
+    C_fixed = -A * (x0 - 1) ** 2 - B * (x0 - 1)
+    params[3] = C_fixed
+
     if args.verbose:
         y_train_pred = slowdown_at_power(X, *params)
         r2score = sklearn.metrics.r2_score(y, y_train_pred)

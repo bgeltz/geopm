@@ -80,11 +80,17 @@ def power_at_slowdown(slowdown, x0, A, B, C):
     powers = []
     for idx, (x0n, An, Bn, Cn) in enumerate(zip(x0, A, B, C)):
         disc = Bn**2 - 4 * An * (Cn - slowdown)
+        # Tolerance to absorb solver/rounding noise when baseline slowdown should be exactly zero.
+        tol = 5e-9
         if disc < 0:
             min_slowdown = Cn - Bn**2 / (4 * An)
-            raise ValueError(
-                f"Requested slowdown {slowdown} below minimum achievable {min_slowdown} for model[{idx}] "
-                f"(x0={x0n}, A={An}, B={Bn}, C={Cn}); discriminant={disc}")
+            # Allow small negative discriminant within tolerance and treat as zero.
+            if disc > -tol and slowdown >= 0 and slowdown <= min_slowdown + tol:
+                disc = 0.0
+            else:
+                raise ValueError(
+                    f"Requested slowdown {slowdown} below minimum achievable {min_slowdown} for model[{idx}] "
+                    f"(x0={x0n}, A={An}, B={Bn}, C={Cn}); discriminant={disc}")
         root = (-Bn + math.sqrt(disc)) / (2 * An)
         power = x0n - root
         powers.append(power)

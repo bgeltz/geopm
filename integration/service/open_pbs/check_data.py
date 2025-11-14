@@ -64,11 +64,14 @@ def check_model(model: dict, profile_name: str, host_name: Optional[str], max_sl
     probes = build_probe_values(min_slowdown, max_slowdown, include_below_min)
 
     failures = []
+    tol = 5e-9
     for s in probes:
         try:
-            # power_at_slowdown expects list-like inputs for potentially multiple hosts.
             power_at_slowdown(s, [x0], [A], [B], [C])
         except ValueError as ve:
+            # Suppress failures that are only due to tiny positive baseline slowdown within tolerance.
+            if min_slowdown is not None and s == 0.0 and min_slowdown < tol:
+                continue
             failures.append((s, str(ve)))
         except Exception as e:
             failures.append((s, f"Unexpected error: {e}"))
