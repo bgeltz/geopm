@@ -409,6 +409,79 @@ class TestPowerLimitPrologue(unittest.TestCase):
         self._mock_event.accept.assert_has_calls([mock.call(), mock.call()])
         self._mock_event.reject.assert_not_called()
 
+    def test_non_uniform_power_limit_real_data(self, mock_secure_make_dirs,
+                                               mock_write_control, mock_read_signal):
+        JOB_POWER_LIMIT = 300
+        MAX_NODE_POWER_LIMIT = 200
+        write_resource_file(self.JOB_ID, {
+            compute_hook._JOB_POWER_LIMIT_RESOURCE: JOB_POWER_LIMIT
+        })
+        mock_file_contents = dict(
+            max_power=MAX_NODE_POWER_LIMIT,
+            node_profile_name='test-type',
+            profiles={'test-type': dict(hosts={
+                'test-host-1': dict(model={
+                    'x0': 0.9834331061969054,
+                    'A': 1.408136741868902,
+                    'B': 0.04665693924687298,
+                    'C': 0.00038647785034611897,
+                }),
+                'test-host-2': dict(model={
+                    'x0': 0.9065210674104407,
+                    'A': 2.640318338994738,
+                    'B': 0.4936282801884765,
+                    'C': 0.02307192237496591,
+                }),
+            })}
+        )
+        node1 = mock.Mock()
+        node1.name = 'test-host-1'
+        node2 = mock.Mock()
+        node2.name = 'test-host-2'
+        #  self._mock_event.vnode_list.values.return_value = [node1, node2]
+        self._mock_event.vnode_list.values.return_value = [node2]
+        power_limit_setting = compute_hook._power_limit_control.copy()
+
+        def mock_open_side_effect(filename, *args, **kwargs):
+            if filename == RESOURCE_TMP_DIR + f"/{self.JOB_ID}.resources":
+                return mock.mock_open(read_data=f"{compute_hook._JOB_POWER_LIMIT_RESOURCE}={JOB_POWER_LIMIT}").return_value
+            elif filename == self.HOOK_CONFIG_PATH:
+                return mock.mock_open(read_data=json.dumps(mock_file_contents)).return_value
+            elif filename == SAVED_CONTROLS_FILE:
+                return mock.mock_open().return_value
+            else:
+                raise FileNotFoundError(f"File not found: {filename}")
+
+        # Simulate each of node 1 and node 2 getting their prologues called
+        self._mock_pbs.get_local_nodename.return_value = node1.name
+        with mock.patch("builtins.open", side_effect=mock_open_side_effect):
+            compute_hook.do_power_limit_prologue(self._mock_event)
+        node_1_power_write = next(
+            call[0][3] for call in mock_write_control.call_args_list
+            if call[0][0] == power_limit_setting["name"] and
+            call[0][1] == power_limit_setting["domain_type"] and
+            call[0][2] == power_limit_setting["domain_idx"])
+        mock_write_control.reset_mock()
+
+        self._mock_pbs.get_local_nodename.return_value = node2.name
+        with mock.patch("builtins.open", side_effect=mock_open_side_effect):
+            compute_hook.do_power_limit_prologue(self._mock_event)
+        node_2_power_write = next(
+            call[0][3] for call in mock_write_control.call_args_list
+            if call[0][0] == power_limit_setting["name"] and
+            call[0][1] == power_limit_setting["domain_type"] and
+            call[0][2] == power_limit_setting["domain_idx"])
+
+        node_1_slowdown = A1 * (1 - node_1_power_write/MAX_NODE_POWER_LIMIT)**2
+        node_2_slowdown = A2 * (1 - node_2_power_write/MAX_NODE_POWER_LIMIT)**2
+
+        self.assertLessEqual(node_1_power_write, MAX_NODE_POWER_LIMIT)
+        self.assertLessEqual(node_2_power_write, MAX_NODE_POWER_LIMIT)
+        self.assertGreaterEqual(node_1_power_write, 0)
+
+        # Test the job was accepted; prologue called twice
+        self._mock_event.accept.assert_has_calls([mock.call(), mock.call()])
+        self._mock_event.reject.assert_not_called()
 
 @mock.patch("geopmdpy.pio.write_control")
 class TestPowerLimitEpilogue(unittest.TestCase):
