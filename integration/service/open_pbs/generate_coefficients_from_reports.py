@@ -66,7 +66,7 @@ def get_coefficients(df):
         constraints=(
             dict(type='ineq', fun=lambda x: 2 * x[1]), # y''(x) >= 0, Slowdown decreases as power increases in the lower power domain
             dict(type='ineq', fun=lambda x: 2 * x[1] * (x[0] - 1) + x[2]), # y'(1) <= 0, Slowdown is not increasing at Pmax
-            dict(type='ineq', fun=lambda x: x[1] * (x[0] - 1) ** 2 + x[2] * (x[0] - 1) + x[3]), # y(1) >= 0, Slowdown not better than best known at Pmax
+            dict(type='eq', fun=lambda x: x[1] * (x[0] - 1) ** 2 + x[2] * (x[0] - 1) + x[3]), # y(1) == 0; Slowdown is zero at max power
         )
     )
     params = res.x

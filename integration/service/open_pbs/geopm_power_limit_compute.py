@@ -73,8 +73,22 @@ def slowdown_at_power(power, x0, A, B, C):
 
 
 def power_at_slowdown(slowdown, x0, A, B, C):
-    return clip_list([(x0n - (-Bn + math.sqrt(Bn**2 - 4 * An * (Cn - slowdown))) / (2 * An))
-                      for x0n, An, Bn, Cn in zip(x0, A, B, C)], 0, 1)
+    """Invert slowdown_at_power to obtain normalized power given a target
+    slowdown. Raises a ValueError if the requested slowdown is below the
+    minimum achievable for any host model (i.e., negative discriminant).
+    """
+    powers = []
+    for idx, (x0n, An, Bn, Cn) in enumerate(zip(x0, A, B, C)):
+        disc = Bn**2 - 4 * An * (Cn - slowdown)
+        if disc < 0:
+            min_slowdown = Cn - Bn**2 / (4 * An)
+            raise ValueError(
+                f"Requested slowdown {slowdown} below minimum achievable {min_slowdown} for model[{idx}] "
+                f"(x0={x0n}, A={An}, B={Bn}, C={Cn}); discriminant={disc}")
+        root = (-Bn + math.sqrt(disc)) / (2 * An)
+        power = x0n - root
+        powers.append(power)
+    return clip_list(powers, 0, 1)
 
 
 def power_deficit_at_slowdown(slowdown, budget, max_node_power, x0, A, B, C):
