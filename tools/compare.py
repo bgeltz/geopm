@@ -9,7 +9,7 @@ Usage:
 import argparse
 import re
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import pandas as pd
 
@@ -39,8 +39,25 @@ def _normalize_str(val) -> str:
     return str(val)
 
 
-def load_app_totals(dir_path: Path, cache_dir: Path) -> pd.DataFrame:
-    """Batch-load Application Totals from all reports in *dir_path*."""
+def _add_trial_column(df: pd.DataFrame, st_to_trial: dict) -> pd.DataFrame:
+    """Map Start Time -> trial number and add as a column."""
+    if "Start Time" not in df.columns:
+        raise KeyError("Expected 'Start Time' column in DataFrame")
+    df = df.copy()
+    df["trial"] = df["Start Time"].map(_normalize_str).map(st_to_trial)
+    if df["trial"].isna().any():
+        missing = df[df["trial"].isna()]["Start Time"].unique().tolist()
+        raise KeyError(f"Unable to map Start Time values to trials: {missing}")
+    return df
+
+
+def load_report_data(dir_path: Path, cache_dir: Path) -> Dict[str, pd.DataFrame]:
+    """Batch-load all report sections from all reports in *dir_path*.
+
+    Returns a dict of DataFrames keyed by section name:
+      - ``'totals'``  — Application Totals (one row per host per trial)
+      - ``'<region>'`` — per-region data for each unique region name
+    """
     report_files = sorted(dir_path.glob("*monitor_*.report"))
     if not report_files:
         raise FileNotFoundError(f"No *monitor_*.report files in {dir_path}")
@@ -53,7 +70,6 @@ def load_app_totals(dir_path: Path, cache_dir: Path) -> pd.DataFrame:
         verbose=False,
         do_cache=True,
     )
-    df = rrc.get_app_df().copy()
 
     # Build Start Time -> trial mapping
     st_to_trial = {}
@@ -62,30 +78,45 @@ def load_app_totals(dir_path: Path, cache_dir: Path) -> pd.DataFrame:
         st = extract_start_time(rp)
         st_to_trial[st] = trial
 
-    if "Start Time" not in df.columns:
-        raise KeyError("Expected 'Start Time' column in Application Totals DataFrame")
+    result = {}  # type: Dict[str, pd.DataFrame]
 
-    df["trial"] = df["Start Time"].map(_normalize_str).map(st_to_trial)
-    if df["trial"].isna().any():
-        missing = df[df["trial"].isna()]["Start Time"].unique().tolist()
-        raise KeyError(f"Unable to map Start Time values to trials: {missing}")
+    # Application Totals
+    app_df = _add_trial_column(rrc.get_app_df(), st_to_trial)
+    result["totals"] = app_df
 
-    return df
+    # Per-region data
+    region_df = rrc.get_df()
+    if region_df is not None and not region_df.empty:
+        region_df = _add_trial_column(region_df, st_to_trial)
+        for region_name, rdf in region_df.groupby("region", sort=True):
+            result[str(region_name)] = rdf.reset_index(drop=True)
+
+    return result
 
 
-def load_raw_host_data(dirs: List[Path], label: str, cache_root: Path) -> pd.DataFrame:
-    """Load and tag raw host-level Application Totals for all reports in *dirs*."""
-    raw_dfs = []
+def load_raw_host_data(
+    dirs: List[Path], label: str, cache_root: Path
+) -> Dict[str, pd.DataFrame]:
+    """Load and tag raw host-level data for all reports in *dirs*.
+
+    Returns a dict of DataFrames (same keys as :func:`load_report_data`)
+    with ``label`` and ``directory`` columns added to each.
+    """
+    combined = {}  # type: Dict[str, List[pd.DataFrame]]
     for dir_path in dirs:
         cache_dir = cache_root / dir_path.name
         cache_dir.mkdir(parents=True, exist_ok=True)
 
-        df = load_app_totals(dir_path, cache_dir)
-        df["label"] = label
-        df["directory"] = dir_path.name
-        raw_dfs.append(df)
+        sections = load_report_data(dir_path, cache_dir)
+        for key, df in sections.items():
+            df = df.copy()
+            df["label"] = label
+            df["directory"] = dir_path.name
+            combined.setdefault(key, []).append(df)
 
-    return pd.concat(raw_dfs, ignore_index=True) if raw_dfs else pd.DataFrame()
+    return {
+        key: pd.concat(dfs, ignore_index=True) for key, dfs in combined.items()
+    }
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -126,11 +157,22 @@ def main(argv: Optional[List[str]] = None) -> int:
     baseline_raw = load_raw_host_data([baseline_dir], "baseline", cache_root)
     capped_raw = load_raw_host_data(capped_dirs, "capped", cache_root)
 
-    raw_df = pd.concat([baseline_raw, capped_raw], ignore_index=True)
-    raw_df['sync_minus_mpi_time'] = raw_df['sync-runtime (s)'] - raw_df['MPI startup (s)']
+    # Merge baseline and capped dicts into one dict of DataFrames.
+    # Keys: 'totals', plus each unique region name (e.g. 'MPI_Init_thread').
+    all_keys = set(baseline_raw) | set(capped_raw)
+    raw = {}  # type: Dict[str, pd.DataFrame]
+    for key in sorted(all_keys):
+        parts = [d[key] for d in (baseline_raw, capped_raw) if key in d]
+        raw[key] = pd.concat(parts, ignore_index=True)
+
+    print(f"Available sections: {list(raw.keys())}")
+
+    raw['totals']['sync_minus_mpi_time'] = (
+        raw['totals']['sync-runtime (s)'] - raw['totals']['MPI startup (s)']
+    )
 
     # Per-trial
-    tdf = raw_df.groupby(['label', 'directory', 'trial'], sort=True)
+    tdf = raw['totals'].groupby(['label', 'directory', 'trial'], sort=True)
     #  tdf['runtime (s)'].describe()
     #  b2 = df.get_group(('baseline', '12459695_60', 2))
     #  u1 = df.get_group(('capped', '12459765_60_3500', 1))
@@ -145,7 +187,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # cols = ['sync-runtime (s)', 'BOARD_ENERGY', 'BOARD_POWER']
 
     # All trials
-    adf = raw_df.groupby(['label', 'directory'], sort=True)
+    adf = raw['totals'].groupby(['label', 'directory'], sort=True)
     base = adf.get_group(('baseline', '12459695_60'))
     cap_3500 = adf.get_group(('capped', '12459765_60_3500'))
     cap_3000 = adf.get_group(('capped', '12459766_60_3000'))
