@@ -112,11 +112,11 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument(
-        "--baseline", required=True,
+        "--baseline", default=None,
         help="Path to the baseline (unconstrained) dataset directory",
     )
     p.add_argument(
-        "--capped", nargs="+", required=True,
+        "--capped", nargs="+", default=None,
         help="Paths to one or more power-capped dataset directories",
     )
     p.add_argument(
@@ -133,23 +133,30 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     args = parse_args(argv)
 
-    baseline_dir = Path(args.baseline).expanduser().resolve()
-    capped_dirs = [Path(d).expanduser().resolve() for d in args.capped]
     cache_root = (
         Path(args.cache_dir).expanduser().resolve()
         if args.cache_dir
         else Path(".compare_cache").resolve()
     )
 
-    baseline_raw = load_raw_host_data([baseline_dir], "baseline", cache_root)
-    capped_raw = load_raw_host_data(capped_dirs, "capped", cache_root)
+    loaded = []  # type: List[Dict[str, pd.DataFrame]]
+    if args.baseline:
+        baseline_dir = Path(args.baseline).expanduser().resolve()
+        loaded.append(load_raw_host_data([baseline_dir], "baseline", cache_root))
+    if args.capped:
+        capped_dirs = [Path(d).expanduser().resolve() for d in args.capped]
+        loaded.append(load_raw_host_data(capped_dirs, "capped", cache_root))
 
-    # Merge baseline and capped dicts into one dict of DataFrames.
+    if not loaded:
+        print("Nothing to load — supply --baseline and/or --capped.")
+        return 0
+
+    # Merge all loaded dicts into one dict of DataFrames.
     # Keys: 'totals', plus each unique region name (e.g. 'MPI_Init_thread').
-    all_keys = set(baseline_raw) | set(capped_raw)
+    all_keys = set().union(*(d.keys() for d in loaded))
     raw = {}  # type: Dict[str, pd.DataFrame]
     for key in sorted(all_keys):
-        parts = [d[key] for d in (baseline_raw, capped_raw) if key in d]
+        parts = [d[key] for d in loaded if key in d]
         raw[key] = pd.concat(parts, ignore_index=True)
 
     print(f"Available sections: {list(raw.keys())}")
