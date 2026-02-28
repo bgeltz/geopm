@@ -19,35 +19,22 @@ from geopmpy import io as geopm_io
 TRIAL_RE = re.compile(r"-monitor_(?P<trial>\d+)\.report$")
 
 
-def parse_trial_from_filename(report_path: Path) -> int:
-    m = TRIAL_RE.search(report_path.name)
+def _parse_trial_from_report_file(filename: str) -> int:
+    """Extract the trial number from a report filename string."""
+    m = TRIAL_RE.search(filename)
     if not m:
         raise ValueError(
-            f"Report filename does not match '*-monitor_<TRIAL>.report': {report_path.name}"
+            f"Report filename does not match '*-monitor_<TRIAL>.report': {filename}"
         )
     return int(m.group("trial"))
 
 
-def extract_start_time(report_path: Path) -> str:
-    rr = geopm_io.RawReport(str(report_path))
-    return str(rr.meta_data()["Start Time"])
-
-
-def _normalize_str(val) -> str:
-    if isinstance(val, bytes):
-        return val.decode(errors="replace")
-    return str(val)
-
-
-def _add_trial_column(df: pd.DataFrame, st_to_trial: dict) -> pd.DataFrame:
-    """Map Start Time -> trial number and add as a column."""
-    if "Start Time" not in df.columns:
-        raise KeyError("Expected 'Start Time' column in DataFrame")
+def _add_trial_column(df: pd.DataFrame) -> pd.DataFrame:
+    """Derive trial number from the report_file column."""
+    if "report_file" not in df.columns:
+        raise KeyError("Expected 'report_file' column in DataFrame")
     df = df.copy()
-    df["trial"] = df["Start Time"].map(_normalize_str).map(st_to_trial)
-    if df["trial"].isna().any():
-        missing = df[df["trial"].isna()]["Start Time"].unique().tolist()
-        raise KeyError(f"Unable to map Start Time values to trials: {missing}")
+    df["trial"] = df["report_file"].apply(_parse_trial_from_report_file)
     return df
 
 
@@ -71,23 +58,16 @@ def load_report_data(dir_path: Path, cache_dir: Path) -> Dict[str, pd.DataFrame]
         do_cache=True,
     )
 
-    # Build Start Time -> trial mapping
-    st_to_trial = {}
-    for rp in report_files:
-        trial = parse_trial_from_filename(rp)
-        st = extract_start_time(rp)
-        st_to_trial[st] = trial
-
     result = {}  # type: Dict[str, pd.DataFrame]
 
     # Application Totals
-    app_df = _add_trial_column(rrc.get_app_df(), st_to_trial)
+    app_df = _add_trial_column(rrc.get_app_df())
     result["totals"] = app_df
 
     # Per-region data
     region_df = rrc.get_df()
     if region_df is not None and not region_df.empty:
-        region_df = _add_trial_column(region_df, st_to_trial)
+        region_df = _add_trial_column(region_df)
         for region_name, rdf in region_df.groupby("region", sort=True):
             result[str(region_name)] = rdf.reset_index(drop=True)
 
