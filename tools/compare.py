@@ -16,7 +16,11 @@ import pandas as pd
 from geopmpy import io as geopm_io
 
 
-TRIAL_RE = re.compile(r"-monitor_(?P<trial>\d+)\.report$")
+# Matches the last _<digits> before .report (with optional -<hostname> suffix).
+# Examples:
+#   hacc-monitor_0.report                                     -> trial 0
+#   nekbone-geopm-power-sweep_4000_2.report-x1922c6s1b0n0     -> trial 2
+TRIAL_RE = re.compile(r"_(?P<trial>\d+)\.report(?:-\S+)?$")
 
 
 def _parse_trial_from_report_file(filename: str) -> int:
@@ -24,7 +28,7 @@ def _parse_trial_from_report_file(filename: str) -> int:
     m = TRIAL_RE.search(filename)
     if not m:
         raise ValueError(
-            f"Report filename does not match '*-monitor_<TRIAL>.report': {filename}"
+            f"Report filename does not match '*_<TRIAL>.report[-<host>]': {filename}"
         )
     return int(m.group("trial"))
 
@@ -45,9 +49,12 @@ def load_report_data(dir_path: Path, cache_dir: Path) -> Dict[str, pd.DataFrame]
       - ``'totals'``  — Application Totals (one row per host per trial)
       - ``'<region>'`` — per-region data for each unique region name
     """
-    report_files = sorted(dir_path.glob("*monitor_*.report"))
+    # Collect both multi-host reports (*.report) and per-host reports (*.report-<hostname>)
+    report_files = sorted(
+        set(dir_path.glob("*.report")) | set(dir_path.glob("*.report-*"))
+    )
     if not report_files:
-        raise FileNotFoundError(f"No *monitor_*.report files in {dir_path}")
+        raise FileNotFoundError(f"No *.report or *.report-* files in {dir_path}")
 
     names = [rp.name for rp in report_files]
     rrc = geopm_io.RawReportCollection(
