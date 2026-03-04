@@ -2,7 +2,7 @@
 """
 Usage:
   ./compare.py \\
-    --baseline /path/to/12459695_60 \\
+    --baseline /path/to/12459695_60 /path/to/12459696_60 \\
     --capped /path/to/12459765_60_3500 /path/to/12459766_60_3000 /path/to/12459767_60_2500
 """
 
@@ -116,8 +116,8 @@ def common_arg_parser() -> argparse.ArgumentParser:
     """
     p = argparse.ArgumentParser(add_help=False)
     p.add_argument(
-        "--baseline", default=None,
-        help="Path to the baseline (unconstrained) dataset directory",
+        "--baseline", nargs="+", default=None,
+        help="Paths to one or more baseline (unconstrained) dataset directories",
     )
     p.add_argument(
         "--capped", nargs="+", default=None,
@@ -156,8 +156,8 @@ def load_data(args: argparse.Namespace) -> Dict[str, pd.DataFrame]:
 
     loaded = []  # type: List[Dict[str, pd.DataFrame]]
     if args.baseline:
-        baseline_dir = Path(args.baseline).expanduser().resolve()
-        loaded.append(load_raw_host_data([baseline_dir], "baseline", cache_root))
+        baseline_dirs = [Path(d).expanduser().resolve() for d in args.baseline]
+        loaded.append(load_raw_host_data(baseline_dirs, "baseline", cache_root))
     if args.capped:
         capped_dirs = [Path(d).expanduser().resolve() for d in args.capped]
         loaded.append(load_raw_host_data(capped_dirs, "capped", cache_root))
