@@ -106,11 +106,15 @@ def load_raw_host_data(
     }
 
 
-def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
+def common_arg_parser() -> argparse.ArgumentParser:
+    """Return an :class:`ArgumentParser` with the shared dataset flags.
+
+    Can be used directly or as a *parent* for tool-specific parsers::
+
+        parent = common_arg_parser()
+        p = argparse.ArgumentParser(parents=[parent], ...)
+    """
+    p = argparse.ArgumentParser(add_help=False)
     p.add_argument(
         "--baseline", default=None,
         help="Path to the baseline (unconstrained) dataset directory",
@@ -123,16 +127,27 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         "--cache-dir", default=None,
         help="Directory for HDF5 caches (default: ./.compare_cache)",
     )
+    return p
+
+
+def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        parents=[common_arg_parser()],
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     return p.parse_args(argv)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
-    pd.set_option("display.width", 250)
-    pd.set_option("display.max_columns", 40)
-    pd.set_option("display.float_format", "{:.4f}".format)
+def load_data(args: argparse.Namespace) -> Dict[str, pd.DataFrame]:
+    """Load and merge report data based on CLI *args*.
 
-    args = parse_args(argv)
+    Expects *args* to carry ``baseline``, ``capped``, and ``cache_dir``
+    attributes (as produced by :func:`common_arg_parser`).
 
+    Returns a dict of DataFrames keyed by section name
+    (``'totals'``, region names, etc.).
+    """
     cache_root = (
         Path(args.cache_dir).expanduser().resolve()
         if args.cache_dir
@@ -148,16 +163,28 @@ def main(argv: Optional[List[str]] = None) -> int:
         loaded.append(load_raw_host_data(capped_dirs, "capped", cache_root))
 
     if not loaded:
-        print("Nothing to load — supply --baseline and/or --capped.")
-        return 0
+        print("Nothing to load \u2014 supply --baseline and/or --capped.")
+        return {}
 
-    # Merge all loaded dicts into one dict of DataFrames.
-    # Keys: 'totals', plus each unique region name (e.g. 'MPI_Init_thread').
     all_keys = set().union(*(d.keys() for d in loaded))
     raw = {}  # type: Dict[str, pd.DataFrame]
     for key in sorted(all_keys):
         parts = [d[key] for d in loaded if key in d]
         raw[key] = pd.concat(parts, ignore_index=True)
+
+    return raw
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    pd.set_option("display.width", 250)
+    pd.set_option("display.max_columns", 40)
+    pd.set_option("display.float_format", "{:.4f}".format)
+    pd.set_option("display.max_rows", None)
+
+    args = parse_args(argv)
+    raw = load_data(args)
+    if not raw:
+        return 0
 
     print(f"Available sections: {list(raw.keys())}")
 
@@ -182,12 +209,12 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # All trials
     adf = raw['totals'].groupby(['label', 'directory'], sort=True)
-    base = adf.get_group(('baseline', '12459695_60'))
-    cap_3500 = adf.get_group(('capped', '12459765_60_3500'))
-    cap_3000 = adf.get_group(('capped', '12459766_60_3000'))
-    cap_2500 = adf.get_group(('capped', '12459767_60_2500'))
-    cap_210000 = adf.get_group(('capped', '12461211_60_210000'))
-    cap_150000 = adf.get_group(('capped', '12461212_60_150000'))
+    #  base = adf.get_group(('baseline', '12459695_60'))
+    #  cap_3500 = adf.get_group(('capped', '12459765_60_3500'))
+    #  cap_3000 = adf.get_group(('capped', '12459766_60_3000'))
+    #  cap_2500 = adf.get_group(('capped', '12459767_60_2500'))
+    #  cap_210000 = adf.get_group(('capped', '12461211_60_210000'))
+    #  cap_150000 = adf.get_group(('capped', '12461212_60_150000'))
     #  (base['sync-runtime (s)'].mean() - cap_3500['sync-runtime (s)'].mean()) / base['sync-runtime (s)'].mean()
 
     #  >>> (base['sync-runtime (s)'].mean() - cap_3500['sync-runtime (s)'].mean()) / base['sync-runtime (s)'].mean()
@@ -196,6 +223,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     #  -0.05528310622693108
     #  >>> (base['BOARD_POWER'].mean() - cap_3500['BOARD_POWER'].mean()) / base['BOARD_POWER'].mean()
     #  0.024658783577226142
+
+    # FOM analysis
+
+    print(raw['totals'].groupby('BOARD_POWER_LIMIT_CONTROL')['FOM'].describe())
+    print()
+    print((raw['totals'].groupby('BOARD_POWER_LIMIT_CONTROL')['FOM'].max() / raw['totals'].groupby('BOARD_POWER_LIMIT_CONTROL')['FOM'].min()) - 1)
+
+    a = raw['totals'].groupby(['BOARD_POWER_LIMIT_CONTROL', 'trial'])['FOM']
+    b = raw['totals'].groupby('BOARD_POWER_LIMIT_CONTROL')['FOM']
 
     import code
     code.interact(local=dict(globals(), **locals()))
