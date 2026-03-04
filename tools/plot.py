@@ -68,6 +68,8 @@ def plot_fom_boxplot(
 
     df = df.copy()
     df[col] = df[col].astype(int)
+    fom_max = df[metric].max()
+    df[metric] = df[metric] / fom_max
 
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.boxplot(
@@ -79,7 +81,7 @@ def plot_fom_boxplot(
     )
     ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
-    ax.set_ylabel("Figure of Merit")
+    ax.set_ylabel("Normalized Figure of Merit")
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
     plt.tight_layout()
