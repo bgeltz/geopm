@@ -20,8 +20,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-sns.set_palette("husl")
-
 from compare import common_arg_parser, load_data, load_raw_host_data
 
 
@@ -109,6 +107,7 @@ def plot_fom_power_sweep_boxplot(
     str_order = [str(v) for v in order]
 
     fig, ax = plt.subplots(figsize=(10, 6))
+    sns.set_palette("husl")
     sns.boxplot(
         data=df,
         x=col,
@@ -182,6 +181,7 @@ def plot_board_power_sweep_boxplot(
     df[col] = df[col].astype(int)
 
     fig, ax = plt.subplots(figsize=(10, 6))
+    sns.set_palette("husl")
     order = sorted(df[col].dropna().unique())
     df[col] = df[col].astype(str)
     str_order = [str(v) for v in order]
