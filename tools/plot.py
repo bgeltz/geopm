@@ -123,6 +123,25 @@ def plot_fom_power_sweep_boxplot(
     ax.set_ylabel("Normalized Figure of Merit")
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
+
+    # Annotate each box with the spread (max / min) - 1 as a percentage
+    for idx, power in enumerate(str_order):
+        grp = df.loc[df[col] == power, metric]
+        fom_min = grp.min()
+        fom_max_val = grp.max()
+        if fom_min > 0:
+            spread_pct = (fom_max_val / fom_min - 1) * 100
+        else:
+            spread_pct = 0.0
+        ax.annotate(
+            f"{spread_pct:.1f}%",
+            xy=(idx, fom_min),
+            xytext=(0, -10),
+            textcoords="offset points",
+            ha="center", va="top",
+            fontsize=8,
+        )
+
     plt.tight_layout()
 
     if output:
