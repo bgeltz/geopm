@@ -129,7 +129,9 @@ def plot_fom_cap_compare(
     title: str = "Uniform vs Non-Uniform Power Cap FOM",
     output: Optional[str] = None,
 ) -> None:
-    """Create a scatterplot comparing uniform vs non-uniform FOM.
+    """Create a pointplot comparing uniform vs non-uniform FOM.
+
+    Shows mean with whiskers spanning the full min-to-max range.
 
     Parameters
     ----------
@@ -151,29 +153,62 @@ def plot_fom_cap_compare(
                 f"Available columns: {list(df.columns)}"
             )
 
-    sns.set_context("notebook", font_scale=0.8)
+    #  sns.set_context("notebook", font_scale=0.8)
 
     df = df.copy()
     fom_max = df[metric].max()
     df[metric] = df[metric] / fom_max
     df[x_col] = df[x_col].astype(int)
 
-    fig, ax = plt.subplots(figsize=(5, 4))
-    sns.scatterplot(
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.pointplot(
         data=df,
         x=x_col,
         y=metric,
         hue=hue_col,
-        style=hue_col,
         ax=ax,
+        order=sorted(df[x_col].dropna().unique()),
         hue_order=["Uniform", "Non-Uniform"],
+        dodge=True,
+        errorbar=("pi", 100),
+        capsize=0.1,
+        linestyle="none",
+        markersize=4,
+        linewidth=2,
     )
     ax.set_title(title)
     ax.set_xlabel("Average Power Per Node (W)")
     ax.set_ylabel("Normalized Figure of Merit")
-    ax.legend(title=None)
+    ax.legend(title=None, framealpha=1.0)
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
+
+    # Annotate each power cap with the percent difference between means
+    means = (
+        df.groupby([x_col, hue_col])[metric]
+        .mean()
+        .unstack(hue_col)
+    )
+    x_order = sorted(df[x_col].dropna().unique())
+    for idx, power in enumerate(x_order):
+        if power not in means.index:
+            continue
+        u_mean = means.loc[power, "Uniform"]
+        nu_mean = means.loc[power, "Non-Uniform"]
+        pct_diff = (nu_mean - u_mean) / u_mean * 100
+        y_top = max(
+            df.loc[df[x_col] == power, metric].max(),
+            u_mean, nu_mean,
+        )
+        ax.annotate(
+            f"{pct_diff:+.1f}%",
+            xy=(idx, y_top),
+            xytext=(0, 8),
+            textcoords="offset points",
+            ha="center", va="bottom",
+            fontsize=8,
+        )
+
     plt.tight_layout()
 
     if output:
