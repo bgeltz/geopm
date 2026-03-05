@@ -334,12 +334,13 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 0
         plot_fom_power_sweep_boxplot(
             raw["totals"], args.title +' FoM Analysis',
-            output=args.output + '_u_nu_compare_fom.png',
+            output=args.output + '_fom_boxplot_2.png',
         )
         plot_board_power_sweep_boxplot(
             raw["totals"], title=args.title +' Power Capping/FoM Analysis',
-            output=args.output + '_u_nu_compare_board_power.png',
+            output=args.output + '_board_power_boxplot.png',
         )
+
 
     return 0
 
