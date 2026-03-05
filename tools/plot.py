@@ -104,6 +104,10 @@ def plot_fom_power_sweep_boxplot(
     fom_max = df[metric].max()
     df[metric] = df[metric] / fom_max
 
+    order = sorted(df[col].dropna().unique())
+    df[col] = df[col].astype(str)
+    str_order = [str(v) for v in order]
+
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.boxplot(
         data=df,
@@ -111,7 +115,7 @@ def plot_fom_power_sweep_boxplot(
         y=metric,
         hue=col,
         ax=ax,
-        order=sorted(df[col].dropna().unique()),
+        order=str_order,
         legend=False,
     )
     ax.set_title(title)
@@ -160,13 +164,15 @@ def plot_board_power_sweep_boxplot(
 
     fig, ax = plt.subplots(figsize=(10, 6))
     order = sorted(df[col].dropna().unique())
+    df[col] = df[col].astype(str)
+    str_order = [str(v) for v in order]
     sns.boxplot(
         data=df,
         x=col,
         y=metric,
         hue=col,
         ax=ax,
-        order=order,
+        order=str_order,
         legend=False,
     )
     # Reference line: achieved == requested
