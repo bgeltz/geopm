@@ -20,6 +20,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+sns.set_palette("husl")
+
 from compare import common_arg_parser, load_data, load_raw_host_data
 
 
@@ -107,12 +109,76 @@ def plot_fom_power_sweep_boxplot(
         data=df,
         x=col,
         y=metric,
+        hue=col,
         ax=ax,
         order=sorted(df[col].dropna().unique()),
+        legend=False,
     )
     ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Normalized Figure of Merit")
+    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
+    ax.set_axisbelow(True)
+    plt.tight_layout()
+
+    if output:
+        fig.savefig(output, dpi=150)
+        print(f"Saved figure to {output}")
+    else:
+        plt.show()
+
+
+def plot_board_power_sweep_boxplot(
+    df: pd.DataFrame,
+    title: str = "Requested vs Achieved Board Power",
+    output: Optional[str] = None,
+) -> None:
+    """Create a vertical boxplot of achieved BOARD_POWER grouped by requested limit.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The 'totals' DataFrame containing at least
+        ``BOARD_POWER_LIMIT_CONTROL`` and ``BOARD_POWER`` columns.
+    title : str
+        Plot title.
+    output : str or None
+        If provided, save figure to this path; otherwise display interactively.
+    """
+    col = "BOARD_POWER_LIMIT_CONTROL"
+    metric = "BOARD_POWER"
+
+    for required in (col, metric):
+        if required not in df.columns:
+            raise KeyError(
+                f"Column '{required}' not found in totals DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    df = df.copy()
+    df[col] = df[col].astype(int)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    order = sorted(df[col].dropna().unique())
+    sns.boxplot(
+        data=df,
+        x=col,
+        y=metric,
+        hue=col,
+        ax=ax,
+        order=order,
+        legend=False,
+    )
+    # Reference line: achieved == requested
+    ax.plot(
+        range(len(order)), order,
+        marker="_", color="red", linestyle="--", linewidth=1,
+        label="Requested = Achieved",
+    )
+    ax.set_title(title)
+    ax.set_xlabel("Board Power Limit Control (W)")
+    ax.set_ylabel("Board Power (W)")
+    ax.legend(framealpha=1.0)
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
     plt.tight_layout()
@@ -267,8 +333,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         if not raw:
             return 0
         plot_fom_power_sweep_boxplot(
-            raw["totals"], title=args.title, output=args.output,
+            raw["totals"], args.title +' FoM Analysis',
+            output=args.output + '_u_nu_compare_fom.png',
         )
+        plot_board_power_sweep_boxplot(
+            raw["totals"], title=args.title +' Power Capping/FoM Analysis',
+            output=args.output + '_u_nu_compare_board_power.png',
+        )
+
     return 0
 
 
