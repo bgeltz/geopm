@@ -196,16 +196,13 @@ def plot_fom_cap_compare(
         u_mean = means.loc[power, "Uniform"]
         nu_mean = means.loc[power, "Non-Uniform"]
         pct_diff = (nu_mean - u_mean) / u_mean * 100
-        y_top = max(
-            df.loc[df[x_col] == power, metric].max(),
-            u_mean, nu_mean,
-        )
+        y_mid = (u_mean + nu_mean) / 2
         ax.annotate(
             f"{pct_diff:+.1f}%",
-            xy=(idx, y_top),
-            xytext=(0, 8),
+            xy=(idx, y_mid),
+            xytext=(12, 0),
             textcoords="offset points",
-            ha="center", va="bottom",
+            ha="left", va="center",
             fontsize=8,
         )
 
