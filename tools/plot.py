@@ -99,6 +99,12 @@ def plot_fom_power_sweep_boxplot(
 
     df = df.copy()
     df[col] = df[col].astype(int)
+
+    # Average per-host / per-trial data so each host contributes one point per cap
+    group_cols = [c for c in ("host", col) if c in df.columns]
+    if "host" in df.columns:
+        df = df.groupby(group_cols, as_index=False)[metric].mean()
+
     fom_max = df[metric].max()
     df[metric] = df[metric] / fom_max
 
@@ -135,6 +141,88 @@ def plot_fom_power_sweep_boxplot(
         ax.annotate(
             f"{spread_pct:.1f}%",
             xy=(idx, fom_min),
+            xytext=(0, -10),
+            textcoords="offset points",
+            ha="center", va="top",
+            fontsize=8,
+        )
+
+    plt.tight_layout()
+
+    if output:
+        fig.savefig(output, dpi=150)
+        print(f"Saved figure to {output}")
+    else:
+        plt.show()
+
+
+def plot_uncore_freq_sweep_boxplot(
+    df: pd.DataFrame,
+    title: str = "Uncore Frequency by Board Power Limit",
+    output: Optional[str] = None,
+) -> None:
+    """Create a vertical boxplot of achieved uncore frequency grouped by BOARD_POWER_LIMIT_CONTROL.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The 'totals' DataFrame containing at least
+        ``BOARD_POWER_LIMIT_CONTROL`` and ``uncore-frequency (Hz)`` columns.
+    title : str
+        Plot title.
+    output : str or None
+        If provided, save figure to this path; otherwise display interactively.
+    """
+    col = "BOARD_POWER_LIMIT_CONTROL"
+    metric = "uncore-frequency (Hz)"
+
+    for required in (col, metric):
+        if required not in df.columns:
+            raise KeyError(
+                f"Column '{required}' not found in totals DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    df = df.copy()
+    df[col] = df[col].astype(int)
+    # Convert Hz to GHz for readability
+    df[metric] = df[metric] / 1e9
+    print(f"Max {metric}: {df[metric].max():.4f} GHz")
+
+    order = sorted(df[col].dropna().unique())
+    df[col] = df[col].astype(str)
+    str_order = [str(v) for v in order]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.set_palette("husl")
+    sns.boxplot(
+        data=df,
+        x=col,
+        y=metric,
+        hue=col,
+        ax=ax,
+        order=str_order,
+        legend=False,
+    )
+    ax.set_title(title)
+    ax.set_xlabel("Board Power Limit Control (W)")
+    ax.set_ylabel("Uncore Frequency (GHz)")
+    ax.set_ylim(bottom=1.4, top=2.3)
+    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
+    ax.set_axisbelow(True)
+
+    # Annotate each box with the spread (max / min) - 1 as a percentage
+    for idx, power in enumerate(str_order):
+        grp = df.loc[df[col] == power, metric]
+        freq_min = grp.min()
+        freq_max = grp.max()
+        if freq_min > 0:
+            spread_pct = (freq_max / freq_min - 1) * 100
+        else:
+            spread_pct = 0.0
+        ax.annotate(
+            f"{spread_pct:.1f}%",
+            xy=(idx, freq_min),
             xytext=(0, -10),
             textcoords="offset points",
             ha="center", va="top",
@@ -306,6 +394,125 @@ def plot_fom_cap_compare(
         plt.show()
 
 
+def plot_fom_baseline_compare(
+    df: pd.DataFrame,
+    title: str = "Before vs After Host Replacement FOM",
+    output: Optional[str] = None,
+) -> None:
+    """Create a pointplot comparing FOM before and after a host replacement.
+
+    Shows mean with whiskers spanning the full min-to-max range.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Must contain ``BOARD_POWER_LIMIT_CONTROL``, ``FOM``, and
+        ``baseline_label`` columns (values "Before" / "After").
+    title : str
+        Plot title.
+    output : str or None
+        If provided, save figure to this path; otherwise display interactively.
+    """
+    metric = "FOM"
+    x_col = "BOARD_POWER_LIMIT_CONTROL"
+    hue_col = "baseline_label"
+
+    for required in (x_col, metric, hue_col):
+        if required not in df.columns:
+            raise KeyError(
+                f"Column '{required}' not found in DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    df = df.copy()
+    fom_max = df[metric].max()
+    df[metric] = df[metric] / fom_max
+    df[x_col] = df[x_col].astype(int)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.pointplot(
+        data=df,
+        x=x_col,
+        y=metric,
+        hue=hue_col,
+        ax=ax,
+        order=sorted(df[x_col].dropna().unique()),
+        hue_order=["Before", "After"],
+        dodge=True,
+        errorbar=("pi", 100),
+        capsize=0.1,
+        linestyle="none",
+        markersize=4,
+        linewidth=2,
+    )
+    ax.set_title(title)
+    ax.set_xlabel("Board Power Limit Control (W)")
+    ax.set_ylabel("Normalized Figure of Merit")
+    ax.legend(title=None, framealpha=1.0)
+    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
+    ax.set_axisbelow(True)
+
+    # Annotate each power level with the percent difference between means
+    means = (
+        df.groupby([x_col, hue_col])[metric]
+        .mean()
+        .unstack(hue_col)
+    )
+    x_order = sorted(df[x_col].dropna().unique())
+    for idx, power in enumerate(x_order):
+        if power not in means.index:
+            continue
+        before_mean = means.loc[power, "Before"]
+        after_mean = means.loc[power, "After"]
+        pct_diff = (after_mean - before_mean) / before_mean * 100
+        y_mid = (before_mean + after_mean) / 2
+        ax.annotate(
+            f"{pct_diff:+.1f}%",
+            xy=(idx, y_mid),
+            xytext=(-3, -20),
+            textcoords="offset points",
+            ha="left", va="center",
+            fontsize=8,
+        )
+
+    plt.tight_layout()
+
+    if output:
+        fig.savefig(output, dpi=150)
+        print(f"Saved figure to {output}")
+    else:
+        plt.show()
+
+
+def _load_baseline_compare_data(
+    baseline_dirs: List[List[str]],
+    cache_dir: Optional[str],
+) -> pd.DataFrame:
+    """Load two sets of baseline directories tagged as Before / After."""
+    cache_root = (
+        Path(cache_dir).expanduser().resolve()
+        if cache_dir
+        else Path(".compare_cache").resolve()
+    )
+
+    labels = ["Before", "After"]
+    frames: List[pd.DataFrame] = []
+
+    for dir_list, label in zip(baseline_dirs, labels):
+        paths = [Path(d).expanduser().resolve() for d in dir_list]
+        sections = load_raw_host_data(paths, label, cache_root)
+        totals = sections.get("totals")
+        if totals is not None and not totals.empty:
+            totals = totals.copy()
+            totals["baseline_label"] = label
+            frames.append(totals)
+
+    if not frames:
+        raise RuntimeError("No totals data found in the supplied directories.")
+
+    return pd.concat(frames, ignore_index=True)
+
+
 def _load_cap_compare_data(
     uniform_dirs: List[str],
     nonuniform_dirs: List[str],
@@ -353,17 +560,30 @@ def main(argv: Optional[List[str]] = None) -> int:
             args.uniform, args.nonuniform, args.cache_dir,
         )
         plot_fom_cap_compare(df, title=args.title, output=args.output)
+    elif args.baseline and len(args.baseline) > 1:
+        # Split baselines into two groups: first half = Before, second half = After
+        mid = len(args.baseline) // 2
+        before_dirs = args.baseline[:mid]
+        after_dirs = args.baseline[mid:]
+        df = _load_baseline_compare_data(
+            [before_dirs, after_dirs], args.cache_dir,
+        )
+        plot_fom_baseline_compare(df, title=args.title, output=args.output)
     else:
         raw = load_data(args)
         if not raw:
             return 0
         plot_fom_power_sweep_boxplot(
             raw["totals"], args.title +' FoM Analysis',
-            output=args.output + '_fom_boxplot_2.png',
+            output=args.output + '_fom_boxplot.png',
         )
         plot_board_power_sweep_boxplot(
-            raw["totals"], title=args.title +' Power Capping/FoM Analysis',
+            raw["totals"], title=args.title +' Achieved Power Analysis',
             output=args.output + '_board_power_boxplot.png',
+        )
+        plot_uncore_freq_sweep_boxplot(
+            raw["totals"], title=args.title +' Uncore Frequency Analysis',
+            output=args.output + '_uncore_freq_boxplot.png',
         )
 
 
