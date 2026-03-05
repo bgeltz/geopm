@@ -225,13 +225,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     #  0.024658783577226142
 
     # FOM analysis
-
     print(raw['totals'].groupby('BOARD_POWER_LIMIT_CONTROL')['FOM'].describe())
     print()
     print((raw['totals'].groupby('BOARD_POWER_LIMIT_CONTROL')['FOM'].max() / raw['totals'].groupby('BOARD_POWER_LIMIT_CONTROL')['FOM'].min()) - 1)
 
     a = raw['totals'].groupby(['BOARD_POWER_LIMIT_CONTROL', 'trial'])['FOM']
-    b = raw['totals'].groupby('BOARD_POWER_LIMIT_CONTROL')['FOM']
+    b = raw['totals'].groupby('BOARD_POWER_LIMIT_CONTROL')
+
+    # Average FOM per trial per host, sorted
+    host_foms = b.get_group(3000).groupby('host')['FOM'].mean().sort_values()
+    print(host_foms)
 
     import code
     code.interact(local=dict(globals(), **locals()))

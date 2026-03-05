@@ -151,12 +151,14 @@ def plot_fom_cap_compare(
                 f"Available columns: {list(df.columns)}"
             )
 
+    sns.set_context("notebook", font_scale=0.8)
+
     df = df.copy()
     fom_max = df[metric].max()
     df[metric] = df[metric] / fom_max
     df[x_col] = df[x_col].astype(int)
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(5, 4))
     sns.scatterplot(
         data=df,
         x=x_col,
@@ -169,7 +171,7 @@ def plot_fom_cap_compare(
     ax.set_title(title)
     ax.set_xlabel("Average Power Per Node (W)")
     ax.set_ylabel("Normalized Figure of Merit")
-    ax.legend(title="Cap Type")
+    ax.legend(title=None)
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
     plt.tight_layout()
