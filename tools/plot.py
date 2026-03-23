@@ -26,7 +26,7 @@ from compare import common_arg_parser, load_data, load_raw_host_data
 # App-specific default FOM y-limits (lower, upper)
 _FOM_YLIM_DEFAULTS = {
     "hacc": (6e6, 9e6),
-    "nekbone": (1e3, 5e3),
+    "nekbone": (2e6, 5.5e6),
 }
 
 # <JOBID>_<NODE_COUNT>_<POWER_CAP>
@@ -122,7 +122,9 @@ def plot_fom_power_sweep_boxplot(
         df = df.groupby(group_cols, as_index=False)[metric].mean()
 
     fom_max = df[metric].max()
-    df[metric] = df[metric] / fom_max
+    #  df[metric] = df[metric] / fom_max
+    df[metric] = df[metric] / 5305200.0
+    print(f'FoM MAX = {fom_max}')
 
     order = sorted(df[col].dropna().unique())
     df[col] = df[col].astype(str)
@@ -223,7 +225,7 @@ def plot_uncore_freq_sweep_boxplot(
     ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Uncore Frequency (GHz)")
-    ax.set_ylim(bottom=1.4, top=2.3)
+    ax.set_ylim(bottom=1.3, top=2.4)
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
 
@@ -434,15 +436,8 @@ def plot_fom_sweep_line(
             hdf = hdf.sort_values(col)
             ax.plot(
                 hdf[col], hdf[metric],
-                marker=".", linewidth=0.8, alpha=0.3,
+                marker=".", linewidth=0.8, alpha=1.0,
             )
-        # Overall mean line
-        mean_df = df.groupby(col, as_index=False)[metric].mean().sort_values(col)
-        ax.plot(
-            mean_df[col], mean_df[metric],
-            marker="o", linewidth=2.5, color="black", label="Mean",
-        )
-        ax.legend(framealpha=1.0)
     else:
         df = df.sort_values(col)
         ax.plot(df[col], df[metric], marker="o", linewidth=2)
@@ -514,7 +509,7 @@ def plot_fom_sweep_lowess(
             smoothed = sm_lowess(hdf[metric].values, hdf[col].values, frac=0.6)
             ax.plot(
                 smoothed[:, 0], smoothed[:, 1],
-                linewidth=0.8, alpha=0.3, color=color,
+                linewidth=0.8, alpha=1.0, color=color,
             )
 
     ax.set_title(title)
@@ -842,9 +837,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         if not raw:
             return 0
         plot_fom_power_sweep_boxplot(
-            raw["totals"], args.title +' FoM Analysis',
-            output=args.output + '_fom_boxplot.png',
+            raw["totals"], args.title +' FoM Analysis - Host Means',
+            output=args.output + '_fom_boxplot_host_means.png',
         )
+        #  plot_fom_power_sweep_boxplot(
+            #  raw["totals"], args.title +' FoM Analysis - All hosts/trials',
+            #  output=args.output + '_fom_boxplot_all.png',
+        #  )
         plot_board_power_sweep_boxplot(
             raw["totals"], title=args.title +' Achieved Power Analysis',
             output=args.output + '_board_power_boxplot.png',
