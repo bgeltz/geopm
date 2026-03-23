@@ -360,6 +360,7 @@ def plot_fom_sweep_violin(
     ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Figure of Merit")
+    ax.set_ylim(6e6, 9e6)
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
     plt.tight_layout()
@@ -434,6 +435,75 @@ def plot_fom_sweep_line(
     ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Figure of Merit")
+    ax.set_ylim(6e6, 9e6)
+    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
+    ax.set_axisbelow(True)
+    plt.tight_layout()
+
+    if output:
+        fig.savefig(output, dpi=150)
+        print(f"Saved figure to {output}")
+    else:
+        plt.show()
+
+
+def plot_fom_sweep_lowess(
+    df: pd.DataFrame,
+    title: str = "FOM by Board Power Limit (LOWESS)",
+    output: Optional[str] = None,
+) -> None:
+    """Create a LOWESS regression plot of FOM vs BOARD_POWER_LIMIT_CONTROL.
+
+    Each host's trials are averaged first, then a per-host LOWESS curve
+    is drawn (thin, translucent) with a thicker overall LOWESS fit on
+    the combined data.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The 'totals' DataFrame containing at least
+        ``BOARD_POWER_LIMIT_CONTROL`` and ``FOM`` columns.
+    title : str
+        Plot title.
+    output : str or None
+        If provided, save figure to this path; otherwise display interactively.
+    """
+    from statsmodels.nonparametric.smoothers_lowess import lowess as sm_lowess
+
+    col = "BOARD_POWER_LIMIT_CONTROL"
+    metric = "FOM"
+
+    for required in (col, metric):
+        if required not in df.columns:
+            raise KeyError(
+                f"Column '{required}' not found in totals DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    df = df.copy()
+    df[col] = df[col].astype(int)
+
+    # Average per-host trials so each host contributes one point per power budget
+    group_cols = [c for c in ("host", col) if c in df.columns]
+    df = df.groupby(group_cols, as_index=False)[metric].mean()
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    hosts = sorted(df["host"].unique()) if "host" in df.columns else []
+    palette = sns.color_palette("husl", n_colors=len(hosts)) if hosts else []
+
+    if hosts:
+        for color, (host, hdf) in zip(palette, df.groupby("host", sort=True)):
+            hdf = hdf.sort_values(col)
+            smoothed = sm_lowess(hdf[metric].values, hdf[col].values, frac=0.6)
+            ax.plot(
+                smoothed[:, 0], smoothed[:, 1],
+                linewidth=0.8, alpha=0.3, color=color,
+            )
+
+    ax.set_title(title)
+    ax.set_xlabel("Board Power Limit Control (W)")
+    ax.set_ylabel("Figure of Merit")
+    ax.set_ylim(6e6, 9e6)
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
     plt.tight_layout()
@@ -714,6 +784,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         plot_fom_sweep_line(
             sections["totals"], title=args.title,
             output=args.output.rsplit(".", 1)[0] + "_line." + args.output.rsplit(".", 1)[1]
+            if args.output else None,
+        )
+        plot_fom_sweep_lowess(
+            sections["totals"], title=args.title,
+            output=args.output.rsplit(".", 1)[0] + "_lowess." + args.output.rsplit(".", 1)[1]
             if args.output else None,
         )
     elif args.uniform and args.nonuniform:
