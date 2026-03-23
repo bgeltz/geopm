@@ -23,6 +23,12 @@ import seaborn as sns
 from compare import common_arg_parser, load_data, load_raw_host_data
 
 
+# App-specific default FOM y-limits (lower, upper)
+_FOM_YLIM_DEFAULTS = {
+    "hacc": (6e6, 9e6),
+    "nekbone": (1e3, 5e3),
+}
+
 # <JOBID>_<NODE_COUNT>_<POWER_CAP>
 _DIR_RE = re.compile(r"^(?P<jobid>\d+)_(?P<nodes>\d+)_(?P<cap>\d+)$")
 
@@ -70,6 +76,12 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     p.add_argument(
         "--sweep", nargs="+", default=None,
         help="Paths to one or more power-sweep dataset directories",
+    )
+    p.add_argument(
+        "--ylim", default=None,
+        help="Y-axis limits as 'LOW,HIGH' (e.g. '6e6,9e6'). "
+             "If omitted, defaults are chosen by app name in --title "
+             f"(known apps: {', '.join(sorted(_FOM_YLIM_DEFAULTS))})",
     )
     return p.parse_args(argv)
 
@@ -311,6 +323,7 @@ def plot_fom_sweep_violin(
     df: pd.DataFrame,
     title: str = "FOM by Board Power Limit",
     output: Optional[str] = None,
+    ylim: Optional[tuple] = None,
 ) -> None:
     """Create a violin plot of FOM grouped by BOARD_POWER_LIMIT_CONTROL.
 
@@ -360,7 +373,8 @@ def plot_fom_sweep_violin(
     ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Figure of Merit")
-    ax.set_ylim(6e6, 9e6)
+    if ylim:
+        ax.set_ylim(*ylim)
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
     plt.tight_layout()
@@ -376,6 +390,7 @@ def plot_fom_sweep_line(
     df: pd.DataFrame,
     title: str = "FOM by Board Power Limit",
     output: Optional[str] = None,
+    ylim: Optional[tuple] = None,
 ) -> None:
     """Create a lineplot of FOM grouped by BOARD_POWER_LIMIT_CONTROL.
 
@@ -435,7 +450,8 @@ def plot_fom_sweep_line(
     ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Figure of Merit")
-    ax.set_ylim(6e6, 9e6)
+    if ylim:
+        ax.set_ylim(*ylim)
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
     plt.tight_layout()
@@ -451,6 +467,7 @@ def plot_fom_sweep_lowess(
     df: pd.DataFrame,
     title: str = "FOM by Board Power Limit (LOWESS)",
     output: Optional[str] = None,
+    ylim: Optional[tuple] = None,
 ) -> None:
     """Create a LOWESS regression plot of FOM vs BOARD_POWER_LIMIT_CONTROL.
 
@@ -503,7 +520,8 @@ def plot_fom_sweep_lowess(
     ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Figure of Merit")
-    ax.set_ylim(6e6, 9e6)
+    if ylim:
+        ax.set_ylim(*ylim)
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
     plt.tight_layout()
@@ -778,18 +796,32 @@ def main(argv: Optional[List[str]] = None) -> int:
         if "totals" not in sections or sections["totals"].empty:
             print("No totals data found in sweep directories.")
             return 0
+        # Resolve y-limits: explicit --ylim > app-name default > None
+        if args.ylim:
+            lo, hi = args.ylim.split(",")
+            ylim = (float(lo), float(hi))
+        else:
+            ylim = None
+            for app, limits in _FOM_YLIM_DEFAULTS.items():
+                if app in args.title.lower():
+                    ylim = limits
+                    break
+
         plot_fom_sweep_violin(
             sections["totals"], title=args.title, output=args.output,
+            ylim=ylim,
         )
         plot_fom_sweep_line(
             sections["totals"], title=args.title,
             output=args.output.rsplit(".", 1)[0] + "_line." + args.output.rsplit(".", 1)[1]
             if args.output else None,
+            ylim=ylim,
         )
         plot_fom_sweep_lowess(
             sections["totals"], title=args.title,
             output=args.output.rsplit(".", 1)[0] + "_lowess." + args.output.rsplit(".", 1)[1]
             if args.output else None,
+            ylim=ylim,
         )
     elif args.uniform and args.nonuniform:
         df = _load_cap_compare_data(
