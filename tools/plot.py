@@ -78,6 +78,11 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Paths to one or more power-sweep dataset directories",
     )
     p.add_argument(
+        "--raw-trials", action="store_true", default=False,
+        help="Plot every trial as a separate data point instead of "
+             "averaging trials per host before plotting",
+    )
+    p.add_argument(
         "--ylim", default=None,
         help="Y-axis limits as 'LOW,HIGH' (e.g. '6e6,9e6'). "
              "If omitted, defaults are chosen by app name in --title "
@@ -90,6 +95,7 @@ def plot_fom_power_sweep_boxplot(
     df: pd.DataFrame,
     title: str = "FOM by Board Power Limit",
     output: Optional[str] = None,
+    average_trials: bool = True,
 ) -> None:
     """Create a vertical boxplot of FOM grouped by BOARD_POWER_LIMIT_CONTROL.
 
@@ -116,10 +122,10 @@ def plot_fom_power_sweep_boxplot(
     df = df.copy()
     df[col] = df[col].astype(int)
 
-    # Average per-host / per-trial data so each host contributes one point per cap
-    group_cols = [c for c in ("host", col) if c in df.columns]
-    if "host" in df.columns:
-        df = df.groupby(group_cols, as_index=False)[metric].mean()
+    if average_trials:
+        group_cols = [c for c in ("host", col) if c in df.columns]
+        if "host" in df.columns:
+            df = df.groupby(group_cols, as_index=False)[metric].mean()
 
     fom_max = df[metric].max()
     #  df[metric] = df[metric] / fom_max
@@ -131,7 +137,6 @@ def plot_fom_power_sweep_boxplot(
     str_order = [str(v) for v in order]
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.set_palette("husl")
     sns.boxplot(
         data=df,
         x=col,
@@ -144,8 +149,6 @@ def plot_fom_power_sweep_boxplot(
     ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Normalized Figure of Merit")
-    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
-    ax.set_axisbelow(True)
 
     # Annotate each box with the spread (max / min) - 1 as a percentage
     for idx, power in enumerate(str_order):
@@ -212,7 +215,6 @@ def plot_uncore_freq_sweep_boxplot(
     str_order = [str(v) for v in order]
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.set_palette("husl")
     sns.boxplot(
         data=df,
         x=col,
@@ -226,8 +228,6 @@ def plot_uncore_freq_sweep_boxplot(
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Uncore Frequency (GHz)")
     ax.set_ylim(bottom=1.3, top=2.4)
-    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
-    ax.set_axisbelow(True)
 
     # Annotate each box with the spread (max / min) - 1 as a percentage
     for idx, power in enumerate(str_order):
@@ -287,7 +287,6 @@ def plot_board_power_sweep_boxplot(
     df[col] = df[col].astype(int)
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.set_palette("husl")
     order = sorted(df[col].dropna().unique())
     df[col] = df[col].astype(str)
     str_order = [str(v) for v in order]
@@ -310,8 +309,6 @@ def plot_board_power_sweep_boxplot(
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Board Power (W)")
     ax.legend(framealpha=1.0)
-    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
-    ax.set_axisbelow(True)
     plt.tight_layout()
 
     if output:
@@ -326,6 +323,7 @@ def plot_fom_sweep_violin(
     title: str = "FOM by Board Power Limit",
     output: Optional[str] = None,
     ylim: Optional[tuple] = None,
+    average_trials: bool = True,
 ) -> None:
     """Create a violin plot of FOM grouped by BOARD_POWER_LIMIT_CONTROL.
 
@@ -352,16 +350,15 @@ def plot_fom_sweep_violin(
     df = df.copy()
     df[col] = df[col].astype(int)
 
-    # Average per-host trials so each host contributes one point per power budget
-    group_cols = [c for c in ("host", col) if c in df.columns]
-    df = df.groupby(group_cols, as_index=False)[metric].mean()
+    if average_trials:
+        group_cols = [c for c in ("host", col) if c in df.columns]
+        df = df.groupby(group_cols, as_index=False)[metric].mean()
 
     order = sorted(df[col].dropna().unique())
     df[col] = df[col].astype(str)
     str_order = [str(v) for v in order]
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.set_palette("husl")
     sns.violinplot(
         data=df,
         x=col,
@@ -377,8 +374,7 @@ def plot_fom_sweep_violin(
     ax.set_ylabel("Figure of Merit")
     if ylim:
         ax.set_ylim(*ylim)
-    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
-    ax.set_axisbelow(True)
+    ax.xaxis.grid(True)
     plt.tight_layout()
 
     if output:
@@ -393,6 +389,7 @@ def plot_fom_sweep_line(
     title: str = "FOM by Board Power Limit",
     output: Optional[str] = None,
     ylim: Optional[tuple] = None,
+    average_trials: bool = True,
 ) -> None:
     """Create a lineplot of FOM grouped by BOARD_POWER_LIMIT_CONTROL.
 
@@ -423,12 +420,11 @@ def plot_fom_sweep_line(
     df = df.copy()
     df[col] = df[col].astype(int)
 
-    # Average per-host trials so each host contributes one point per power budget
-    group_cols = [c for c in ("host", col) if c in df.columns]
-    df = df.groupby(group_cols, as_index=False)[metric].mean()
+    if average_trials:
+        group_cols = [c for c in ("host", col) if c in df.columns]
+        df = df.groupby(group_cols, as_index=False)[metric].mean()
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.set_palette("husl")
 
     if "host" in df.columns:
         # Individual host lines (thin, translucent)
@@ -447,8 +443,6 @@ def plot_fom_sweep_line(
     ax.set_ylabel("Figure of Merit")
     if ylim:
         ax.set_ylim(*ylim)
-    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
-    ax.set_axisbelow(True)
     plt.tight_layout()
 
     if output:
@@ -463,6 +457,7 @@ def plot_fom_sweep_lowess(
     title: str = "FOM by Board Power Limit (LOWESS)",
     output: Optional[str] = None,
     ylim: Optional[tuple] = None,
+    average_trials: bool = True,
 ) -> None:
     """Create a LOWESS regression plot of FOM vs BOARD_POWER_LIMIT_CONTROL.
 
@@ -495,21 +490,20 @@ def plot_fom_sweep_lowess(
     df = df.copy()
     df[col] = df[col].astype(int)
 
-    # Average per-host trials so each host contributes one point per power budget
-    group_cols = [c for c in ("host", col) if c in df.columns]
-    df = df.groupby(group_cols, as_index=False)[metric].mean()
+    if average_trials:
+        group_cols = [c for c in ("host", col) if c in df.columns]
+        df = df.groupby(group_cols, as_index=False)[metric].mean()
 
     fig, ax = plt.subplots(figsize=(10, 6))
     hosts = sorted(df["host"].unique()) if "host" in df.columns else []
-    palette = sns.color_palette("husl", n_colors=len(hosts)) if hosts else []
 
     if hosts:
-        for color, (host, hdf) in zip(palette, df.groupby("host", sort=True)):
+        for host, hdf in df.groupby("host", sort=True):
             hdf = hdf.sort_values(col)
-            smoothed = sm_lowess(hdf[metric].values, hdf[col].values, frac=0.6)
+            smoothed = sm_lowess(hdf[metric].values, hdf[col].values, frac=0.3, it=3)
             ax.plot(
                 smoothed[:, 0], smoothed[:, 1],
-                linewidth=0.8, alpha=1.0, color=color,
+                linewidth=0.8, alpha=1.0,
             )
 
     ax.set_title(title)
@@ -517,8 +511,6 @@ def plot_fom_sweep_lowess(
     ax.set_ylabel("Figure of Merit")
     if ylim:
         ax.set_ylim(*ylim)
-    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
-    ax.set_axisbelow(True)
     plt.tight_layout()
 
     if output:
@@ -526,6 +518,69 @@ def plot_fom_sweep_lowess(
         print(f"Saved figure to {output}")
     else:
         plt.show()
+
+
+def plot_fom_histograms(
+    df: pd.DataFrame,
+    title: str = "FOM Distribution",
+    output: Optional[str] = None,
+    ylim: Optional[tuple] = None,
+    average_trials: bool = True,
+) -> None:
+    """Create one histogram of FOM per BOARD_POWER_LIMIT_CONTROL value.
+
+    Each host's trials are averaged first so each host contributes one
+    value per power limit.  A separate figure is saved/shown for each
+    power limit.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The 'totals' DataFrame containing at least
+        ``BOARD_POWER_LIMIT_CONTROL`` and ``FOM`` columns.
+    title : str
+        Base plot title (power limit value is appended).
+    output : str or None
+        If provided, the power limit is inserted into the filename
+        (e.g. ``fom_hist_3000.png``); otherwise displayed interactively.
+    """
+    col = "BOARD_POWER_LIMIT_CONTROL"
+    metric = "FOM"
+
+    for required in (col, metric):
+        if required not in df.columns:
+            raise KeyError(
+                f"Column '{required}' not found in totals DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    df = df.copy()
+    df[col] = df[col].astype(int)
+
+    if average_trials:
+        group_cols = [c for c in ("host", col) if c in df.columns]
+        df = df.groupby(group_cols, as_index=False)[metric].mean()
+
+    for power_limit in sorted(df[col].unique()):
+        subset = df.loc[df[col] == power_limit, metric]
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.histplot(subset, ax=ax)
+        ax.set_title(f"{title} — {power_limit} W")
+        ax.set_xlabel("Figure of Merit")
+        ax.set_ylabel("Count")
+        if ylim:
+            ax.set_xlim(*ylim)
+        plt.tight_layout()
+
+        if output:
+            base, ext = output.rsplit(".", 1)
+            out_path = f"{base}_{power_limit}.{ext}"
+            fig.savefig(out_path, dpi=150)
+            print(f"Saved figure to {out_path}")
+        else:
+            plt.show()
+        plt.close(fig)
 
 
 def plot_fom_cap_compare(
@@ -584,8 +639,6 @@ def plot_fom_cap_compare(
     ax.set_xlabel("Average Power Per Node (W)")
     ax.set_ylabel("Normalized Figure of Merit")
     ax.legend(title=None, framealpha=1.0)
-    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
-    ax.set_axisbelow(True)
 
     # Annotate each power cap with the percent difference between means
     means = (
@@ -674,8 +727,6 @@ def plot_fom_baseline_compare(
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Normalized Figure of Merit")
     ax.legend(title=None, framealpha=1.0)
-    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
-    ax.set_axisbelow(True)
 
     # Annotate each power level with the percent difference between means
     means = (
@@ -778,6 +829,7 @@ def _load_cap_compare_data(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    plt.style.use('seaborn-v0_8-darkgrid')
     args = parse_args(argv)
 
     if args.sweep:
@@ -802,21 +854,34 @@ def main(argv: Optional[List[str]] = None) -> int:
                     ylim = limits
                     break
 
+        avg = not args.raw_trials
+        tag = "raw" if args.raw_trials else "average_trials"
+
+        def _out(suffix: str) -> Optional[str]:
+            if not args.output:
+                return None
+            base, ext = args.output.rsplit(".", 1)
+            return f"{base}_{tag}_{suffix}.{ext}"
+
         plot_fom_sweep_violin(
-            sections["totals"], title=args.title, output=args.output,
-            ylim=ylim,
+            sections["totals"], title=args.title,
+            output=_out("violin"),
+            ylim=ylim, average_trials=avg,
         )
         plot_fom_sweep_line(
             sections["totals"], title=args.title,
-            output=args.output.rsplit(".", 1)[0] + "_line." + args.output.rsplit(".", 1)[1]
-            if args.output else None,
-            ylim=ylim,
+            output=_out("line"),
+            ylim=ylim, average_trials=avg,
         )
         plot_fom_sweep_lowess(
             sections["totals"], title=args.title,
-            output=args.output.rsplit(".", 1)[0] + "_lowess." + args.output.rsplit(".", 1)[1]
-            if args.output else None,
-            ylim=ylim,
+            output=_out("lowess"),
+            ylim=ylim, average_trials=avg,
+        )
+        plot_fom_histograms(
+            sections["totals"], title=args.title,
+            output=_out("hist"),
+            ylim=ylim, average_trials=avg,
         )
     elif args.uniform and args.nonuniform:
         df = _load_cap_compare_data(
