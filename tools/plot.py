@@ -67,6 +67,10 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         "--nonuniform", nargs="+", default=None,
         help="Paths to one or more non-uniform (job-level) power-cap dataset directories",
     )
+    p.add_argument(
+        "--sweep", nargs="+", default=None,
+        help="Paths to one or more power-sweep dataset directories",
+    )
     return p.parse_args(argv)
 
 
@@ -292,6 +296,144 @@ def plot_board_power_sweep_boxplot(
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Board Power (W)")
     ax.legend(framealpha=1.0)
+    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
+    ax.set_axisbelow(True)
+    plt.tight_layout()
+
+    if output:
+        fig.savefig(output, dpi=150)
+        print(f"Saved figure to {output}")
+    else:
+        plt.show()
+
+
+def plot_fom_sweep_violin(
+    df: pd.DataFrame,
+    title: str = "FOM by Board Power Limit",
+    output: Optional[str] = None,
+) -> None:
+    """Create a violin plot of FOM grouped by BOARD_POWER_LIMIT_CONTROL.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The 'totals' DataFrame containing at least
+        ``BOARD_POWER_LIMIT_CONTROL`` and ``FOM`` columns.
+    title : str
+        Plot title.
+    output : str or None
+        If provided, save figure to this path; otherwise display interactively.
+    """
+    col = "BOARD_POWER_LIMIT_CONTROL"
+    metric = "FOM"
+
+    for required in (col, metric):
+        if required not in df.columns:
+            raise KeyError(
+                f"Column '{required}' not found in totals DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    df = df.copy()
+    df[col] = df[col].astype(int)
+
+    # Average per-host trials so each host contributes one point per power budget
+    group_cols = [c for c in ("host", col) if c in df.columns]
+    df = df.groupby(group_cols, as_index=False)[metric].mean()
+
+    order = sorted(df[col].dropna().unique())
+    df[col] = df[col].astype(str)
+    str_order = [str(v) for v in order]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.set_palette("husl")
+    sns.violinplot(
+        data=df,
+        x=col,
+        y=metric,
+        hue=col,
+        ax=ax,
+        order=str_order,
+        legend=False,
+        inner="box",
+    )
+    ax.set_title(title)
+    ax.set_xlabel("Board Power Limit Control (W)")
+    ax.set_ylabel("Figure of Merit")
+    ax.yaxis.grid(True, linestyle="--", alpha=0.7)
+    ax.set_axisbelow(True)
+    plt.tight_layout()
+
+    if output:
+        fig.savefig(output, dpi=150)
+        print(f"Saved figure to {output}")
+    else:
+        plt.show()
+
+
+def plot_fom_sweep_line(
+    df: pd.DataFrame,
+    title: str = "FOM by Board Power Limit",
+    output: Optional[str] = None,
+) -> None:
+    """Create a lineplot of FOM grouped by BOARD_POWER_LIMIT_CONTROL.
+
+    Each host's trials are averaged so that every host contributes one
+    point per power budget.  Individual host lines are drawn with a
+    thicker line for the overall mean.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The 'totals' DataFrame containing at least
+        ``BOARD_POWER_LIMIT_CONTROL`` and ``FOM`` columns.
+    title : str
+        Plot title.
+    output : str or None
+        If provided, save figure to this path; otherwise display interactively.
+    """
+    col = "BOARD_POWER_LIMIT_CONTROL"
+    metric = "FOM"
+
+    for required in (col, metric):
+        if required not in df.columns:
+            raise KeyError(
+                f"Column '{required}' not found in totals DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    df = df.copy()
+    df[col] = df[col].astype(int)
+
+    # Average per-host trials so each host contributes one point per power budget
+    group_cols = [c for c in ("host", col) if c in df.columns]
+    df = df.groupby(group_cols, as_index=False)[metric].mean()
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.set_palette("husl")
+
+    if "host" in df.columns:
+        # Individual host lines (thin, translucent)
+        for host, hdf in df.groupby("host"):
+            hdf = hdf.sort_values(col)
+            ax.plot(
+                hdf[col], hdf[metric],
+                marker=".", linewidth=0.8, alpha=0.3,
+            )
+        # Overall mean line
+        mean_df = df.groupby(col, as_index=False)[metric].mean().sort_values(col)
+        ax.plot(
+            mean_df[col], mean_df[metric],
+            marker="o", linewidth=2.5, color="black", label="Mean",
+        )
+        ax.legend(framealpha=1.0)
+    else:
+        df = df.sort_values(col)
+        ax.plot(df[col], df[metric], marker="o", linewidth=2)
+
+    ax.set_title(title)
+    ax.set_xlabel("Board Power Limit Control (W)")
+    ax.set_ylabel("Figure of Merit")
     ax.yaxis.grid(True, linestyle="--", alpha=0.7)
     ax.set_axisbelow(True)
     plt.tight_layout()
@@ -555,7 +697,26 @@ def _load_cap_compare_data(
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
 
-    if args.uniform and args.nonuniform:
+    if args.sweep:
+        sweep_dirs = [Path(d).expanduser().resolve() for d in args.sweep]
+        cache_root = (
+            Path(args.cache_dir).expanduser().resolve()
+            if args.cache_dir
+            else Path(".compare_cache").resolve()
+        )
+        sections = load_raw_host_data(sweep_dirs, "sweep", cache_root)
+        if "totals" not in sections or sections["totals"].empty:
+            print("No totals data found in sweep directories.")
+            return 0
+        plot_fom_sweep_violin(
+            sections["totals"], title=args.title, output=args.output,
+        )
+        plot_fom_sweep_line(
+            sections["totals"], title=args.title,
+            output=args.output.rsplit(".", 1)[0] + "_line." + args.output.rsplit(".", 1)[1]
+            if args.output else None,
+        )
+    elif args.uniform and args.nonuniform:
         df = _load_cap_compare_data(
             args.uniform, args.nonuniform, args.cache_dir,
         )
