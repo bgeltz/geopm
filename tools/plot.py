@@ -88,6 +88,12 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
              "If omitted, defaults are chosen by app name in --title "
              f"(known apps: {', '.join(sorted(_FOM_YLIM_DEFAULTS))})",
     )
+    p.add_argument(
+        "--cache", nargs="?", const=".compare_cache", default=None,
+        help="Load data directly from pre-built HDF5 cache files, "
+             "skipping report parsing. Optionally accepts a path to the "
+             "cache directory (default: .compare_cache).",
+    )
     return p.parse_args(argv)
 
 
@@ -773,6 +779,51 @@ def plot_fom_baseline_compare(
         plt.show()
 
 
+def load_cached_data(cache_path: str) -> Dict[str, pd.DataFrame]:
+    """Load pre-built HDF5 caches directly, skipping report parsing.
+
+    Reads every ``cache_*.h5`` file under *cache_path* (including
+    subdirectories) and concatenates the DataFrames keyed by section
+    name (``'totals'``, region names, etc.).
+
+    The HDF5 key mapping follows :class:`geopmpy.io.RawReportCollection`:
+
+    * ``app_report`` -> ``totals``
+    * ``report``     -> per-region data (split by ``region`` column)
+    """
+    root = Path(cache_path).expanduser().resolve()
+    h5_files = sorted(root.rglob("cache_*.h5"))
+    if not h5_files:
+        raise FileNotFoundError(
+            f"No cache_*.h5 files found under {root}"
+        )
+
+    combined: Dict[str, List[pd.DataFrame]] = {}
+    for h5 in h5_files:
+        # Application totals
+        try:
+            app_df = pd.read_hdf(h5, key="app_report")
+            combined.setdefault("totals", []).append(app_df)
+        except KeyError:
+            pass
+
+        # Per-region data
+        try:
+            region_df = pd.read_hdf(h5, key="report")
+            if region_df is not None and not region_df.empty:
+                for region_name, rdf in region_df.groupby("region", sort=True):
+                    combined.setdefault(str(region_name), []).append(
+                        rdf.reset_index(drop=True)
+                    )
+        except KeyError:
+            pass
+
+    return {
+        key: pd.concat(dfs, ignore_index=True)
+        for key, dfs in combined.items()
+    }
+
+
 def validate_sweep_dataset(
     df: pd.DataFrame,
     output_dir: Optional[str] = None,
@@ -911,14 +962,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     plt.style.use('seaborn-v0_8-darkgrid')
     args = parse_args(argv)
 
-    if args.sweep:
-        sweep_dirs = [Path(d).expanduser().resolve() for d in args.sweep]
-        cache_root = (
-            Path(args.cache_dir).expanduser().resolve()
-            if args.cache_dir
-            else Path(".compare_cache").resolve()
-        )
-        sections = load_raw_host_data(sweep_dirs, "sweep", cache_root)
+    if args.sweep or (args.cache and not args.baseline and not (args.uniform and args.nonuniform)):
+        if args.cache:
+            sections = load_cached_data(args.cache)
+        else:
+            sweep_dirs = [Path(d).expanduser().resolve() for d in args.sweep]
+            cache_root = (
+                Path(args.cache_dir).expanduser().resolve()
+                if args.cache_dir
+                else Path(".compare_cache").resolve()
+            )
+            sections = load_raw_host_data(sweep_dirs, "sweep", cache_root)
         if "totals" not in sections or sections["totals"].empty:
             print("No totals data found in sweep directories.")
             return 0
@@ -984,18 +1038,30 @@ def main(argv: Optional[List[str]] = None) -> int:
             average_trials=avg,
         )
     elif args.uniform and args.nonuniform:
-        df = _load_cap_compare_data(
-            args.uniform, args.nonuniform, args.cache_dir,
-        )
+        if args.cache:
+            sections = load_cached_data(args.cache)
+            df = sections.get("totals")
+            if df is None or df.empty:
+                raise RuntimeError("No totals data found in cached files.")
+        else:
+            df = _load_cap_compare_data(
+                args.uniform, args.nonuniform, args.cache_dir,
+            )
         plot_fom_cap_compare(df, title=args.title, output=args.output)
     elif args.baseline and len(args.baseline) > 1:
-        # Split baselines into two groups: first half = Before, second half = After
-        mid = len(args.baseline) // 2
-        before_dirs = args.baseline[:mid]
-        after_dirs = args.baseline[mid:]
-        df = _load_baseline_compare_data(
-            [before_dirs, after_dirs], args.cache_dir,
-        )
+        if args.cache:
+            sections = load_cached_data(args.cache)
+            df = sections.get("totals")
+            if df is None or df.empty:
+                raise RuntimeError("No totals data found in cached files.")
+        else:
+            # Split baselines into two groups: first half = Before, second half = After
+            mid = len(args.baseline) // 2
+            before_dirs = args.baseline[:mid]
+            after_dirs = args.baseline[mid:]
+            df = _load_baseline_compare_data(
+                [before_dirs, after_dirs], args.cache_dir,
+            )
         plot_fom_baseline_compare(df, title=args.title, output=args.output)
 
     return 0
