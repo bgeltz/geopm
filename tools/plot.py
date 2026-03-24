@@ -760,6 +760,72 @@ def plot_fom_baseline_compare(
         plt.show()
 
 
+def validate_sweep_dataset(
+    df: pd.DataFrame,
+    output_dir: Optional[str] = None,
+) -> None:
+    """Check a sweep dataset for incomplete hosts and missing FOM values.
+
+    Writes two files into *output_dir* (defaults to the current directory):
+
+    * ``hosts_partial_power_limits.txt`` – hosts that do not have data for
+      every ``BOARD_POWER_LIMIT_CONTROL`` value present in the full dataset.
+    * ``hosts_missing_fom.txt`` – hosts whose ``FOM`` values are entirely
+      missing (all NaN).
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The 'totals' DataFrame expected to contain ``host``,
+        ``BOARD_POWER_LIMIT_CONTROL``, and ``FOM`` columns.
+    output_dir : str or None
+        Directory in which to write the report files.  Defaults to ``"."``.
+    """
+    col = "BOARD_POWER_LIMIT_CONTROL"
+    metric = "FOM"
+    out = Path(output_dir) if output_dir else Path(".")
+    out.mkdir(parents=True, exist_ok=True)
+
+    # --- Hosts with partial BOARD_POWER_LIMIT_CONTROL coverage ----------
+    all_limits = set(df[col].dropna().unique())
+    partial_hosts: List[str] = []
+    if "host" in df.columns and all_limits:
+        for host, hdf in df.groupby("host"):
+            host_limits = set(hdf[col].dropna().unique())
+            if host_limits != all_limits:
+                missing = sorted(all_limits - host_limits)
+                partial_hosts.append(
+                    f"{host}  missing limits: {missing}"
+                )
+
+    partial_path = out / "hosts_partial_power_limits.txt"
+    with open(partial_path, "w") as fh:
+        if partial_hosts:
+            fh.write("\n".join(sorted(partial_hosts)) + "\n")
+            print(f"WARNING: {len(partial_hosts)} host(s) with partial "
+                  f"power-limit data written to {partial_path}")
+        else:
+            fh.write("# All hosts have data for every BOARD_POWER_LIMIT_CONTROL value.\n")
+            print(f"All hosts have complete power-limit coverage ({partial_path})")
+
+    # --- Hosts missing FOM -----------------------------------------------
+    missing_fom_hosts: List[str] = []
+    if "host" in df.columns and metric in df.columns:
+        for host, hdf in df.groupby("host"):
+            if hdf[metric].dropna().empty:
+                missing_fom_hosts.append(host)
+
+    fom_path = out / "hosts_missing_fom.txt"
+    with open(fom_path, "w") as fh:
+        if missing_fom_hosts:
+            fh.write("\n".join(sorted(missing_fom_hosts)) + "\n")
+            print(f"WARNING: {len(missing_fom_hosts)} host(s) missing FOM "
+                  f"written to {fom_path}")
+        else:
+            fh.write("# All hosts have FOM data.\n")
+            print(f"All hosts have FOM data ({fom_path})")
+
+
 def _load_baseline_compare_data(
     baseline_dirs: List[List[str]],
     cache_dir: Optional[str],
@@ -843,6 +909,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         if "totals" not in sections or sections["totals"].empty:
             print("No totals data found in sweep directories.")
             return 0
+
+        validate_sweep_dataset(
+            sections["totals"],
+            output_dir=str(Path(args.output).parent) if args.output else None,
+        )
+
         # Resolve y-limits: explicit --ylim > app-name default > None
         if args.ylim:
             lo, hi = args.ylim.split(",")
