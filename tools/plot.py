@@ -327,7 +327,7 @@ def plot_power_sweep_board_power_boxplot(
     ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Board Power (W)")
-    ax.legend(framealpha=1.0)
+    ax.legend(frameon=True, framealpha=1.0, facecolor="white", edgecolor="black")
     plt.tight_layout()
 
     if output:
@@ -657,7 +657,7 @@ def plot_fom_cap_compare(
     ax.set_title(title)
     ax.set_xlabel("Average Power Per Node (W)")
     ax.set_ylabel("Normalized Figure of Merit")
-    ax.legend(title=None, framealpha=1.0)
+    ax.legend(title=None, frameon=True, framealpha=1.0, facecolor="white", edgecolor="black")
 
     # Annotate each power cap with the percent difference between means
     means = (
@@ -745,7 +745,7 @@ def plot_fom_baseline_compare(
     ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Normalized Figure of Merit")
-    ax.legend(title=None, framealpha=1.0)
+    ax.legend(title=None, frameon=True, framealpha=1.0, facecolor="white", edgecolor="black")
 
     # Annotate each power level with the percent difference between means
     means = (
