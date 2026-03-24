@@ -914,6 +914,9 @@ def validate_sweep_dataset(
         print(f"Removed {len(hosts_to_drop)} host(s) from dataset: "
               f"{sorted(hosts_to_drop)}")
 
+    if "host" in df.columns:
+        print(f"Total unique hosts in cleaned dataset: {df['host'].nunique()}")
+
     return df
 
 
