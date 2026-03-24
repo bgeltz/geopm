@@ -91,7 +91,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
-def plot_fom_power_sweep_boxplot(
+def plot_power_sweep_fom_boxplot(
     df: pd.DataFrame,
     title: str = "FOM by Board Power Limit",
     output: Optional[str] = None,
@@ -177,7 +177,7 @@ def plot_fom_power_sweep_boxplot(
         plt.show()
 
 
-def plot_uncore_freq_sweep_boxplot(
+def plot_power_sweep_uncore_freq_boxplot(
     df: pd.DataFrame,
     title: str = "Uncore Frequency by Board Power Limit",
     output: Optional[str] = None,
@@ -256,7 +256,7 @@ def plot_uncore_freq_sweep_boxplot(
         plt.show()
 
 
-def plot_board_power_sweep_boxplot(
+def plot_power_sweep_board_power_boxplot(
     df: pd.DataFrame,
     title: str = "Requested vs Achieved Board Power",
     output: Optional[str] = None,
@@ -318,7 +318,7 @@ def plot_board_power_sweep_boxplot(
         plt.show()
 
 
-def plot_fom_sweep_violin(
+def plot_power_sweep_fom_violin(
     df: pd.DataFrame,
     title: str = "FOM by Board Power Limit",
     output: Optional[str] = None,
@@ -384,7 +384,7 @@ def plot_fom_sweep_violin(
         plt.show()
 
 
-def plot_fom_sweep_line(
+def plot_power_sweep_fom_line(
     df: pd.DataFrame,
     title: str = "FOM by Board Power Limit",
     output: Optional[str] = None,
@@ -452,7 +452,7 @@ def plot_fom_sweep_line(
         plt.show()
 
 
-def plot_fom_sweep_lowess(
+def plot_power_sweep_fom_lowess(
     df: pd.DataFrame,
     title: str = "FOM by Board Power Limit (LOWESS)",
     output: Optional[str] = None,
@@ -520,7 +520,7 @@ def plot_fom_sweep_lowess(
         plt.show()
 
 
-def plot_fom_histograms(
+def plot_power_sweep_fom_histogram(
     df: pd.DataFrame,
     title: str = "FOM Distribution",
     output: Optional[str] = None,
@@ -935,25 +935,38 @@ def main(argv: Optional[List[str]] = None) -> int:
             base, ext = args.output.rsplit(".", 1)
             return f"{base}_{tag}_{suffix}.{ext}"
 
-        plot_fom_sweep_violin(
+        plot_power_sweep_fom_violin(
             sections["totals"], title=args.title,
             output=_out("violin"),
             ylim=ylim, average_trials=avg,
         )
-        plot_fom_sweep_line(
+        plot_power_sweep_fom_line(
             sections["totals"], title=args.title,
             output=_out("line"),
             ylim=ylim, average_trials=avg,
         )
-        plot_fom_sweep_lowess(
+        plot_power_sweep_fom_lowess(
             sections["totals"], title=args.title,
             output=_out("lowess"),
             ylim=ylim, average_trials=avg,
         )
-        plot_fom_histograms(
+        plot_power_sweep_fom_histogram(
             sections["totals"], title=args.title,
             output=_out("hist"),
             ylim=ylim, average_trials=avg,
+        )
+        plot_power_sweep_fom_boxplot(
+            sections["totals"], title=args.title + ' FoM Analysis - Host Means',
+            output=_out("fom_boxplot_host_means"),
+            average_trials=avg,
+        )
+        plot_power_sweep_board_power_boxplot(
+            sections["totals"], title=args.title + ' Achieved Power Analysis',
+            output=_out("board_power_boxplot"),
+        )
+        plot_power_sweep_uncore_freq_boxplot(
+            sections["totals"], title=args.title + ' Uncore Frequency Analysis',
+            output=_out("uncore_freq_boxplot"),
         )
     elif args.uniform and args.nonuniform:
         df = _load_cap_compare_data(
@@ -969,27 +982,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             [before_dirs, after_dirs], args.cache_dir,
         )
         plot_fom_baseline_compare(df, title=args.title, output=args.output)
-    else:
-        raw = load_data(args)
-        if not raw:
-            return 0
-        plot_fom_power_sweep_boxplot(
-            raw["totals"], args.title +' FoM Analysis - Host Means',
-            output=args.output + '_fom_boxplot_host_means.png',
-        )
-        #  plot_fom_power_sweep_boxplot(
-            #  raw["totals"], args.title +' FoM Analysis - All hosts/trials',
-            #  output=args.output + '_fom_boxplot_all.png',
-        #  )
-        plot_board_power_sweep_boxplot(
-            raw["totals"], title=args.title +' Achieved Power Analysis',
-            output=args.output + '_board_power_boxplot.png',
-        )
-        plot_uncore_freq_sweep_boxplot(
-            raw["totals"], title=args.title +' Uncore Frequency Analysis',
-            output=args.output + '_uncore_freq_boxplot.png',
-        )
-
 
     return 0
 
