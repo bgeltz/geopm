@@ -1030,7 +1030,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             if not args.output:
                 return None
             base, ext = args.output.rsplit(".", 1)
-            return f"{base}_{tag}_{suffix}.{ext}"
+            return f"{base}_{suffix}_{tag}.{ext}"
 
         plot_power_sweep_fom_violin(
             sections["totals"], title=args.title,
