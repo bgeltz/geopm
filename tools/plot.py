@@ -181,6 +181,7 @@ def plot_power_sweep_uncore_freq_boxplot(
     df: pd.DataFrame,
     title: str = "Uncore Frequency by Board Power Limit",
     output: Optional[str] = None,
+    average_trials: bool = True,
 ) -> None:
     """Create a vertical boxplot of achieved uncore frequency grouped by BOARD_POWER_LIMIT_CONTROL.
 
@@ -208,6 +209,12 @@ def plot_power_sweep_uncore_freq_boxplot(
     df[col] = df[col].astype(int)
     # Convert Hz to GHz for readability
     df[metric] = df[metric] / 1e9
+
+    if average_trials:
+        group_cols = [c for c in ("host", col) if c in df.columns]
+        if "host" in df.columns:
+            df = df.groupby(group_cols, as_index=False)[metric].mean()
+
     print(f"Max {metric}: {df[metric].max():.4f} GHz")
 
     order = sorted(df[col].dropna().unique())
@@ -260,6 +267,7 @@ def plot_power_sweep_board_power_boxplot(
     df: pd.DataFrame,
     title: str = "Requested vs Achieved Board Power",
     output: Optional[str] = None,
+    average_trials: bool = True,
 ) -> None:
     """Create a vertical boxplot of achieved BOARD_POWER grouped by requested limit.
 
@@ -285,6 +293,11 @@ def plot_power_sweep_board_power_boxplot(
 
     df = df.copy()
     df[col] = df[col].astype(int)
+
+    if average_trials:
+        group_cols = [c for c in ("host", col) if c in df.columns]
+        if "host" in df.columns:
+            df = df.groupby(group_cols, as_index=False)[metric].mean()
 
     fig, ax = plt.subplots(figsize=(10, 6))
     order = sorted(df[col].dropna().unique())
@@ -963,10 +976,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         plot_power_sweep_board_power_boxplot(
             sections["totals"], title=args.title + ' Achieved Power Analysis',
             output=_out("board_power_boxplot"),
+            average_trials=avg,
         )
         plot_power_sweep_uncore_freq_boxplot(
             sections["totals"], title=args.title + ' Uncore Frequency Analysis',
             output=_out("uncore_freq_boxplot"),
+            average_trials=avg,
         )
     elif args.uniform and args.nonuniform:
         df = _load_cap_compare_data(
