@@ -827,7 +827,7 @@ def load_cached_data(cache_path: str) -> Dict[str, pd.DataFrame]:
 def validate_sweep_dataset(
     df: pd.DataFrame,
     output_dir: Optional[str] = None,
-) -> None:
+) -> pd.DataFrame:
     """Check a sweep dataset for incomplete hosts and missing FOM values.
 
     Writes two files into *output_dir* (defaults to the current directory):
@@ -837,6 +837,9 @@ def validate_sweep_dataset(
     * ``hosts_missing_fom.txt`` – hosts whose ``FOM`` values are entirely
       missing (all NaN).
 
+    After reporting, the problematic hosts are removed and the cleaned
+    DataFrame is returned.
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -844,23 +847,34 @@ def validate_sweep_dataset(
         ``BOARD_POWER_LIMIT_CONTROL``, and ``FOM`` columns.
     output_dir : str or None
         Directory in which to write the report files.  Defaults to ``"."``.
+
+    Returns
+    -------
+    pd.DataFrame
+        A copy of *df* with problematic hosts removed.
     """
     col = "BOARD_POWER_LIMIT_CONTROL"
     metric = "FOM"
     out = Path(output_dir) if output_dir else Path(".")
     out.mkdir(parents=True, exist_ok=True)
 
+    hosts_to_drop: set = set()
+
     # --- Hosts with partial BOARD_POWER_LIMIT_CONTROL coverage ----------
     all_limits = set(df[col].dropna().unique())
     partial_hosts: List[str] = []
+    has_report_file = "report_file" in df.columns
     if "host" in df.columns and all_limits:
         for host, hdf in df.groupby("host"):
             host_limits = set(hdf[col].dropna().unique())
             if host_limits != all_limits:
                 missing = sorted(all_limits - host_limits)
-                partial_hosts.append(
-                    f"{host}  missing limits: {missing}"
-                )
+                files = sorted(hdf["report_file"].unique()) if has_report_file else []
+                entry = f"{host}  missing limits: {missing}"
+                if files:
+                    entry += f"  report_files: {files}"
+                partial_hosts.append(entry)
+                hosts_to_drop.add(host)
 
     partial_path = out / "hosts_partial_power_limits.txt"
     with open(partial_path, "w") as fh:
@@ -877,7 +891,12 @@ def validate_sweep_dataset(
     if "host" in df.columns and metric in df.columns:
         for host, hdf in df.groupby("host"):
             if hdf[metric].dropna().empty:
-                missing_fom_hosts.append(host)
+                files = sorted(hdf["report_file"].unique()) if has_report_file else []
+                entry = host
+                if files:
+                    entry += f"  report_files: {files}"
+                missing_fom_hosts.append(entry)
+                hosts_to_drop.add(host)
 
     fom_path = out / "hosts_missing_fom.txt"
     with open(fom_path, "w") as fh:
@@ -888,6 +907,14 @@ def validate_sweep_dataset(
         else:
             fh.write("# All hosts have FOM data.\n")
             print(f"All hosts have FOM data ({fom_path})")
+
+    # --- Remove problematic hosts ----------------------------------------
+    if hosts_to_drop and "host" in df.columns:
+        df = df[~df["host"].isin(hosts_to_drop)].reset_index(drop=True)
+        print(f"Removed {len(hosts_to_drop)} host(s) from dataset: "
+              f"{sorted(hosts_to_drop)}")
+
+    return df
 
 
 def _load_baseline_compare_data(
@@ -977,7 +1004,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             print("No totals data found in sweep directories.")
             return 0
 
-        validate_sweep_dataset(
+        sections["totals"] = validate_sweep_dataset(
             sections["totals"],
             output_dir=str(Path(args.output).parent) if args.output else None,
         )
