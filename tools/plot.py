@@ -691,6 +691,74 @@ def plot_fom_cap_compare(
         plt.show()
 
 
+def plot_nonuniform_power_violin(
+    df: pd.DataFrame,
+    title: str = "Non-Uniform Power Cap: Assigned Limits",
+    output: Optional[str] = None,
+) -> None:
+    """Violin plot of assigned BOARD_POWER_LIMIT_CONTROL for non-uniform runs.
+
+    Only rows where ``cap_type == 'Non-Uniform'`` are plotted.  Each
+    violin is one run (grouped by ``avg_power_per_node``) and shows the
+    distribution of per-host power-limit assignments.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Must contain ``avg_power_per_node``, ``BOARD_POWER_LIMIT_CONTROL``,
+        and ``cap_type`` columns.
+    title : str
+        Plot title.
+    output : str or None
+        If provided, save figure to this path; otherwise display interactively.
+    """
+    x_col = "avg_power_per_node"
+    y_col = "BOARD_POWER_LIMIT_CONTROL"
+    hue_col = "cap_type"
+
+    for required in (x_col, y_col, hue_col):
+        if required not in df.columns:
+            raise KeyError(
+                f"Column '{required}' not found in DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    df = df.loc[df[hue_col] == "Non-Uniform"].copy()
+    if df.empty:
+        print("No Non-Uniform data to plot.")
+        return
+
+    df[x_col] = df[x_col].astype(int)
+    order = sorted(df[x_col].dropna().unique())
+    df[x_col] = df[x_col].astype(str)
+    str_order = [str(v) for v in order]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.violinplot(
+        data=df,
+        x=x_col,
+        y=y_col,
+        hue=x_col,
+        ax=ax,
+        order=str_order,
+        legend=False,
+        inner="box",
+    )
+    ax.set_title(title)
+    ax.set_xlabel("Average Power Per Node (W)")
+    ax.set_ylabel("Board Power Limit Control (W)")
+    y_lo = min(order) - 150
+    y_hi = max(order) + 100
+    ax.set_ylim(y_lo, y_hi)
+    plt.tight_layout()
+
+    if output:
+        fig.savefig(output, dpi=150)
+        print(f"Saved figure to {output}")
+    else:
+        plt.show()
+
+
 def plot_fom_baseline_compare(
     df: pd.DataFrame,
     title: str = "Before vs After Host Replacement FOM",
@@ -1078,6 +1146,17 @@ def main(argv: Optional[List[str]] = None) -> int:
                 args.uniform, args.nonuniform, args.cache_dir,
             )
         plot_fom_cap_compare(df, title=args.title, output=args.output)
+
+        # Violin of assigned power limits for the non-uniform runs
+        nu_violin_out = None
+        if args.output:
+            base, ext = args.output.rsplit(".", 1)
+            nu_violin_out = f"{base}_nonuniform_violin.{ext}"
+        plot_nonuniform_power_violin(
+            df,
+            title=args.title + " — Non-Uniform Power Limit Distribution",
+            output=nu_violin_out,
+        )
     elif args.baseline and len(args.baseline) > 1:
         if args.cache:
             sections = load_cached_data(args.cache)
