@@ -94,6 +94,13 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
              "skipping report parsing. Optionally accepts a path to the "
              "cache directory (default: .compare_cache).",
     )
+    p.add_argument(
+        "--outliers", nargs="+", default=None,
+        metavar="POWER,OP,THRESH",
+        help="FOM outlier rules.  Each rule is 'POWER,OPERATOR,THRESHOLD' "
+             "where OPERATOR is 'lt' or 'gt'.  Example: "
+             "--outliers 3200,lt,4e6 3200,gt,4.6e6 3800,lt,5.7e6",
+    )
     return p.parse_args(argv)
 
 
@@ -988,6 +995,126 @@ def validate_sweep_dataset(
     return df
 
 
+def _parse_outlier_rule(rule_str: str) -> dict:
+    """Parse an outlier rule string of the form ``POWER,OPERATOR,THRESHOLD``.
+
+    *OPERATOR* is ``lt`` (less-than) or ``gt`` (greater-than).
+    Returns a dict with keys ``power``, ``op``, and ``threshold``.
+    """
+    parts = rule_str.split(",")
+    if len(parts) != 3:
+        raise ValueError(
+            f"Outlier rule must be 'POWER,OPERATOR,THRESHOLD', got: {rule_str}"
+        )
+    power_str, op_str, thresh_str = parts
+    op_str = op_str.strip().lower()
+    if op_str not in ("lt", "gt"):
+        raise ValueError(f"Operator must be 'lt' or 'gt', got: {op_str}")
+    return {
+        "power": int(power_str.strip()),
+        "op": op_str,
+        "threshold": float(thresh_str.strip()),
+    }
+
+
+def find_fom_outliers(
+    df: pd.DataFrame,
+    rules: List[str],
+    output_dir: Optional[str] = None,
+) -> set:
+    """Identify hosts whose FOM violates the given outlier rules.
+
+    Each *rule* is a string ``"POWER,OPERATOR,THRESHOLD"`` where
+    OPERATOR is ``lt`` or ``gt``.  The function checks **raw per-trial
+    rows** (no averaging) so that a single bad trial flags the host.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The 'totals' DataFrame (before trial averaging) with at least
+        ``host``, ``BOARD_POWER_LIMIT_CONTROL``, and ``FOM`` columns.
+    rules : list of str
+        Outlier rule strings, e.g. ``["3200,lt,4e6", "3200,gt,4.6e6"]``.
+    output_dir : str or None
+        If provided, write the outlier list to
+        ``<output_dir>/hosts_fom_outliers.txt``.
+
+    Returns
+    -------
+    set
+        Set of host names flagged as outliers.
+    """
+    col = "BOARD_POWER_LIMIT_CONTROL"
+    metric = "FOM"
+    for required in ("host", col, metric):
+        if required not in df.columns:
+            raise KeyError(
+                f"Column '{required}' not found in DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    parsed_rules = [_parse_outlier_rule(r) for r in rules]
+    outlier_hosts: set = set()
+    report_lines: List[str] = []
+
+    for rule in parsed_rules:
+        power = rule["power"]
+        op = rule["op"]
+        threshold = rule["threshold"]
+        subset = df[df[col].astype(int) == power]
+        if subset.empty:
+            report_lines.append(
+                f"# No data at {power} W — rule {rule} skipped"
+            )
+            continue
+
+        if op == "lt":
+            flagged = subset[subset[metric] < threshold]
+            desc = f"FOM < {threshold:g}"
+        else:
+            flagged = subset[subset[metric] > threshold]
+            desc = f"FOM > {threshold:g}"
+
+        if flagged.empty:
+            report_lines.append(
+                f"# {power} W {desc}: no outlier trials found"
+            )
+            continue
+
+        hosts_in_rule = sorted(flagged["host"].unique())
+        outlier_hosts.update(hosts_in_rule)
+        report_lines.append(f"# {power} W {desc}: {len(flagged)} trial(s) "
+                            f"from {len(hosts_in_rule)} host(s)")
+        for host in hosts_in_rule:
+            host_rows = flagged[flagged["host"] == host]
+            fom_vals = host_rows[metric].tolist()
+            report_lines.append(f"  {host}  FOM={fom_vals}")
+
+    # Print summary
+    print("\n=== FOM Outlier Report ===")
+    for line in report_lines:
+        print(line)
+    print(f"Total outlier hosts: {len(outlier_hosts)}")
+    if outlier_hosts:
+        print(f"Hosts: {sorted(outlier_hosts)}")
+    print("=" * 40)
+
+    # Write to file
+    if output_dir is not None:
+        out = Path(output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        outlier_path = out / "hosts_fom_outliers.txt"
+        with open(outlier_path, "w") as fh:
+            fh.write("\n".join(report_lines) + "\n")
+            if outlier_hosts:
+                fh.write("\n# Outlier host list (one per line):\n")
+                for h in sorted(outlier_hosts):
+                    fh.write(h + "\n")
+        print(f"Outlier report written to {outlier_path}")
+
+    return outlier_hosts
+
+
 def _load_baseline_compare_data(
     baseline_dirs: List[List[str]],
     cache_dir: Optional[str],
@@ -1079,6 +1206,20 @@ def main(argv: Optional[List[str]] = None) -> int:
             sections["totals"],
             output_dir=str(Path(args.output).parent) if args.output else None,
         )
+
+        # --- Outlier detection (runs on raw per-trial data) ---------------
+        if args.outliers:
+            outlier_hosts = find_fom_outliers(
+                sections["totals"],
+                args.outliers,
+                output_dir=str(Path(args.output).parent) if args.output else None,
+            )
+            if outlier_hosts:
+                sections["totals"] = sections["totals"][
+                    ~sections["totals"]["host"].isin(outlier_hosts)
+                ].reset_index(drop=True)
+                print(f"Removed {len(outlier_hosts)} outlier host(s) from "
+                      f"plotting data.")
 
         # Resolve y-limits: explicit --ylim > app-name default > None
         if args.ylim:
