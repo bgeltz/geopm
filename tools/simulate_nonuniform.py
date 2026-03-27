@@ -85,10 +85,10 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
                            "Non-Uniform vs Uniform Power Capping",
                    help="Plot title")
     p.add_argument("--real-data", action="store_true",
-                   help="Evaluate slowdown using real power-sweep data "
-                        "(piecewise linear interpolation) instead of the "
-                        "quadratic model.  The model is still used for "
-                        "computing the per-node power allocation.")
+                   help="Use real power-sweep data (piecewise linear "
+                        "interpolation) for both power allocation and "
+                        "slowdown evaluation, replacing the quadratic "
+                        "model entirely.")
     p.add_argument("--sweep", nargs="+", default=None,
                    help="(requires --real-data) Paths to power-sweep dataset "
                         "directories.  Parses reports and creates HDF5 caches. "
@@ -193,6 +193,63 @@ def fom_at_power(power: float, curve: Tuple[np.ndarray, np.ndarray]) -> float:
     return float(np.interp(power, curve[0], curve[1]))
 
 
+def power_at_fom(target_fom: float, curve: Tuple[np.ndarray, np.ndarray]) -> float:
+    """Inverse piecewise-linear interpolation: minimum power to achieve target_fom.
+
+    Curves are already monotonized at build time, so FOM is non-decreasing.
+    When a host is saturated (FOM plateaus), returns the lowest power that
+    reaches the target — no power is wasted on a saturated host.
+    """
+    powers, foms = curve
+    if target_fom <= foms[0]:
+        return float(powers[0])
+    if target_fom >= foms[-1]:
+        return float(powers[-1])
+    idx = int(np.searchsorted(foms, target_fom, side="left"))
+    idx = max(1, min(idx, len(foms) - 1))  # safety clamp
+    f0, f1 = foms[idx - 1], foms[idx]
+    p0, p1 = powers[idx - 1], powers[idx]
+    if f1 == f0:
+        return float(p0)  # flat (saturated) segment: minimum power
+    t = (target_fom - f0) / (f1 - f0)
+    return float(p0 + t * (p1 - p0))
+
+
+def allocate_nonuniform(
+    host_names: List[str],
+    host_curves: Dict[str, Tuple[np.ndarray, np.ndarray]],
+    avg_power: float,
+) -> Tuple[float, List[float]]:
+    """Bisect to find equal-FOM allocation for a total power budget.
+
+    Returns (target_fom, power_by_host).
+    """
+    num_nodes = len(host_names)
+    total_budget = num_nodes * avg_power
+    curves = [host_curves[h] for h in host_names]
+
+    peak_fom = [float(c[1].max()) for c in curves]
+    min_fom = [float(c[1].min()) for c in curves]
+
+    fom_upper = min(peak_fom)
+    fom_lower = min(min_fom)
+
+    for _ in range(60):
+        mid = (fom_lower + fom_upper) / 2.0
+        powers = [power_at_fom(mid, c) for c in curves]
+        total = sum(powers)
+        if total > total_budget + 0.1:
+            fom_upper = mid
+        elif total < total_budget - 0.1:
+            fom_lower = mid
+        else:
+            break
+
+    target_fom = (fom_lower + fom_upper) / 2.0
+    power_by_host = [power_at_fom(target_fom, c) for c in curves]
+    return target_fom, power_by_host
+
+
 def slowdown_from_fom(
     fom: float, fom_ref: float,
 ) -> float:
@@ -221,32 +278,29 @@ def simulate_one(
 ) -> float:
     """Return the worst-node slowdown improvement for one random sample.
 
-    When *host_curves* and *host_fom_ref* are provided, slowdown is evaluated
-    via piecewise-linear interpolation of real measured FOM data.  Otherwise
-    the quadratic model coefficients are used.
+    When *host_curves* and *host_fom_ref* are provided, both the allocation
+    and slowdown evaluation use piecewise-linear interpolation of real
+    measured FOM data.  Otherwise the quadratic model is used throughout.
     """
     num_nodes = len(host_names)
     job_budget = num_nodes * avg_power_per_node
 
-    x0 = [host_models[h]["x0"] for h in host_names]
-    A = [host_models[h]["A"] for h in host_names]
-    B = [host_models[h]["B"] for h in host_names]
-    C = [host_models[h]["C"] for h in host_names]
-
-    # --- Non-uniform (balanced) allocation --------------------------------
-    # Always uses quadratic model for the allocation decision.
-    _slowdown_nu, power_by_node = compute_hook.allocate_budget_to_nodes(
-        job_budget, max_node_power, x0, A, B, C,
-    )
-
     if host_curves is not None and host_fom_ref is not None:
-        # Evaluate slowdown from real measured data
+        # --- Real-data path: piecewise-linear model -----------------------
+        curves = [host_curves[h] for h in host_names]
+
+        # Non-uniform: bisection on FOM curves
+        _target_fom, power_by_node = allocate_nonuniform(
+            host_names, host_curves, float(avg_power_per_node),
+        )
         slowdown_by_node_nu = [
             slowdown_from_fom(
                 fom_at_power(p, host_curves[h]), host_fom_ref[h]
             )
             for h, p in zip(host_names, power_by_node)
         ]
+
+        # Uniform: every host gets avg_power_per_node
         slowdown_by_node_uniform = [
             slowdown_from_fom(
                 fom_at_power(avg_power_per_node, host_curves[h]),
@@ -255,7 +309,15 @@ def simulate_one(
             for h in host_names
         ]
     else:
-        # Evaluate slowdown from the quadratic model
+        # --- Quadratic-model path -----------------------------------------
+        x0 = [host_models[h]["x0"] for h in host_names]
+        A = [host_models[h]["A"] for h in host_names]
+        B = [host_models[h]["B"] for h in host_names]
+        C = [host_models[h]["C"] for h in host_names]
+
+        _slowdown_nu, power_by_node = compute_hook.allocate_budget_to_nodes(
+            job_budget, max_node_power, x0, A, B, C,
+        )
         normalized_power = [p / max_node_power for p in power_by_node]
         slowdown_by_node_nu = [
             An * (x0n - pn) ** 2 + Bn * (x0n - pn) + Cn
