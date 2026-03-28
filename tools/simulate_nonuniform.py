@@ -81,7 +81,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=None,
                    help="Random seed for reproducibility")
     p.add_argument("--title",
-                   default="Projected Slowdown Improvement:\n"
+                   default="Projected FOM Improvement:\n"
                            "Non-Uniform vs Uniform Power Capping",
                    help="Plot title")
     p.add_argument("--real-data", action="store_true",
@@ -250,20 +250,6 @@ def allocate_nonuniform(
     return target_fom, power_by_host
 
 
-def slowdown_from_fom(
-    fom: float, fom_ref: float,
-) -> float:
-    """Convert FOM to a slowdown fraction comparable to the quadratic model.
-
-    slowdown = (FOM_ref - FOM) / FOM_ref
-    At max power (FOM ≈ FOM_ref), slowdown ≈ 0.
-    At lower power (lower FOM), slowdown > 0.
-    """
-    if fom_ref <= 0:
-        return 0.0
-    return (fom_ref - fom) / fom_ref
-
-
 # ---------------------------------------------------------------------------
 # Simulation
 # ---------------------------------------------------------------------------
@@ -276,38 +262,63 @@ def simulate_one(
     host_curves: Optional[Dict[str, Tuple[np.ndarray, np.ndarray]]] = None,
     host_fom_ref: Optional[Dict[str, float]] = None,
 ) -> float:
-    """Return the worst-node slowdown improvement for one random sample.
+    """Return the worst-node FOM improvement (%) for one random sample.
 
-    When *host_curves* and *host_fom_ref* are provided, both the allocation
-    and slowdown evaluation use piecewise-linear interpolation of real
-    measured FOM data.  Otherwise the quadratic model is used throughout.
+    When *host_curves* is provided, both the allocation and evaluation use
+    piecewise-linear interpolation of real measured FOM data.  Otherwise the
+    quadratic model is used throughout.
     """
     num_nodes = len(host_names)
     job_budget = num_nodes * avg_power_per_node
 
-    if host_curves is not None and host_fom_ref is not None:
+    if host_curves is not None:
         # --- Real-data path: piecewise-linear model -----------------------
-        curves = [host_curves[h] for h in host_names]
-
-        # Non-uniform: bisection on FOM curves
+        # Non-uniform: bisection to equalize FOM
         _target_fom, power_by_node = allocate_nonuniform(
             host_names, host_curves, float(avg_power_per_node),
         )
-        slowdown_by_node_nu = [
-            slowdown_from_fom(
-                fom_at_power(p, host_curves[h]), host_fom_ref[h]
-            )
-            for h, p in zip(host_names, power_by_node)
-        ]
+        fom_nu = [fom_at_power(p, host_curves[h])
+                  for h, p in zip(host_names, power_by_node)]
 
         # Uniform: every host gets avg_power_per_node
-        slowdown_by_node_uniform = [
-            slowdown_from_fom(
-                fom_at_power(avg_power_per_node, host_curves[h]),
-                host_fom_ref[h],
-            )
-            for h in host_names
-        ]
+        fom_uniform = [fom_at_power(avg_power_per_node, host_curves[h])
+                       for h in host_names]
+
+        # Job performance is gated by the worst (long-pole) node
+        worst_nu = min(fom_nu)
+        worst_uniform = min(fom_uniform)
+        if worst_uniform <= 0:
+            return 0.0
+        improvement = (worst_nu - worst_uniform) / worst_uniform * 100
+
+        if improvement < -0.01:
+            # Diagnostic: find the problematic hosts
+            idx_worst_nu = fom_nu.index(worst_nu)
+            idx_worst_uni = fom_uniform.index(worst_uniform)
+            total_assigned = sum(power_by_node)
+            total_budget = num_nodes * avg_power_per_node
+            print(f"\n  DEBUG negative improvement at {avg_power_per_node}W: "
+                  f"{improvement:.4f}%")
+            print(f"    target_fom={_target_fom:.2f}  "
+                  f"worst_nu={worst_nu:.2f} (host {host_names[idx_worst_nu]}, "
+                  f"assigned {power_by_node[idx_worst_nu]:.1f}W)  "
+                  f"worst_uniform={worst_uniform:.2f} "
+                  f"(host {host_names[idx_worst_uni]})")
+            print(f"    total_assigned={total_assigned:.1f}  "
+                  f"budget={total_budget:.1f}  "
+                  f"diff={total_assigned - total_budget:.1f}")
+            # Check round-trip consistency for the worst non-uniform host
+            h_bad = host_names[idx_worst_nu]
+            p_assigned = power_by_node[idx_worst_nu]
+            c_bad = host_curves[h_bad]
+            print(f"    worst_nu host curve: powers={c_bad[0]}, "
+                  f"foms={c_bad[1]}")
+            print(f"    power_at_fom({_target_fom:.4f}, curve)="
+                  f"{power_at_fom(_target_fom, c_bad):.4f}  "
+                  f"fom_at_power({p_assigned:.4f}, curve)="
+                  f"{fom_at_power(p_assigned, c_bad):.4f}")
+
+        return improvement
     else:
         # --- Quadratic-model path -----------------------------------------
         x0 = [host_models[h]["x0"] for h in host_names]
@@ -329,8 +340,8 @@ def simulate_one(
             for x0n, An, Bn, Cn in zip(x0, A, B, C)
         ]
 
-    # Job performance is gated by the worst (long-pole) node
-    return (max(slowdown_by_node_uniform) - max(slowdown_by_node_nu)) * 100
+        # Job performance is gated by the worst (long-pole) node
+        return (max(slowdown_by_node_uniform) - max(slowdown_by_node_nu)) * 100
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -345,16 +356,11 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # -- Load real data (if requested) -------------------------------------
     host_curves = None
-    host_fom_ref = None
     if args.real_data:
         df_real = load_real_data(args)
         host_curves, measured_levels = build_host_curves(df_real)
         print(f"Real data: {len(host_curves)} hosts at "
               f"{len(measured_levels)} power levels: {measured_levels}")
-        # Reference FOM: FOM at max measured power level (uncapped baseline)
-        host_fom_ref = {
-            h: float(c[1][-1]) for h, c in host_curves.items()
-        }
 
     # -- Load host pool ----------------------------------------------------
     with open(args.hosts) as f:
@@ -412,7 +418,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             sample = random.sample(all_hosts, args.num_nodes)
             improvement = simulate_one(
                 sample, host_models, max_power, power,
-                host_curves=host_curves, host_fom_ref=host_fom_ref,
+                host_curves=host_curves,
             )
             records.append({
                 "power_budget": power,
@@ -442,7 +448,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     ax.set_title(f"{args.title} | {args.num_nodes} nodes | {args.iterations} iterations | Profile: {args.job_type}")
     ax.set_xlabel("Per-Node Power Budget (W)")
-    ax.set_ylabel("Worst-Node Slowdown Improvement (%)")
+    ax.set_ylabel("Worst-Node FOM Improvement (%)")
     plt.tight_layout()
 
     base, ext = args.output.rsplit(".", 1)
