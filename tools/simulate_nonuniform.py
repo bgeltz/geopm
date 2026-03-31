@@ -406,6 +406,30 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"Power range: {args.power_min}–{args.power_max} W "
           f"(step {args.power_step} W)\n")
 
+    # -- FOM spread diagnostic (real-data mode) ----------------------------
+    if host_curves is not None:
+        print("FOM spread across host pool at each power level:")
+        print(f"  {'Power':>7s}  {'Min FOM':>12s}  {'Mean FOM':>12s}  "
+              f"{'Max FOM':>12s}  {'Std FOM':>12s}  {'Spread%':>8s}  "
+              f"{'Worst Host'}")
+        power_budgets_diag = list(range(args.power_min,
+                                        args.power_max + 1,
+                                        args.power_step))
+        for pw in power_budgets_diag:
+            foms = [(fom_at_power(float(pw), host_curves[h]), h)
+                    for h in all_hosts]
+            fom_vals = [f for f, _ in foms]
+            fmin = min(fom_vals)
+            fmean = np.mean(fom_vals)
+            fmax = max(fom_vals)
+            fstd = np.std(fom_vals)
+            worst_host = min(foms, key=lambda x: x[0])[1]
+            spread_pct = (fmax - fmin) / fmean * 100 if fmean > 0 else 0
+            print(f"  {pw:>7d}  {fmin:>12.1f}  {fmean:>12.1f}  "
+                  f"{fmax:>12.1f}  {fstd:>12.1f}  {spread_pct:>7.1f}%  "
+                  f"{worst_host}")
+        print()
+
     # -- Monte Carlo -------------------------------------------------------
     power_budgets = list(range(args.power_min,
                                args.power_max + 1,
