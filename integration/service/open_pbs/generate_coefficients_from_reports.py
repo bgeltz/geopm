@@ -475,6 +475,19 @@ if 'BOARD_ENERGY' not in df.columns:
     print('Board energy is absent from reports. Summing package, gpu, and dram energy instead.', file=sys.stderr)
     df['BOARD_ENERGY'] = df['package-energy (J)'] + df['gpu-energy (J)'] + df['dram-energy (J)']
 
+# DEBUG: Show normalization reference details
+print('=== NORMALIZATION DEBUG ===', file=sys.stderr)
+for (profile, jhc), group in df.groupby(['profile', 'job_host_count']):
+    max_power = group['BOARD_POWER_LIMIT_CONTROL'].max()
+    ref_rows = group.loc[group['BOARD_POWER_LIMIT_CONTROL'] == max_power]
+    global_ref = ref_rows['slowdown metric'].mean()
+    print(f'Profile={profile!r}: GLOBAL ref (mean across all hosts at max power {max_power}W) = {global_ref:.6e}', file=sys.stderr)
+    print(f'  {len(ref_rows)} rows contribute to global ref ({ref_rows["host"].nunique()} unique hosts)', file=sys.stderr)
+    for host_name, host_group in ref_rows.groupby('host'):
+        host_ref = host_group['slowdown metric'].mean()
+        print(f'    host={host_name}: per-host ref={host_ref:.6e}  (diff from global: {(host_ref - global_ref)/global_ref:+.4%})', file=sys.stderr)
+print('=== END NORMALIZATION DEBUG ===', file=sys.stderr)
+
 # Get the reference performance per (profile,host count) pair
 profile_reference_slowdown = df.groupby(['profile', 'job_host_count']).apply(
     lambda x: x.loc[x['BOARD_POWER_LIMIT_CONTROL'] == x['BOARD_POWER_LIMIT_CONTROL'].max(), 'slowdown metric'].mean())
