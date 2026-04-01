@@ -1245,6 +1245,11 @@ def main(argv: Optional[List[str]] = None) -> int:
                 print(f"Removed {len(outlier_hosts)} outlier host(s) from "
                       f"plotting data.")
 
+        # Append node count to title
+        if "host" in sections["totals"].columns:
+            node_count = sections["totals"]["host"].nunique()
+            args.title += f" | {node_count} Nodes"
+
         # Resolve y-limits: explicit --ylim > app-name default > None
         if args.ylim:
             lo, hi = args.ylim.split(",")
@@ -1310,6 +1315,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             df = _load_cap_compare_data(
                 args.uniform, args.nonuniform, args.cache_dir,
             )
+        # Append node count to title
+        if "host" in df.columns:
+            node_count = df["host"].nunique()
+            args.title += f" | {node_count} Nodes"
+
         plot_fom_cap_compare(df, title=args.title, output=args.output)
 
         # Violin of assigned power limits for the non-uniform runs
@@ -1336,6 +1346,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             df = _load_baseline_compare_data(
                 [before_dirs, after_dirs], args.cache_dir,
             )
+        # Append node count to title
+        if "host" in df.columns:
+            node_count = df["host"].nunique()
+            args.title += f" | {node_count} Nodes"
+
         plot_fom_baseline_compare(df, title=args.title, output=args.output)
 
     return 0

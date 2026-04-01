@@ -81,8 +81,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=None,
                    help="Random seed for reproducibility")
     p.add_argument("--title",
-                   default="Projected FOM Improvement:\n"
-                           "Non-Uniform vs Uniform Power Capping",
+                   default="Projected FOM Improvement: "
+                           "Non-Uniform vs Uniform Power Capping\n",
                    help="Plot title")
     p.add_argument("--real-data", action="store_true",
                    help="Use real power-sweep data (piecewise linear "
@@ -470,7 +470,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         inner="box",
     )
 
-    ax.set_title(f"{args.title} | {args.num_nodes} nodes | {args.iterations} iterations | Profile: {args.job_type}")
+    model_label = "Linear Interpolation" if host_curves is not None else "Quadratic Model"
+    ax.set_title(f"{args.title}{model_label} | {args.num_nodes} Node Samples | {args.iterations} Iterations | Profile: {args.job_type} | {len(all_hosts)} Nodes in Pool")
     ax.set_xlabel("Per-Node Power Budget (W)")
     ax.set_ylabel("Worst-Node FOM Improvement (%)")
     plt.tight_layout()
