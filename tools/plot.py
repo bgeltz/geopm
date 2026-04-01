@@ -698,6 +698,124 @@ def plot_fom_cap_compare(
         plt.show()
 
 
+def plot_power_compliance_scatter(
+    df: pd.DataFrame,
+    title: str = "Requested vs Achieved Board Power",
+    output: Optional[str] = None,
+) -> None:
+    """Scatter plot of per-host assigned power limit vs measured power.
+
+    Each trial is plotted as a separate point (no averaging).  Points
+    are colored by ``cap_type`` (Uniform / Non-Uniform).  A diagonal
+    ``y = x`` reference line marks the compliance boundary — points
+    above the line indicate the measured power exceeded the assigned
+    limit.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Must contain ``BOARD_POWER_LIMIT_CONTROL``, ``BOARD_POWER``,
+        and ``cap_type`` columns.
+    title : str
+        Plot title.
+    output : str or None
+        If provided, save figure to this path; otherwise display interactively.
+    """
+    limit_col = "BOARD_POWER_LIMIT_CONTROL"
+    measured_col = "BOARD_POWER"
+    hue_col = "cap_type"
+
+    for required in (limit_col, measured_col, hue_col):
+        if required not in df.columns:
+            raise KeyError(
+                f"Column '{required}' not found in DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    df = df.copy()
+
+    # X-axis range: driven by the non-uniform assigned-limit spread
+    nu = df[df[hue_col] == "Non-Uniform"]
+    if not nu.empty:
+        x_lo = nu[limit_col].min() * 0.95
+        x_hi = nu[limit_col].max() * 1.05
+    else:
+        x_lo = df[limit_col].min() * 0.95
+        x_hi = df[limit_col].max() * 1.05
+
+    # Y-axis range: span of measured power across all data
+    all_measured = df[measured_col].dropna()
+    y_lo = all_measured.min() * 0.95
+    y_hi = all_measured.max() * 1.05
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # y = x compliance boundary
+    diag_lo = min(x_lo, y_lo)
+    diag_hi = max(x_hi, y_hi)
+    ax.plot([diag_lo, diag_hi], [diag_lo, diag_hi],
+            color="red", linestyle="--", linewidth=1,
+            label="Measured = Limit", zorder=1)
+
+    # Scatter by cap_type
+    palette = {"Uniform": "tab:blue", "Non-Uniform": "tab:orange"}
+    for cap_type in ["Uniform", "Non-Uniform"]:
+        subset = df[df[hue_col] == cap_type]
+        if subset.empty:
+            continue
+        ax.scatter(
+            subset[limit_col],
+            subset[measured_col],
+            label=cap_type,
+            color=palette.get(cap_type, None),
+            alpha=0.5,
+            s=15,
+            edgecolors="none",
+            zorder=2,
+        )
+
+    # Count and annotate violations (measured > assigned limit)
+    violations = df[df[measured_col] > df[limit_col]].copy()
+    violations["excess_W"] = violations[measured_col] - violations[limit_col]
+    n_violations = len(violations)
+    n_total = len(df)
+    ax.annotate(
+        f"Violations: {n_violations}/{n_total} trials "
+        f"({n_violations / n_total * 100:.1f}%)" if n_total else "No data",
+        xy=(0.02, 0.98), xycoords="axes fraction",
+        ha="left", va="top", fontsize=9,
+        bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="black", alpha=0.8),
+    )
+
+    # Write violations to file
+    if output and n_violations > 0:
+        base, ext = output.rsplit(".", 1)
+        violations_path = f"{base}_violations.csv"
+        cols_to_write = [c for c in
+                         ("host", hue_col, "avg_power_per_node",
+                          limit_col, measured_col, "excess_W", "trial",
+                          "report_file")
+                         if c in violations.columns]
+        violations.sort_values(cols_to_write[:3])[cols_to_write].to_csv(
+            violations_path, index=False,
+        )
+        print(f"Wrote {n_violations} violation(s) to {violations_path}")
+
+    ax.set_xlim(x_lo, x_hi)
+    ax.set_ylim(y_lo, y_hi)
+    ax.set_title(title)
+    ax.set_xlabel("Board Power Limit Control (W)")
+    ax.set_ylabel("Measured Board Power (W)")
+    ax.legend(frameon=True, framealpha=1.0, facecolor="white", edgecolor="black")
+    plt.tight_layout()
+
+    if output:
+        fig.savefig(output, dpi=150)
+        print(f"Saved figure to {output}")
+    else:
+        plt.show()
+
+
 def plot_nonuniform_power_violin(
     df: pd.DataFrame,
     title: str = "Non-Uniform Power Cap: Assigned Limits",
@@ -1331,6 +1449,17 @@ def main(argv: Optional[List[str]] = None) -> int:
             df,
             title=args.title + " — Non-Uniform Power Limit Distribution",
             output=nu_violin_out,
+        )
+
+        # Scatter: assigned limit vs measured power (all trials)
+        compliance_out = None
+        if args.output:
+            base, ext = args.output.rsplit(".", 1)
+            compliance_out = f"{base}_power_compliance.{ext}"
+        plot_power_compliance_scatter(
+            df,
+            title=args.title + " — Power Compliance",
+            output=compliance_out,
         )
     elif args.baseline and len(args.baseline) > 1:
         if args.cache:
