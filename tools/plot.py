@@ -101,6 +101,11 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
              "where OPERATOR is 'lt' or 'gt'.  Example: "
              "--outliers 3200,lt,4e6 3200,gt,4.6e6 3800,lt,5.7e6",
     )
+    p.add_argument(
+        "--publication", action="store_true", default=False,
+        help="Publication mode: remove titles, minimize margins, use "
+             "white background with gray gridlines, and increase font sizes.",
+    )
     return p.parse_args(argv)
 
 
@@ -109,6 +114,7 @@ def plot_power_sweep_fom_boxplot(
     title: str = "FOM by Board Power Limit",
     output: Optional[str] = None,
     average_trials: bool = True,
+    publication: bool = False,
 ) -> None:
     """Create a vertical boxplot of FOM grouped by BOARD_POWER_LIMIT_CONTROL.
 
@@ -159,7 +165,8 @@ def plot_power_sweep_fom_boxplot(
         order=str_order,
         legend=False,
     )
-    ax.set_title(title)
+    if not publication:
+        ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Normalized Figure of Merit")
 
@@ -181,6 +188,8 @@ def plot_power_sweep_fom_boxplot(
             fontsize=8,
         )
 
+    if publication:
+        ax.margins(x=0)
     plt.tight_layout()
 
     if output:
@@ -195,6 +204,7 @@ def plot_power_sweep_uncore_freq_boxplot(
     title: str = "Uncore Frequency by Board Power Limit",
     output: Optional[str] = None,
     average_trials: bool = True,
+    publication: bool = False,
 ) -> None:
     """Create a vertical boxplot of achieved uncore frequency grouped by BOARD_POWER_LIMIT_CONTROL.
 
@@ -244,7 +254,8 @@ def plot_power_sweep_uncore_freq_boxplot(
         order=str_order,
         legend=False,
     )
-    ax.set_title(title)
+    if not publication:
+        ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Uncore Frequency (GHz)")
     ax.set_ylim(bottom=1.3, top=2.4)
@@ -267,6 +278,8 @@ def plot_power_sweep_uncore_freq_boxplot(
             fontsize=8,
         )
 
+    if publication:
+        ax.margins(x=0)
     plt.tight_layout()
 
     if output:
@@ -281,6 +294,7 @@ def plot_power_sweep_board_power_boxplot(
     title: str = "Requested vs Achieved Board Power",
     output: Optional[str] = None,
     average_trials: bool = True,
+    publication: bool = False,
 ) -> None:
     """Create a vertical boxplot of achieved BOARD_POWER grouped by requested limit.
 
@@ -331,10 +345,13 @@ def plot_power_sweep_board_power_boxplot(
         marker="_", color="red", linestyle="--", linewidth=1,
         label="Requested = Achieved",
     )
-    ax.set_title(title)
+    if not publication:
+        ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Board Power (W)")
     ax.legend(frameon=True, framealpha=1.0, facecolor="white", edgecolor="black")
+    if publication:
+        ax.margins(x=0)
     plt.tight_layout()
 
     if output:
@@ -350,6 +367,7 @@ def plot_power_sweep_fom_violin(
     output: Optional[str] = None,
     ylim: Optional[tuple] = None,
     average_trials: bool = True,
+    publication: bool = False,
 ) -> None:
     """Create a violin plot of FOM grouped by BOARD_POWER_LIMIT_CONTROL.
 
@@ -381,6 +399,9 @@ def plot_power_sweep_fom_violin(
         df = df.groupby(group_cols, as_index=False)[metric].mean()
 
     order = sorted(df[col].dropna().unique())
+    if publication and len(order) > 2:
+        order = order[1:-1]
+        df = df[df[col].isin(order)]
     df[col] = df[col].astype(str)
     str_order = [str(v) for v in order]
 
@@ -395,12 +416,15 @@ def plot_power_sweep_fom_violin(
         legend=False,
         inner="box",
     )
-    ax.set_title(title)
+    if not publication:
+        ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Figure of Merit")
     if ylim:
         ax.set_ylim(*ylim)
     ax.xaxis.grid(True)
+    if publication:
+        ax.margins(x=0)
     plt.tight_layout()
 
     if output:
@@ -416,6 +440,7 @@ def plot_power_sweep_fom_line(
     output: Optional[str] = None,
     ylim: Optional[tuple] = None,
     average_trials: bool = True,
+    publication: bool = False,
 ) -> None:
     """Create a lineplot of FOM grouped by BOARD_POWER_LIMIT_CONTROL.
 
@@ -464,11 +489,14 @@ def plot_power_sweep_fom_line(
         df = df.sort_values(col)
         ax.plot(df[col], df[metric], marker="o", linewidth=2)
 
-    ax.set_title(title)
+    if not publication:
+        ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Figure of Merit")
     if ylim:
         ax.set_ylim(*ylim)
+    if publication:
+        ax.margins(x=0)
     plt.tight_layout()
 
     if output:
@@ -484,6 +512,7 @@ def plot_power_sweep_fom_lowess(
     output: Optional[str] = None,
     ylim: Optional[tuple] = None,
     average_trials: bool = True,
+    publication: bool = False,
 ) -> None:
     """Create a LOWESS regression plot of FOM vs BOARD_POWER_LIMIT_CONTROL.
 
@@ -532,11 +561,14 @@ def plot_power_sweep_fom_lowess(
                 linewidth=0.8, alpha=1.0,
             )
 
-    ax.set_title(title)
+    if not publication:
+        ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Figure of Merit")
     if ylim:
         ax.set_ylim(*ylim)
+    if publication:
+        ax.margins(x=0)
     plt.tight_layout()
 
     if output:
@@ -552,6 +584,7 @@ def plot_power_sweep_fom_histogram(
     output: Optional[str] = None,
     ylim: Optional[tuple] = None,
     average_trials: bool = True,
+    publication: bool = False,
 ) -> None:
     """Create one histogram of FOM per BOARD_POWER_LIMIT_CONTROL value.
 
@@ -592,11 +625,14 @@ def plot_power_sweep_fom_histogram(
 
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.histplot(subset, ax=ax)
-        ax.set_title(f"{title} — {power_limit} W")
+        if not publication:
+            ax.set_title(f"{title} — {power_limit} W")
         ax.set_xlabel("Figure of Merit")
         ax.set_ylabel("Count")
         if ylim:
             ax.set_xlim(*ylim)
+        if publication:
+            ax.margins(x=0)
         plt.tight_layout()
 
         if output:
@@ -613,6 +649,7 @@ def plot_fom_cap_compare(
     df: pd.DataFrame,
     title: str = "Uniform vs Non-Uniform Power Cap FOM",
     output: Optional[str] = None,
+    publication: bool = False,
 ) -> None:
     """Create a pointplot comparing uniform vs non-uniform FOM.
 
@@ -661,7 +698,8 @@ def plot_fom_cap_compare(
         markersize=4,
         linewidth=2,
     )
-    ax.set_title(title)
+    if not publication:
+        ax.set_title(title)
     ax.set_xlabel("Average Power Per Node (W)")
     ax.set_ylabel("Normalized Figure of Merit")
     ax.legend(title=None, frameon=True, framealpha=1.0, facecolor="white", edgecolor="black")
@@ -689,6 +727,8 @@ def plot_fom_cap_compare(
             fontsize=8,
         )
 
+    if publication:
+        ax.margins(x=0)
     plt.tight_layout()
 
     if output:
@@ -702,6 +742,7 @@ def plot_power_compliance_scatter(
     df: pd.DataFrame,
     title: str = "Requested vs Achieved Board Power",
     output: Optional[str] = None,
+    publication: bool = False,
 ) -> None:
     """Scatter plot of per-host assigned power limit vs measured power.
 
@@ -803,10 +844,13 @@ def plot_power_compliance_scatter(
 
     ax.set_xlim(x_lo, x_hi)
     ax.set_ylim(y_lo, y_hi)
-    ax.set_title(title)
+    if not publication:
+        ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Measured Board Power (W)")
     ax.legend(frameon=True, framealpha=1.0, facecolor="white", edgecolor="black")
+    if publication:
+        ax.margins(x=0)
     plt.tight_layout()
 
     if output:
@@ -820,6 +864,7 @@ def plot_nonuniform_power_violin(
     df: pd.DataFrame,
     title: str = "Non-Uniform Power Cap: Assigned Limits",
     output: Optional[str] = None,
+    publication: bool = False,
 ) -> None:
     """Violin plot of assigned BOARD_POWER_LIMIT_CONTROL for non-uniform runs.
 
@@ -868,13 +913,17 @@ def plot_nonuniform_power_violin(
         order=str_order,
         legend=False,
         inner="box",
+        cut=0 if publication else 2,
     )
-    ax.set_title(title)
+    if not publication:
+        ax.set_title(title)
     ax.set_xlabel("Average Power Per Node (W)")
     ax.set_ylabel("Board Power Limit Control (W)")
     y_lo = min(order) - 150
     y_hi = max(order) + 100
     ax.set_ylim(y_lo, y_hi)
+    if publication:
+        ax.margins(x=0)
     plt.tight_layout()
 
     if output:
@@ -888,6 +937,7 @@ def plot_fom_baseline_compare(
     df: pd.DataFrame,
     title: str = "Before vs After Host Replacement FOM",
     output: Optional[str] = None,
+    publication: bool = False,
 ) -> None:
     """Create a pointplot comparing FOM before and after a host replacement.
 
@@ -935,7 +985,8 @@ def plot_fom_baseline_compare(
         markersize=4,
         linewidth=2,
     )
-    ax.set_title(title)
+    if not publication:
+        ax.set_title(title)
     ax.set_xlabel("Board Power Limit Control (W)")
     ax.set_ylabel("Normalized Figure of Merit")
     ax.legend(title=None, frameon=True, framealpha=1.0, facecolor="white", edgecolor="black")
@@ -963,6 +1014,8 @@ def plot_fom_baseline_compare(
             fontsize=8,
         )
 
+    if publication:
+        ax.margins(x=0)
     plt.tight_layout()
 
     if output:
@@ -1326,8 +1379,21 @@ def _load_cap_compare_data(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    plt.style.use('seaborn-v0_8-darkgrid')
     args = parse_args(argv)
+    if args.publication:
+        plt.style.use('seaborn-v0_8-whitegrid')
+        plt.rcParams.update({
+            'font.size': 14,
+            'axes.labelsize': 16,
+            'xtick.labelsize': 12,
+            'ytick.labelsize': 12,
+            'legend.fontsize': 12,
+            'savefig.bbox': 'tight',
+            'savefig.pad_inches': 0.02,
+        })
+    else:
+        plt.style.use('seaborn-v0_8-darkgrid')
+    pub = args.publication
 
     if args.sweep or (args.cache and not args.baseline and not (args.uniform and args.nonuniform)):
         if args.cache:
@@ -1391,37 +1457,37 @@ def main(argv: Optional[List[str]] = None) -> int:
         plot_power_sweep_fom_violin(
             sections["totals"], title=args.title,
             output=_out("violin"),
-            ylim=ylim, average_trials=avg,
+            ylim=ylim, average_trials=avg, publication=pub,
         )
         plot_power_sweep_fom_line(
             sections["totals"], title=args.title,
             output=_out("line"),
-            ylim=ylim, average_trials=avg,
+            ylim=ylim, average_trials=avg, publication=pub,
         )
         plot_power_sweep_fom_lowess(
             sections["totals"], title=args.title,
             output=_out("lowess"),
-            ylim=ylim, average_trials=avg,
+            ylim=ylim, average_trials=avg, publication=pub,
         )
         plot_power_sweep_fom_histogram(
             sections["totals"], title=args.title,
             output=_out("hist"),
-            ylim=ylim, average_trials=avg,
+            ylim=ylim, average_trials=avg, publication=pub,
         )
         plot_power_sweep_fom_boxplot(
             sections["totals"], title=args.title + ' FoM Analysis - Host Means',
             output=_out("fom_boxplot_host_means"),
-            average_trials=avg,
+            average_trials=avg, publication=pub,
         )
         plot_power_sweep_board_power_boxplot(
             sections["totals"], title=args.title + ' Achieved Power Analysis',
             output=_out("board_power_boxplot"),
-            average_trials=avg,
+            average_trials=avg, publication=pub,
         )
         plot_power_sweep_uncore_freq_boxplot(
             sections["totals"], title=args.title + ' Uncore Frequency Analysis',
             output=_out("uncore_freq_boxplot"),
-            average_trials=avg,
+            average_trials=avg, publication=pub,
         )
     elif args.uniform and args.nonuniform:
         if args.cache:
@@ -1438,7 +1504,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             node_count = df["host"].nunique()
             args.title += f" | {node_count} Nodes"
 
-        plot_fom_cap_compare(df, title=args.title, output=args.output)
+        plot_fom_cap_compare(df, title=args.title, output=args.output,
+                             publication=pub)
 
         # Violin of assigned power limits for the non-uniform runs
         nu_violin_out = None
@@ -1448,7 +1515,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         plot_nonuniform_power_violin(
             df,
             title=args.title + " — Non-Uniform Power Limit Distribution",
-            output=nu_violin_out,
+            output=nu_violin_out, publication=pub,
         )
 
         # Scatter: assigned limit vs measured power (all trials)
@@ -1459,7 +1526,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         plot_power_compliance_scatter(
             df,
             title=args.title + " — Power Compliance",
-            output=compliance_out,
+            output=compliance_out, publication=pub,
         )
     elif args.baseline and len(args.baseline) > 1:
         if args.cache:
@@ -1480,7 +1547,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             node_count = df["host"].nunique()
             args.title += f" | {node_count} Nodes"
 
-        plot_fom_baseline_compare(df, title=args.title, output=args.output)
+        plot_fom_baseline_compare(df, title=args.title, output=args.output,
+                                  publication=pub)
 
     return 0
 
