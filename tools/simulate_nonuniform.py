@@ -5,11 +5,35 @@ Samples random N-host subsets from a model host pool, computes the
 worst-node slowdown improvement of non-uniform over uniform capping,
 and plots the distribution as a violin plot across power budgets.
 
-Usage:
+Usage (quadratic model only):
   ./simulate_nonuniform.py \\
       models_2026-02-09_1612/426/nekbone_426.json \\
       model_hosts \\
       --outliers hosts_fom_outliers.txt \\
+      --output nonuniform_projection.png
+
+Usage (real data + hybrid evaluation of quadratic model, parsing reports):
+  ./simulate_nonuniform.py \\
+      models_2026-02-09_1612/426/nekbone_426.json \\
+      model_hosts \\
+      --outliers hosts_fom_outliers.txt \\
+      --partial hosts_partial_power_limits.txt \\
+      --missing-fom hosts_missing_fom.txt \\
+      --real-data \\
+      --sweep /path/to/12345678_60_2400 /path/to/12345679_60_2600 ... \\
+      --outliers-rules "3200,lt,4e6" "3200,gt,4.7e6" "3800,lt,4.8e6" \\
+      --output nonuniform_projection.png
+
+Usage (real data, using pre-built HDF5 caches):
+  ./simulate_nonuniform.py \\
+      models_2026-02-09_1612/426/nekbone_426.json \\
+      model_hosts \\
+      --outliers hosts_fom_outliers.txt \\
+      --partial hosts_partial_power_limits.txt \\
+      --missing-fom hosts_missing_fom.txt \\
+      --real-data \\
+      --cache-dir .compare_cache \\
+      --outliers-rules "3200,lt,4e6" "3200,gt,4.7e6" "3800,lt,4.8e6" \\
       --output nonuniform_projection.png
 """
 
@@ -344,6 +368,55 @@ def simulate_one(
         return (max(slowdown_by_node_uniform) - max(slowdown_by_node_nu)) * 100
 
 
+def simulate_one_hybrid(
+    host_names: List[str],
+    host_models: dict,
+    max_node_power: float,
+    avg_power_per_node: int,
+    host_curves: Dict[str, Tuple[np.ndarray, np.ndarray]],
+    measured_range: Tuple[float, float] = (2400.0, 4000.0),
+) -> float:
+    """Quadratic-model allocation evaluated with real measured data.
+
+    The quadratic model decides power assignments, but FOM is looked up
+    from the piecewise-linear real-data curves.  This reveals how well
+    the model's decisions perform in practice.
+
+    If any host is assigned a power limit outside the measured data
+    range, returns 0.0 — we have no real data to evaluate that
+    assignment.
+    """
+    num_nodes = len(host_names)
+    job_budget = num_nodes * avg_power_per_node
+
+    x0 = [host_models[h]["x0"] for h in host_names]
+    A = [host_models[h]["A"] for h in host_names]
+    B = [host_models[h]["B"] for h in host_names]
+    C = [host_models[h]["C"] for h in host_names]
+
+    _slowdown_nu, power_by_node = compute_hook.allocate_budget_to_nodes(
+        job_budget, max_node_power, x0, A, B, C,
+    )
+
+    # If any assignment falls outside the measured data range, we cannot
+    # reliably evaluate — return no improvement.
+    p_min, p_max = measured_range
+    if any(p < p_min - 0.1 or p > p_max + 0.1 for p in power_by_node):
+        return 0.0
+
+    # Evaluate with real data
+    fom_nu = [fom_at_power(p, host_curves[h])
+              for h, p in zip(host_names, power_by_node)]
+    fom_uniform = [fom_at_power(avg_power_per_node, host_curves[h])
+                   for h in host_names]
+
+    worst_nu = min(fom_nu)
+    worst_uniform = min(fom_uniform)
+    if worst_uniform <= 0:
+        return 0.0
+    return (worst_nu - worst_uniform) / worst_uniform * 100
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
 
@@ -480,6 +553,56 @@ def main(argv: Optional[List[str]] = None) -> int:
     output_path = f"{base}_{args.num_nodes}_{args.job_type}.{ext}"
     fig.savefig(output_path, dpi=150)
     print(f"\nSaved figure to {output_path}")
+
+    # -- Hybrid plot: quadratic allocation, real-data evaluation -----------
+    if host_curves is not None:
+        print("\n--- Hybrid: Quadratic Allocation + Linear Evaluation ---")
+        hybrid_records: list = []
+        for power in power_budgets:
+            print(f"  {power} W ...", end="", flush=True)
+            for _ in range(args.iterations):
+                sample = random.sample(all_hosts, args.num_nodes)
+                improvement = simulate_one_hybrid(
+                    sample, host_models, max_power, power, host_curves,
+                    measured_range=(float(measured_levels[0]),
+                                    float(measured_levels[-1])),
+                )
+                hybrid_records.append({
+                    "power_budget": power,
+                    "improvement": improvement,
+                })
+            print(" done")
+
+        df_hybrid = pd.DataFrame(hybrid_records)
+
+        fig_h, ax_h = plt.subplots(figsize=(12, 6))
+        df_hybrid["power_budget"] = df_hybrid["power_budget"].astype(str)
+
+        sns.violinplot(
+            data=df_hybrid,
+            x="power_budget",
+            y="improvement",
+            hue="power_budget",
+            ax=ax_h,
+            order=order,
+            legend=False,
+            inner="box",
+        )
+
+        ax_h.set_title(
+            f"{args.title}Quadratic Allocation, Linear Evaluation | "
+            f"{args.num_nodes} Node Samples | "
+            f"{args.iterations} Iterations | "
+            f"Profile: {args.job_type} | "
+            f"{len(all_hosts)} Nodes in Pool"
+        )
+        ax_h.set_xlabel("Per-Node Power Budget (W)")
+        ax_h.set_ylabel("Worst-Node FOM Improvement (%)")
+        plt.tight_layout()
+
+        hybrid_path = f"{base}_{args.num_nodes}_{args.job_type}_hybrid.{ext}"
+        fig_h.savefig(hybrid_path, dpi=150)
+        print(f"\nSaved hybrid figure to {hybrid_path}")
 
     return 0
 
