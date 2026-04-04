@@ -124,6 +124,9 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
                    metavar="POWER,OP,THRESH",
                    help="(requires --real-data) FOM outlier rules "
                         "(same format as plot.py --outliers)")
+    p.add_argument("--publication", action="store_true", default=False,
+                   help="Publication mode: remove titles, prune extreme "
+                        "power budgets from violin plots.")
     return p.parse_args(argv)
 
 
@@ -526,10 +529,28 @@ def main(argv: Optional[List[str]] = None) -> int:
     df = pd.DataFrame(records)
 
     # -- Plot --------------------------------------------------------------
-    plt.style.use("seaborn-v0_8-darkgrid")
+    if args.publication:
+        plt.style.use("seaborn-v0_8-whitegrid")
+        plt.rcParams.update({
+            'font.size': 14,
+            'axes.labelsize': 16,
+            'xtick.labelsize': 12,
+            'ytick.labelsize': 12,
+            'legend.fontsize': 12,
+            'savefig.bbox': 'tight',
+            'savefig.pad_inches': 0.02,
+        })
+    else:
+        plt.style.use("seaborn-v0_8-darkgrid")
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    order = [str(p) for p in power_budgets]
+    # Drop first and last power budgets (flat extrapolation artifacts)
+    if args.publication and len(power_budgets) > 2:
+        plot_budgets = power_budgets[1:-1]
+    else:
+        plot_budgets = power_budgets
+    order = [str(p) for p in plot_budgets]
+    df = df[df["power_budget"].isin(plot_budgets)]
     df["power_budget"] = df["power_budget"].astype(str)
 
     sns.violinplot(
@@ -544,7 +565,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
 
     model_label = "Linear Interpolation" if host_curves is not None else "Quadratic Model"
-    ax.set_title(f"{args.title}{model_label} | {args.num_nodes} Node Samples | {args.iterations} Iterations | Profile: {args.job_type} | {len(all_hosts)} Nodes in Pool")
+    if not args.publication:
+        ax.set_title(f"{args.title}{model_label} | {args.num_nodes} Node Samples | {args.iterations} Iterations | Profile: {args.job_type} | {len(all_hosts)} Nodes in Pool")
     ax.set_xlabel("Per-Node Power Budget (W)")
     ax.set_ylabel("Worst-Node FOM Improvement (%)")
     plt.tight_layout()
@@ -576,6 +598,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         df_hybrid = pd.DataFrame(hybrid_records)
 
         fig_h, ax_h = plt.subplots(figsize=(12, 6))
+        # Use same pruned order as the main plot
+        df_hybrid = df_hybrid[df_hybrid["power_budget"].isin(plot_budgets)]
         df_hybrid["power_budget"] = df_hybrid["power_budget"].astype(str)
 
         sns.violinplot(
@@ -589,13 +613,14 @@ def main(argv: Optional[List[str]] = None) -> int:
             inner="box",
         )
 
-        ax_h.set_title(
-            f"{args.title}Quadratic Allocation, Linear Evaluation | "
-            f"{args.num_nodes} Node Samples | "
-            f"{args.iterations} Iterations | "
-            f"Profile: {args.job_type} | "
-            f"{len(all_hosts)} Nodes in Pool"
-        )
+        if not args.publication:
+            ax_h.set_title(
+                f"{args.title}Quadratic Allocation, Linear Evaluation | "
+                f"{args.num_nodes} Node Samples | "
+                f"{args.iterations} Iterations | "
+                f"Profile: {args.job_type} | "
+                f"{len(all_hosts)} Nodes in Pool"
+            )
         ax_h.set_xlabel("Per-Node Power Budget (W)")
         ax_h.set_ylabel("Worst-Node FOM Improvement (%)")
         plt.tight_layout()

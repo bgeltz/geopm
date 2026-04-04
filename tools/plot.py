@@ -399,9 +399,6 @@ def plot_power_sweep_fom_violin(
         df = df.groupby(group_cols, as_index=False)[metric].mean()
 
     order = sorted(df[col].dropna().unique())
-    if publication and len(order) > 2:
-        order = order[1:-1]
-        df = df[df[col].isin(order)]
     df[col] = df[col].astype(str)
     str_order = [str(v) for v in order]
 
@@ -913,7 +910,6 @@ def plot_nonuniform_power_violin(
         order=str_order,
         legend=False,
         inner="box",
-        cut=0 if publication else 2,
     )
     if not publication:
         ax.set_title(title)
