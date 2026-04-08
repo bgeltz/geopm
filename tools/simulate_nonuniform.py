@@ -131,6 +131,11 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
                    help="(requires --real-data) Exclude hosts whose minimum "
                         "trial count across all power levels is below this "
                         "threshold.  Helps remove noisy single-sample hosts.")
+    p.add_argument("--plot-range", default=None,
+                   help="Power range to show in violin plots as 'LOW,HIGH' "
+                        "(e.g. '2800,3800').  Budgets outside this range are "
+                        "still simulated but hidden from the plot.  "
+                        "Applied in both normal and publication modes.")
     return p.parse_args(argv)
 
 
@@ -633,6 +638,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         plot_budgets = power_budgets[1:-1]
     else:
         plot_budgets = power_budgets
+    # Apply --plot-range filter
+    if args.plot_range:
+        lo, hi = (int(x.strip()) for x in args.plot_range.split(","))
+        plot_budgets = [p for p in plot_budgets if lo <= p <= hi]
     order = [str(p) for p in plot_budgets]
     df = df[df["power_budget"].isin(plot_budgets)]
     df["power_budget"] = df["power_budget"].astype(str)
