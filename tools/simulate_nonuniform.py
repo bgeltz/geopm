@@ -634,7 +634,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     fig, ax = plt.subplots(figsize=(12, 6))
 
     # Drop first and last power budgets (flat extrapolation artifacts)
-    if args.publication and len(power_budgets) > 2:
+    if args.publication and not args.plot_range and len(power_budgets) > 2:
         plot_budgets = power_budgets[1:-1]
     else:
         plot_budgets = power_budgets
@@ -665,7 +665,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     plt.tight_layout()
 
     base, ext = args.output.rsplit(".", 1)
-    output_path = f"{base}_{args.num_nodes}_{args.job_type}.{ext}"
+    pub_tag = "_publication" if args.publication else ""
+    output_path = f"{base}_{args.num_nodes}_{args.job_type}{pub_tag}.{ext}"
     fig.savefig(output_path, dpi=150)
     print(f"\nSaved figure to {output_path}")
 
@@ -718,7 +719,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         ax_h.set_ylabel("Worst-Node FOM Improvement (%)")
         plt.tight_layout()
 
-        hybrid_path = f"{base}_{args.num_nodes}_{args.job_type}_hybrid.{ext}"
+        hybrid_path = f"{base}_{args.num_nodes}_{args.job_type}_hybrid{pub_tag}.{ext}"
         fig_h.savefig(hybrid_path, dpi=150)
         print(f"\nSaved hybrid figure to {hybrid_path}")
 
