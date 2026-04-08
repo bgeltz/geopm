@@ -207,10 +207,30 @@ def build_host_curves(
         power_arr = hdf[col].values.astype(float)
         fom_arr = hdf[metric].values.astype(float)
         if np.any(np.isnan(fom_arr)):
+            print(f"  WARNING: dropping {host} — NaN in FOM after averaging")
             continue
         # Enforce monotonicity: dips are measurement noise
         fom_arr = np.maximum.accumulate(fom_arr)
         host_curves[str(host)] = (power_arr, fom_arr)
+
+    # --- Data completeness check ------------------------------------------
+    n_levels = len(measured_levels)
+    incomplete = {}
+    for host, (powers, _foms) in host_curves.items():
+        host_levels = set(int(p) for p in powers)
+        missing = sorted(set(measured_levels) - host_levels)
+        if missing:
+            incomplete[host] = missing
+    if incomplete:
+        report_path = "hosts_incomplete_curves.txt"
+        with open(report_path, "w") as fh:
+            fh.write(f"# {len(incomplete)} host(s) with incomplete "
+                     f"power-level coverage\n")
+            fh.write(f"# Expected {n_levels} levels: {measured_levels}\n")
+            for h in sorted(incomplete):
+                fh.write(f"{h}  missing: {incomplete[h]}\n")
+        print(f"WARNING: {len(incomplete)} host(s) have incomplete "
+              f"power-level coverage — details in {report_path}")
 
     return host_curves, measured_levels
 
@@ -437,6 +457,37 @@ def main(argv: Optional[List[str]] = None) -> int:
         host_curves, measured_levels = build_host_curves(df_real)
         print(f"Real data: {len(host_curves)} hosts at "
               f"{len(measured_levels)} power levels: {measured_levels}")
+
+        # -- Per-host trial count diagnostic --------------------------------
+        col = "BOARD_POWER_LIMIT_CONTROL"
+        metric = "FOM"
+        df_diag = df_real.copy()
+        df_diag[col] = df_diag[col].astype(int)
+        trial_counts = (
+            df_diag.dropna(subset=[metric])
+            .groupby(["host", col])[metric]
+            .count()
+            .unstack(fill_value=0)
+        )
+        # Flag hosts with zero trials at any level
+        hosts_zero = trial_counts[(trial_counts == 0).any(axis=1)]
+        if not hosts_zero.empty:
+            zero_report = "hosts_zero_fom_trials.txt"
+            with open(zero_report, "w") as fh:
+                fh.write(hosts_zero.to_string())
+                fh.write("\n")
+            print(f"WARNING: {len(hosts_zero)} host(s) have ZERO FOM "
+                  f"trials at one or more power levels — "
+                  f"details in {zero_report}")
+        # Show summary: min/median/max trial count per power level
+        print("Trial counts per power level (across all hosts):")
+        print(f"  {'Power':>7s}  {'Min':>5s}  {'Med':>5s}  {'Max':>5s}  "
+              f"{'Hosts':>5s}")
+        for pw in sorted(trial_counts.columns):
+            vals = trial_counts[pw]
+            print(f"  {pw:>7d}  {vals.min():>5d}  {int(vals.median()):>5d}  "
+                  f"{vals.max():>5d}  {(vals > 0).sum():>5d}")
+        print()
 
     # -- Load host pool ----------------------------------------------------
     with open(args.hosts) as f:
