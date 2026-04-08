@@ -127,6 +127,10 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     p.add_argument("--publication", action="store_true", default=False,
                    help="Publication mode: remove titles, prune extreme "
                         "power budgets from violin plots.")
+    p.add_argument("--min-trials", type=int, default=None,
+                   help="(requires --real-data) Exclude hosts whose minimum "
+                        "trial count across all power levels is below this "
+                        "threshold.  Helps remove noisy single-sample hosts.")
     return p.parse_args(argv)
 
 
@@ -487,6 +491,35 @@ def main(argv: Optional[List[str]] = None) -> int:
             vals = trial_counts[pw]
             print(f"  {pw:>7d}  {vals.min():>5d}  {int(vals.median()):>5d}  "
                   f"{vals.max():>5d}  {(vals > 0).sum():>5d}")
+
+        # Distribution of per-host minimum trial counts
+        min_trials_per_host = trial_counts.min(axis=1)
+        print("\nDistribution of per-host min trial count:")
+        for count_val in sorted(min_trials_per_host.unique()):
+            n = (min_trials_per_host == count_val).sum()
+            print(f"  min_trials={count_val:>3d}: {n:>6d} host(s)")
+
+        # Filter hosts below --min-trials threshold
+        if args.min_trials is not None:
+            low_trial_hosts = set(
+                min_trials_per_host[min_trials_per_host < args.min_trials].index
+            )
+            if low_trial_hosts:
+                report_path = "hosts_low_trials.txt"
+                with open(report_path, "w") as fh:
+                    fh.write(f"# Hosts with min trial count < "
+                             f"{args.min_trials}\n")
+                    for h in sorted(low_trial_hosts):
+                        fh.write(f"{h}  min_trials="
+                                 f"{int(min_trials_per_host[h])}\n")
+                print(f"\n--min-trials={args.min_trials}: removing "
+                      f"{len(low_trial_hosts)} host(s) — "
+                      f"details in {report_path}")
+                # Remove from curves so they are excluded from the pool
+                for h in low_trial_hosts:
+                    host_curves.pop(h, None)
+                print(f"Host curves after min-trials filter: "
+                      f"{len(host_curves)}")
         print()
 
     # -- Load host pool ----------------------------------------------------
