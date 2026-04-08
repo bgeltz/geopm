@@ -106,6 +106,12 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Publication mode: remove titles, minimize margins, use "
              "white background with gray gridlines, and increase font sizes.",
     )
+    p.add_argument(
+        "--highlight", default=None,
+        help="Comma-separated list of host names to highlight in line "
+             "and LOWESS plots.  Highlighted hosts are drawn on top with "
+             "thicker lines, markers, and a legend entry.",
+    )
     return p.parse_args(argv)
 
 
@@ -438,6 +444,7 @@ def plot_power_sweep_fom_line(
     ylim: Optional[tuple] = None,
     average_trials: bool = True,
     publication: bool = False,
+    highlight: Optional[List[str]] = None,
 ) -> None:
     """Create a lineplot of FOM grouped by BOARD_POWER_LIMIT_CONTROL.
 
@@ -474,14 +481,35 @@ def plot_power_sweep_fom_line(
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
+    highlight_set = set(highlight) if highlight else set()
+
     if "host" in df.columns:
-        # Individual host lines (thin, translucent)
+        # Draw non-highlighted hosts first (thin, dimmed)
         for host, hdf in df.groupby("host"):
+            if host in highlight_set:
+                continue
             hdf = hdf.sort_values(col)
             ax.plot(
                 hdf[col], hdf[metric],
-                marker=".", linewidth=0.8, alpha=1.0,
+                marker=".", linewidth=0.8, alpha=0.3 if highlight_set else 1.0,
+                color="#AAAAAA" if highlight_set else None,
+                zorder=1,
             )
+        # Draw highlighted hosts on top
+        for host in highlight or []:
+            hdf = df[df["host"] == host]
+            if hdf.empty:
+                print(f"WARNING: highlight host '{host}' not found in data")
+                continue
+            hdf = hdf.sort_values(col)
+            ax.plot(
+                hdf[col], hdf[metric],
+                marker="o", linewidth=2.5, alpha=1.0,
+                label=host, zorder=10,
+            )
+        if highlight_set:
+            ax.legend(fontsize=8, frameon=True, framealpha=1.0,
+                      facecolor="white", edgecolor="black")
     else:
         df = df.sort_values(col)
         ax.plot(df[col], df[metric], marker="o", linewidth=2)
@@ -510,6 +538,7 @@ def plot_power_sweep_fom_lowess(
     ylim: Optional[tuple] = None,
     average_trials: bool = True,
     publication: bool = False,
+    highlight: Optional[List[str]] = None,
 ) -> None:
     """Create a LOWESS regression plot of FOM vs BOARD_POWER_LIMIT_CONTROL.
 
@@ -548,15 +577,37 @@ def plot_power_sweep_fom_lowess(
 
     fig, ax = plt.subplots(figsize=(10, 6))
     hosts = sorted(df["host"].unique()) if "host" in df.columns else []
+    highlight_set = set(highlight) if highlight else set()
 
     if hosts:
+        # Draw non-highlighted hosts first (thin, dimmed)
         for host, hdf in df.groupby("host", sort=True):
+            if host in highlight_set:
+                continue
             hdf = hdf.sort_values(col)
             smoothed = sm_lowess(hdf[metric].values, hdf[col].values, frac=0.3, it=3)
             ax.plot(
                 smoothed[:, 0], smoothed[:, 1],
-                linewidth=0.8, alpha=1.0,
+                linewidth=0.8, alpha=0.3 if highlight_set else 1.0,
+                color="#AAAAAA" if highlight_set else None,
+                zorder=1,
             )
+        # Draw highlighted hosts on top
+        for host in highlight or []:
+            hdf = df[df["host"] == host]
+            if hdf.empty:
+                print(f"WARNING: highlight host '{host}' not found in data")
+                continue
+            hdf = hdf.sort_values(col)
+            smoothed = sm_lowess(hdf[metric].values, hdf[col].values, frac=0.3, it=3)
+            ax.plot(
+                smoothed[:, 0], smoothed[:, 1],
+                linewidth=2.5, alpha=1.0,
+                label=host, zorder=10,
+            )
+        if highlight_set:
+            ax.legend(fontsize=8, frameon=True, framealpha=1.0,
+                      facecolor="white", edgecolor="black")
 
     if not publication:
         ax.set_title(title)
@@ -1450,6 +1501,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             base, ext = args.output.rsplit(".", 1)
             return f"{base}_{suffix}_{tag}.{ext}"
 
+        highlight_hosts = (
+            [h.strip() for h in args.highlight.split(",")]
+            if args.highlight else None
+        )
         plot_power_sweep_fom_violin(
             sections["totals"], title=args.title,
             output=_out("violin"),
@@ -1459,11 +1514,13 @@ def main(argv: Optional[List[str]] = None) -> int:
             sections["totals"], title=args.title,
             output=_out("line"),
             ylim=ylim, average_trials=avg, publication=pub,
+            highlight=highlight_hosts,
         )
         plot_power_sweep_fom_lowess(
             sections["totals"], title=args.title,
             output=_out("lowess"),
             ylim=ylim, average_trials=avg, publication=pub,
+            highlight=highlight_hosts,
         )
         plot_power_sweep_fom_histogram(
             sections["totals"], title=args.title,
