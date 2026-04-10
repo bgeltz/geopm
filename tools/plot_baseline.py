@@ -93,7 +93,7 @@ def plot_fom_histogram(
 
     # Resolve highlight host FOM before plotting
     host_fom = None
-    host_stats = None
+    host_stats = []
     if highlight_host and "host" in df.columns:
         host_rows = df.loc[df["host"] == highlight_host, metric].dropna()
         if host_rows.empty:
@@ -104,33 +104,46 @@ def plot_fom_histogram(
             host_fom = host_rows.mean()
             fom_mean = fom_values.mean()
             fom_std = fom_values.std()
-            host_stats = {
-                "Power (W)": power_limit,
-                "Host FOM": host_fom,
-                "Percentile": sp_stats.percentileofscore(fom_values, host_fom, kind="rank"),
-                "N": fom_values.shape[0],
-                "Mean FOM": fom_mean,
-                "Median FOM": fom_values.median(),
-                "Std Dev": fom_std,
-                "Z-score": (host_fom - fom_mean) / fom_std if fom_std > 0 else float("nan"),
-            }
+            for trial_num, trial_fom in enumerate(host_rows.values, start=1):
+                host_stats.append({
+                    "Power (W)": power_limit,
+                    "Trial": trial_num,
+                    "Trial FOM": trial_fom,
+                    "Percentile": sp_stats.percentileofscore(fom_values, trial_fom, kind="rank"),
+                    "N": fom_values.shape[0],
+                    "Dist Mean": fom_mean,
+                    "Dist Median": fom_values.median(),
+                    "Dist Std": fom_std,
+                    "Z-score": (trial_fom - fom_mean) / fom_std if fom_std > 0 else float("nan"),
+                })
 
     # Draw histogram with seaborn
     sns.histplot(fom_values, bins=bins, ax=ax)
 
-    # Highlight the bin containing the target host
+    # Highlight the bins containing the target host's trials
     if host_fom is not None:
         counts, bin_edges = np.histogram(fom_values, bins=bins)
-        highlight_idx = int(np.searchsorted(bin_edges[1:], host_fom, side="left"))
-        highlight_idx = min(highlight_idx, len(counts) - 1)
-        # Recolor the highlighted bar
+        # Find all bins that contain at least one trial from this host
+        host_trial_values = df.loc[df["host"] == highlight_host, metric].dropna()
+        highlight_indices = set()
+        for trial_val in host_trial_values:
+            idx = int(np.searchsorted(bin_edges[1:], trial_val, side="left"))
+            idx = min(idx, len(counts) - 1)
+            highlight_indices.add(idx)
+        # Recolor all bins containing a trial
         for idx, patch in enumerate(ax.patches):
-            if idx == highlight_idx:
+            if idx in highlight_indices:
                 patch.set_facecolor("#DD8452")
-        ax.axvline(host_fom, color="#DD8452", linestyle="--", linewidth=1.5,
-                    label=f"{highlight_host} (FOM={host_fom:.2e})", zorder=5)
+        # Draw vertical lines for each individual trial
+        for i, trial_val in enumerate(sorted(host_trial_values)):
+            ax.axvline(trial_val, color="#DD8452", linestyle=":", linewidth=1.0,
+                        alpha=0.7, zorder=4,
+                        label=f"Trial {i+1} (FOM={trial_val:.2e})")
+        # Draw the mean as a thicker dashed line
+        ax.axvline(host_fom, color="#C44E52", linestyle="--", linewidth=2.0,
+                    label=f"{highlight_host} mean (FOM={host_fom:.2e})", zorder=5)
         ax.legend(frameon=True, framealpha=1.0, facecolor="white",
-                  edgecolor="black")
+                  edgecolor="black", fontsize=8)
 
     if not publication:
         host_tag = f" [{highlight_host}]" if highlight_host else ""
@@ -156,20 +169,21 @@ def plot_fom_histogram(
     return host_stats
 
 
-def _print_stats_table(rows: List[dict], host: str) -> None:
-    """Print a formatted table of per-power-limit statistics."""
+def _print_stats_table(rows: List[dict], host: str, output_path: Optional[str] = None) -> None:
+    """Print a formatted table of per-trial statistics and optionally write to file."""
     if not rows:
         return
-    headers = ["Power (W)", "Host FOM", "Percentile", "N",
-               "Mean FOM", "Median FOM", "Std Dev", "Z-score"]
+    headers = ["Power (W)", "Trial", "Trial FOM", "Percentile", "N",
+               "Dist Mean", "Dist Median", "Dist Std", "Z-score"]
     fmt = {
         "Power (W)": lambda v: f"{v:>9d}",
-        "Host FOM": lambda v: f"{v:>12.4e}",
+        "Trial": lambda v: f"{v:>5d}",
+        "Trial FOM": lambda v: f"{v:>12.4e}",
         "Percentile": lambda v: f"{v:>10.1f}th",
         "N": lambda v: f"{v:>5d}",
-        "Mean FOM": lambda v: f"{v:>12.4e}",
-        "Median FOM": lambda v: f"{v:>12.4e}",
-        "Std Dev": lambda v: f"{v:>12.4e}",
+        "Dist Mean": lambda v: f"{v:>12.4e}",
+        "Dist Median": lambda v: f"{v:>12.4e}",
+        "Dist Std": lambda v: f"{v:>12.4e}",
         "Z-score": lambda v: f"{v:>8.2f}" if not np.isnan(v) else f"{'N/A':>8s}",
     }
     col_widths = {}
@@ -189,6 +203,88 @@ def _print_stats_table(rows: List[dict], host: str) -> None:
     for fr in formatted_rows:
         print("  ".join(fr[h].rjust(col_widths[h]) for h in headers))
     print()
+
+    if output_path:
+        with open(output_path, "w") as fh:
+            fh.write(f"=== Highlight Host: {host} (Per-Trial) ===\n")
+            fh.write(header_line + "\n")
+            fh.write(sep_line + "\n")
+            for fr in formatted_rows:
+                fh.write("  ".join(fr[h].rjust(col_widths[h]) for h in headers) + "\n")
+        print(f"Saved per-trial stats table to {output_path}")
+
+
+def _build_summary_rows(trial_rows: List[dict]) -> List[dict]:
+    """Average per-trial rows into one row per power limit."""
+    from collections import defaultdict
+    by_power: dict = defaultdict(list)
+    for r in trial_rows:
+        by_power[r["Power (W)"]].append(r)
+    summary = []
+    for power in sorted(by_power):
+        rows = by_power[power]
+        n_trials = len(rows)
+        mean_fom = np.mean([r["Trial FOM"] for r in rows])
+        mean_pct = np.mean([r["Percentile"] for r in rows])
+        mean_z = np.mean([r["Z-score"] for r in rows])
+        summary.append({
+            "Power (W)": power,
+            "Trials": n_trials,
+            "Mean Host FOM": mean_fom,
+            "Mean Percentile": mean_pct,
+            "N": rows[0]["N"],
+            "Dist Mean": rows[0]["Dist Mean"],
+            "Dist Median": rows[0]["Dist Median"],
+            "Dist Std": rows[0]["Dist Std"],
+            "Mean Z-score": mean_z,
+        })
+    return summary
+
+
+def _print_summary_table(trial_rows: List[dict], host: str, output_path: Optional[str] = None) -> None:
+    """Print a summary table averaging trials per power limit."""
+    rows = _build_summary_rows(trial_rows)
+    if not rows:
+        return
+    headers = ["Power (W)", "Trials", "Mean Host FOM", "Mean Percentile", "N",
+               "Dist Mean", "Dist Median", "Dist Std", "Mean Z-score"]
+    fmt = {
+        "Power (W)": lambda v: f"{v:>9d}",
+        "Trials": lambda v: f"{v:>6d}",
+        "Mean Host FOM": lambda v: f"{v:>14.4e}",
+        "Mean Percentile": lambda v: f"{v:>15.1f}th",
+        "N": lambda v: f"{v:>5d}",
+        "Dist Mean": lambda v: f"{v:>12.4e}",
+        "Dist Median": lambda v: f"{v:>12.4e}",
+        "Dist Std": lambda v: f"{v:>12.4e}",
+        "Mean Z-score": lambda v: f"{v:>12.2f}" if not np.isnan(v) else f"{'N/A':>12s}",
+    }
+    col_widths = {}
+    formatted_rows = []
+    for row in rows:
+        frow = {h: fmt[h](row[h]) for h in headers}
+        formatted_rows.append(frow)
+    for h in headers:
+        col_widths[h] = max(len(h), *(len(fr[h]) for fr in formatted_rows))
+
+    header_line = "  ".join(h.rjust(col_widths[h]) for h in headers)
+    sep_line = "  ".join("-" * col_widths[h] for h in headers)
+
+    print(f"\n=== Highlight Host: {host} (Trial Averages) ===")
+    print(header_line)
+    print(sep_line)
+    for fr in formatted_rows:
+        print("  ".join(fr[h].rjust(col_widths[h]) for h in headers))
+    print()
+
+    if output_path:
+        with open(output_path, "a") as fh:
+            fh.write(f"\n=== Highlight Host: {host} (Trial Averages) ===\n")
+            fh.write(header_line + "\n")
+            fh.write(sep_line + "\n")
+            for fr in formatted_rows:
+                fh.write("  ".join(fr[h].rjust(col_widths[h]) for h in headers) + "\n")
+        print(f"Appended summary stats to {output_path}")
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -251,11 +347,17 @@ def main(argv: Optional[List[str]] = None) -> int:
             publication=args.publication,
             xlim=xlim,
         )
-        if row_stats is not None:
-            stats_rows.append(row_stats)
+        if row_stats:
+            stats_rows.extend(row_stats)
 
     if stats_rows:
-        _print_stats_table(stats_rows, args.highlight_host)
+        stats_path = None
+        if args.output:
+            base, ext = args.output.rsplit(".", 1)
+            host_suffix = f"_{args.highlight_host}" if args.highlight_host else ""
+            stats_path = f"{base}{host_suffix}_stats.txt"
+        _print_stats_table(stats_rows, args.highlight_host, output_path=stats_path)
+        _print_summary_table(stats_rows, args.highlight_host, output_path=stats_path)
 
     return 0
 
