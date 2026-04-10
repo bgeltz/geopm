@@ -89,7 +89,7 @@ def plot_fom_histogram(
         print(f"No FOM data at {power_limit} W — skipping.")
         return
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(3.5, 2.5))
 
     # Resolve highlight host FOM before plotting
     host_fom = None
