@@ -140,22 +140,47 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
 
 
 def load_model(model_path: str, job_type: str) -> tuple:
-    """Load model JSON; return (max_power, {host: {x0,A,B,C}})."""
+    """Load model JSON; return (max_power, model_type, host_models, host_curves).
+
+    For original-quadratic:
+        host_models = {host: {x0, A, B, C}}, host_curves = None
+    For piecewise-linear:
+        host_models = {}, host_curves = {host: (power_list, fom_list)}
+    """
     with open(model_path) as f:
         config = json.load(f)
 
     max_power = config["max_power"]
     profile = config["profiles"][job_type]
-    hosts = {}
-    for host_name, host_data in profile["hosts"].items():
-        m = host_data["model"]
-        hosts[host_name] = {
-            "x0": float(m["x0"]),
-            "A": float(m["A"]),
-            "B": float(m["B"]),
-            "C": float(m["C"]),
-        }
-    return max_power, hosts
+    model_type = profile.get("model_type", "original-quadratic")
+
+    if model_type == "piecewise-linear":
+        host_curves = {}
+        for host_name, host_data in profile.get("hosts", {}).items():
+            pairs = sorted((float(k), float(v))
+                           for k, v in host_data["model"].items())
+            powers = [p for p, _ in pairs]
+            foms = [f for _, f in pairs]
+            # Enforce monotonicity (non-decreasing FOM with increasing power)
+            for i in range(1, len(foms)):
+                if foms[i] < foms[i - 1]:
+                    foms[i] = foms[i - 1]
+            host_curves[host_name] = (
+                np.array(powers, dtype=float),
+                np.array(foms, dtype=float),
+            )
+        return max_power, model_type, {}, host_curves
+    else:
+        hosts = {}
+        for host_name, host_data in profile.get("hosts", {}).items():
+            m = host_data["model"]
+            hosts[host_name] = {
+                "x0": float(m["x0"]),
+                "A": float(m["A"]),
+                "B": float(m["B"]),
+                "C": float(m["C"]),
+            }
+        return max_power, model_type, hosts, None
 
 
 # ---------------------------------------------------------------------------
@@ -456,11 +481,21 @@ def main(argv: Optional[List[str]] = None) -> int:
         random.seed(args.seed)
 
     # -- Load model --------------------------------------------------------
-    max_power, host_models = load_model(args.model, args.job_type)
-    print(f"Model: {args.model}  (max_power={max_power})")
+    max_power, model_type, host_models, model_curves = load_model(
+        args.model, args.job_type)
+    print(f"Model: {args.model}  (max_power={max_power}, type={model_type})")
 
     # -- Load real data (if requested) -------------------------------------
     host_curves = None
+    if model_type == "piecewise-linear" and model_curves is not None:
+        # Use curves loaded directly from the piecewise-linear JSON model
+        host_curves = model_curves
+        all_power_levels = set()
+        for _pw, _fm in host_curves.values():
+            all_power_levels.update(int(p) for p in _pw)
+        measured_levels = sorted(all_power_levels)
+        print(f"Piecewise-linear model: {len(host_curves)} hosts at "
+              f"{len(measured_levels)} power levels: {measured_levels}")
     if args.real_data:
         df_real = load_real_data(args)
         host_curves, measured_levels = build_host_curves(df_real)
@@ -548,10 +583,11 @@ def main(argv: Optional[List[str]] = None) -> int:
               f"via {filepath}, {len(all_hosts)} remaining")
 
     # Drop any host not present in the model
-    missing = [h for h in all_hosts if h not in host_models]
-    if missing:
-        print(f"WARNING: {len(missing)} host(s) not in model, excluding them")
-        all_hosts = [h for h in all_hosts if h in host_models]
+    if host_models:
+        missing = [h for h in all_hosts if h not in host_models]
+        if missing:
+            print(f"WARNING: {len(missing)} host(s) not in model, excluding them")
+            all_hosts = [h for h in all_hosts if h in host_models]
 
     # If using real data, also drop hosts without measured curves
     if host_curves is not None:
