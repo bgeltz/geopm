@@ -1,3 +1,144 @@
+- Mon Nov 02 2026 Brad Geltz <brad.geltz@intel.com> v3.3.0
+
+---
+### Official v3.3.0 release tag
+- Feature release building on version 3.2.2
+
+#### Major New Features
+
+- **`geopmopt` — Bayesian Optimization Tool** (NEW):
+  - New CLI tool for finding optimal hardware control settings for a given application.
+  - Uses scikit-optimize Bayesian optimization (`gp_minimize` with Expected Improvement).
+  - Search space is defined with the same repeatable `--sweep CONTROL[@DOMAIN][=MIN:MAX:STEP]` grammar as `geopmgrid`; `--list-controls` prints the available controls and their detected bounds.
+  - Supports controls: CPU frequency, uncore frequency, CPU power, GPU frequency, GPU power, board power, and prefetcher disable levels.
+  - Launches the application as a subprocess for each trial; with no metric specified the objective defaults to minimizing wall-clock runtime.
+  - General objective interface: `--metric NAME=SOURCE` defines named metrics from `regex:'PATTERN'` (stdout scrape), `signal:SIGNAL@DOMAIN[:AGG]` (GEOPM signal sampled with `geopmsession`), or `expr:'EXPRESSION'` (derived) sources; `--maximize NAME` / `--minimize NAME` selects the objective; `--constraint 'NAME OP VALUE'` adds feasibility constraints with unit-suffix normalization.
+  - `--list-metrics` discovery mode prints the reserved metrics (`time`, `energy`, `power`, `fom`) and the behavior and default aggregation of `signal:` metrics.
+  - `--energy-domain` samples energy and average power over the `board`, `cpu`, or `gpu` domain to enable energy and energy-efficiency objectives.
+  - Legacy `--metric-regex`, `--efficiency`, and `--metric-bound` options are retained as aliases of the general interface; `--metric-bound` provides performance-bounded energy minimization.
+  - Recoverable trial failures (timeout, non-zero exit, missing figure of merit) are penalized rather than aborting the run, configurable with `--penalty`.
+  - `cpu-freq` sweeps force the `performance` CPU governor and default the upper bound to the sticker frequency.
+  - Supports `--defer-write` mode where each trial's configuration is written to `--output-file` for another tool (e.g. `geopmlaunch --geopm-init-control`) to apply.
+  - Configurable trials, initial points, random seed, timeout, and verbosity.
+  - New optional dependency extra `geopmdpy[optimize]`: `scikit-optimize>=0.9.0` and `pyyaml>=6.0.0`.
+  - Live-hardware integration tests added under `geopmdpy/integration_test`.
+
+- **`geopmgrid` — Control Grid Management Tool** (NEW):
+  - New CLI tool for defining and navigating N-dimensional control grids over hardware parameters.
+  - Grid dimensions are added with the repeatable `--sweep CONTROL[@DOMAIN][=MIN:MAX:STEP]` option; bounds accept unit suffixes (`Hz`, `kHz`, `MHz`, `GHz`, `W`, `kW`).
+  - Supports: cpu-freq, uncore-freq, cpu-power, gpu-freq, gpu-power, board-power, and prefetch.
+  - `--list-controls` prints the control catalog with native domain, units, and detected min/max/step.
+  - Generates `geopmwrite`-compatible config strings for a grid point with `--coordinate` or `--coordinate-file`; `--coordinate-range` prints dimension sizes.
+  - `--write` to directly apply configuration to platform.
+  - Reads hardware limits dynamically from PlatformIO, with fallbacks when limit signals are unavailable.
+  - Used as the parameter space backend for `geopmopt`.
+
+- **`geopmdpy` Session Agents** (NEW):
+  - Pure-Python agents built on the `geopmsession` `Agent` framework, run with `python3 -m geopmdpy.<agent>` and requiring no GEOPM HPC Runtime, Controller, or MPI.
+  - `geopmdpy.monitor_agent`: `MonitorAgent` using the default signal config from `geopmdpy.exporter.default_requests()`; `--hi-res` option samples all signals at native domain/index granularity.
+  - `geopmdpy.gpu_activity_agent`: port of the GPU Activity Agent control loop with `--phi` and `--hi-res` options; derives GPU activity from DRM idle residency when Level Zero is absent and supports DCGM `GPU_CORE_ACTIVITY` without `GPU_UTILIZATION`.
+  - `geopmdpy.heatmap_agent`: renders a normalized component-saturation heatmap of power, activity, frequency, and derived IPC, with a `--fom` overlay and `--replot-csv` for existing traces; documented in the new `geopm_heatmap_agent(1)` man page; plotting dependencies available via the `geopmdpy[heatmap]` extra.
+  - Added a GPU activity agent effectiveness integration test using SYCL and PyTorch inference workloads.
+
+- **`geopmsession` — Agent Framework and New Modes**:
+  - Introduced `Agent` base class with full plugin framework and hooks: `update_parser()`, `update_args()`, `signal_config_override()`, `run_begin()`, `run_end()`, `update_loop()`, `header_names()`, and `trace_out()`.
+  - Process launch mode (`-- <cmd>`): launch and track subprocess, end session on exit.
+  - Daemon mode (`--daemon`): fork to background with PID file and ready notification via pipe.
+  - Control config (`-c/--control-config`): write control values at session start.
+  - Hostname append (`-a/--append-hostname`): append hostname to output files for multi-node runs.
+  - Agent-customizable help text: agents can set `parser.epilog` via `help()` method.
+
+- **LevelZero Tools & Metrics (ZET) Support**:
+  - New `LEVELZERO::METRIC:XVE_ACTIVE`, `LEVELZERO::METRIC:XVE_STALL`, and `LEVELZERO::METRIC:NUM_REPORTS` signals on the `gpu_chip` domain, sourced from the LevelZero metric streamer across all GPU chips.
+  - A background thread keeps the metric streamer drained so telemetry stays fresh regardless of the caller's sample period, while per-read compute cost stays bounded.
+  - `geopm.service` now sets `ZET_ENABLE_METRICS=1`.
+
+- **TPMI Uncore Frequency and New Xeon Platform Support**:
+  - New uncore frequency sysfs driver for the SysfsIOGroup that wraps the Linux `intel_uncore_frequency` (TPMI) interface, restoring the `CPU_UNCORE_FREQUENCY_MIN_CONTROL`, `CPU_UNCORE_FREQUENCY_MAX_CONTROL`, and `CPU_UNCORE_FREQUENCY_STATUS` aliases on Granite Rapids and later Xeon processors.
+  - Added MSR definitions for Granite Rapids, Clearwater Forest, and Diamond Rapids that omit the MSRs which moved to TPMI.
+  - Added CPUID support for Emerald Rapids (Sapphire Rapids MSR definitions) and Sierra Forest (Granite Rapids MSR definitions).
+  - Unrecognized CPUIDs now use a restrictive fallback MSR definition instead of the Sapphire Rapids definitions.
+  - New `POWERCAP::CPU_CONSTRAINT_0_MAX_POWER` and `POWERCAP::CPU_CONSTRAINT_1_MAX_POWER` signals; the long-term (PL1) ceiling is aliased to `CPU_POWER_MAX_AVAIL` for platforms without MSR `PKG_POWER_INFO`.
+  - Added integration tests for the MSR to TPMI interface change.
+
+#### Enhancements
+
+- **GPU Activity Agent**:
+  - Stall-aware frequency selection: when `LEVELZERO::METRIC:XVE_STALL` is available, compute activity is discounted by the stall fraction before selecting a frequency.
+  - Debounced idle detection drives idle GPUs to the minimum frequency when energy-biased.
+  - Report now includes GPU on-time, on-energy, and active-region tracking.
+
+- **`geopmwrite`**:
+  - Added `parse_batch()` function for parsing batch control configs separately from execution.
+
+- **Batch Write Interface**:
+  - Controls that are pushed but never adjusted are now a no-op in `write_batch()` instead of an error, matching all other IOGroups; previously this could terminate the `geopmbatch` server (#4033).
+
+- **Sysfs and DRM Support**:
+  - Added DerivativeSignal support to the SysfsIOGroup, providing DRM `GPU_POWER`, `GPU_CHIP_POWER`, and `GPU_CORE_POWER` signals derived from energy counters.
+  - Alias signal descriptions now include an `alias_for` field.
+  - DRM GPU topology filters out devices without compute (ccs) engines.
+
+- **FFNet Agent Tooling**:
+  - Neural net training data and frequency map generation scripts now use per-package data.
+  - Added an arithmetic intensity experiment script and expanded FFNet integration tests.
+
+- **OpenPBS Power Limit Hook**:
+  - Refactored into separate server and compute hooks with separate install scripts.
+  - Automatic job power limits derived from power-performance models and a maximum tolerable slowdown (`geopm-max-slowdown`), with user selectable models via `geopm-job-type`.
+  - Support for `original-quadratic` and `piecewise-linear` models loaded from the file system or the hook config.
+  - Support for queue-level resources, `MODIFYJOB` events, and setting slowdown alongside `geopm-job-power-limit`.
+  - Added power sweep scripts, model generator filtering and caching, and analysis tools including plotters, dataset comparison, node selection, and a Monte Carlo non-uniform capping simulator.
+
+- **System Characterization**:
+  - Added scripts under `integration/experiment/system_characterization` that sweep CPU and GPU frequencies (optionally under board power caps) and generate ConstConfigIOGroup efficient frequency recommendations for the CPU and GPU activity agents.
+
+- **DGEMM Model Region**:
+  - Fixed oversizing the matrix.
+  - Asymmetric dimensions support.
+  - OpenBLAS support via configure.ac.
+  - Fixed header, adjusted matrix sizes, fixed small big-o docs.
+
+- **Stream Model Region**:
+  - Increased array size 4x.
+  - Simpler, more predictable behavior.
+
+- **Spin Model Region**:
+  - Refactored to resemble a real spin wait.
+
+- **`geopmpy/io.py`**:
+  - Use libyaml for improved YAML parsing performance.
+  - Added `report_file` column to report DataFrames.
+  - Removed `distutils` usage and updated `DataFrame.to_hdf()` calls for Python 3.12 and pandas 3 compatibility.
+
+#### Bug Fixes
+
+- Fixed `geopmsession -t` running indefinitely when no launch command, PID, or daemon mode is given (#4009).
+- Fixed `geopm.service` start timing out on first boot by removing `TimeoutSec` from the DBus configuration (#4017).
+- Fixed GPU Activity Agent on Intel Battlemage GPUs: a policy file is no longer required when all policy values have defaults, and `GPU_CORE_FREQUENCY_MIN_CONTROL` is now optional (#4037).
+- Fixed `GPU_CORE_FREQUENCY_STATUS` alias for the DRM driver (#4027).
+- Fixed `geopmsession` YAML report values being rounded to 6 significant digits, which skewed energy deltas used by `geopmopt` (#4073).
+- Fixed potential hang in PlatformTopo creation when the caller has blocked `SIGCHLD`.
+- Fixed `geopmd` startup to remove the topology cache before creating the service object.
+- Fixed value truncation in the `PlatformIO::push_control()` read/write check.
+- Added missing Debian package dependency on `geopmd-cli` (#4034).
+- Fixed unit tests using deprecated Google Mock `Invoke()` overloads that broke `-Werror` builds (#4070).
+
+#### Documentation and Infrastructure
+
+- Added Fedora 42 Docker file for geopmexporter.
+- Added Python 3.12, 3.13, and 3.14 classifiers to pyproject.toml.
+- Updated spack documentation.
+- Updated geopmsession man page for new Agent, daemon, and launch features.
+- Added a `concepts` documentation page, generated `geopmopt` Python API docs in `geopmdpy(7)`, and an "Optimize Control Settings" walkthrough in the overview and tutorial.
+- Documented data types for all environment variables in `geopm(7)` and added missing `geopmlaunch` CLI options.
+- Install guide updates for systems with `geopmd` in `sbin`, Ubuntu Plucky, openSUSE 15.7, and distro vs. pip installs of client tools.
+- Added `geopm-install` and `geopm-optimize` AI assistant skills and agents under `.github/`, an `AGENTS.md` repository navigation guide, and a `.github/plugin/plugin.json` manifest to install them as the `geopm` agent plugin for VS Code and Copilot CLI.
+- Added a commented gRPC configuration example to `geopm.service`.
+- Debian packaging distro is now user controlled; the Launchpad `dev-next` PPA now targets Ubuntu Resolute Raccoon.
+- Updated copyright year to 2026.
+
+---
 - Thu Dec 18 2025 Christopher M Cantalupo <christopher.m.cantalupo@intel.com> v3.2.2
 
 ---
