@@ -1,3 +1,74 @@
+- Wed Apr 23 2026 Brad Geltz <brad.geltz@intel.com> v3.3.0
+
+---
+### Official v3.3.0 release tag
+- Feature release building on version 3.2.2
+
+#### Major New Features
+
+- **`geopmopt` — Bayesian Optimization Tool** (NEW):
+  - New CLI tool for finding optimal hardware control settings for a given application.
+  - Uses scikit-optimize Bayesian optimization (`gp_minimize` with Expected Improvement).
+  - Supports controls: CPU frequency, GPU frequency, CPU power, GPU power, board power, uncore frequency, and prefetcher disable levels.
+  - Launches application as subprocess, parses stdout with regex for figure-of-merit.
+  - Supports `--maximize` / `--minimize` metric direction.
+  - Supports `--efficiency` mode (metric / average power) for energy-efficiency optimization.
+  - Supports `--defer-write` mode to write config file without applying to platform.
+  - Configurable trials, initial points, random seed, timeout, and verbosity.
+  - New optional dependency: `scikit-optimize>=0.9.0`.
+
+- **`geopmgrid` — Control Grid Management Tool** (NEW):
+  - New CLI tool for defining and navigating N-dimensional control grids over hardware parameters.
+  - Supports: cpu-frequency, cpu-uncore-frequency, cpu-power, gpu-frequency, gpu-power, board-power, prefetch-disable.
+  - Generates `geopmwrite`-compatible config strings for specific grid coordinates.
+  - `--coordinate` to generate config for a specific grid point, `--coordinate-range` to print dimension sizes.
+  - `--write` to directly apply configuration to platform.
+  - Supports min/max/step overrides per control dimension.
+  - Reads hardware limits dynamically from PlatformIO.
+  - Used as the parameter space backend for `geopmopt`.
+
+- **`geopmpy.monitor` — Monitor Agent** (NEW):
+  - New `MonitorAgent` class derived from `geopmdpy.session.Agent`.
+  - Default signal config from `geopmdpy.exporter.default_requests()`.
+  - `--hi-res` option: sample all signals at native domain/index granularity.
+
+- **`geopmsession` — Agent Framework and New Modes**:
+  - Introduced `Agent` base class with full plugin framework and hooks: `update_parser()`, `update_args()`, `signal_config_override()`, `run_begin()`, `run_end()`, `update_loop()`, `header_names()`, and `trace_out()`.
+  - Process launch mode (`-- <cmd>`): launch and track subprocess, end session on exit.
+  - Daemon mode (`--daemon`): fork to background with PID file and ready notification via pipe.
+  - Control config (`-c/--control-config`): write control values at session start.
+  - Hostname append (`-a/--append-hostname`): append hostname to output files for multi-node runs.
+  - Agent-customizable help text: agents can set `parser.epilog` via `help()` method.
+
+#### Enhancements
+
+- **`geopmwrite`**:
+  - Added `parse_batch()` function for parsing batch control configs separately from execution.
+
+- **DGEMM Model Region**:
+  - Fixed oversizing the matrix.
+  - Asymmetric dimensions support.
+  - OpenBLAS support via configure.ac.
+  - Fixed header, adjusted matrix sizes, fixed small big-o docs.
+
+- **Stream Model Region**:
+  - Increased array size 4x.
+  - Simpler, more predictable behavior.
+
+- **Spin Model Region**:
+  - Refactored to resemble a real spin wait.
+
+- **`geopmpy/io.py`**:
+  - Use libyaml for improved YAML parsing performance.
+
+#### Documentation and Infrastructure
+
+- Added Fedora 42 Docker file for geopmexporter.
+- Added Python 3.12, 3.13, and 3.14 classifiers to pyproject.toml.
+- Updated spack documentation.
+- Updated geopmsession man page for new Agent, daemon, and launch features.
+
+---
 - Thu Dec 18 2025 Christopher M Cantalupo <christopher.m.cantalupo@intel.com> v3.2.2
 
 ---
