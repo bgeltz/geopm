@@ -1,4 +1,19 @@
 #!/usr/bin/env python3
+"""Explore and evaluate the GEOPM power allocation model for PBS nodes.
+
+This script tests the power budget allocation algorithm from the
+geopm_power_limit_compute PBS hook outside of the PBS environment by
+mocking the PBS module. It compares optimized per-node power limits
+(based on node-specific model parameters) against a uniform power
+distribution, and reports the slowdown improvement for the worst-case node.
+
+Usage:
+    python explore_model.py <node_list_file> <per_node_power_limit>
+
+Arguments:
+    node_list_file        Path to a file containing one vnode name per line.
+    per_node_power_limit  Average power limit per node (in watts).
+"""
 
 import unittest
 from unittest import mock
