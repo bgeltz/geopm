@@ -173,6 +173,10 @@ namespace geopm
                         DrmSysfsDriver::make_plugin_drm);
         register_plugin(DrmSysfsDriver::plugin_name_accel(),
                         DrmSysfsDriver::make_plugin_accel);
+#ifdef GEOPM_ENABLE_LEVELZERO
+        register_plugin(LevelZeroIOGroup::plugin_name(),
+                        LevelZeroIOGroup::make_plugin);
+#endif
     }
 
     IOGroupFactory &iogroup_factory(void)
