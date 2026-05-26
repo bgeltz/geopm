@@ -21,7 +21,12 @@ import pandas as pd
 import seaborn as sns
 
 from compare import common_arg_parser, load_raw_host_data
-from select_uniform_nodes import load_cached_data
+from select_uniform_nodes import (
+    apply_outlier_filter,
+    load_cached_data,
+    load_host_filter,
+    validate_dataset,
+)
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -62,6 +67,24 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Load data from pre-built HDF5 cache files (cache_*.h5), "
              "skipping report parsing. Optionally accepts a path to the "
              "cache directory (default: .compare_cache).",
+    )
+    p.add_argument(
+        "--filter-hosts", metavar="FILE", default=None,
+        help="Path to a file containing hostnames (one per line) "
+             "to exclude from the dataset.",
+    )
+    p.add_argument(
+        "--outliers", nargs="+", default=None,
+        metavar="POWER,OP,THRESH",
+        help="FOM outlier rules. Each rule is "
+             "'POWER,OPERATOR,THRESHOLD' where OPERATOR is "
+             "'lt' or 'gt'. Any host with a trial violating a "
+             "rule is removed from the dataset.",
+    )
+    p.add_argument(
+        "--validate", action="store_true", default=False,
+        help="Run dataset validation (remove hosts with incomplete "
+             "sweeps or insufficient trials).",
     )
     return p.parse_args(argv)
 
@@ -331,6 +354,26 @@ def main(argv: Optional[List[str]] = None) -> int:
     if totals is None or totals.empty:
         print("No totals data found.")
         return 1
+
+    # Apply hostname filter
+    if args.filter_hosts:
+        excluded = load_host_filter(args.filter_hosts)
+        if excluded and "host" in totals.columns:
+            before = len(totals)
+            totals = totals[~totals["host"].isin(excluded)].reset_index(drop=True)
+            removed = before - len(totals)
+            if removed:
+                print(f"Filtered {len(excluded)} host(s) from "
+                      f"{args.filter_hosts} ({removed} rows removed)",
+                      file=sys.stderr)
+
+    # Apply outlier filtering
+    if args.outliers:
+        totals = apply_outlier_filter(totals, args.outliers)
+
+    # Validate dataset
+    if args.validate:
+        totals = validate_dataset(totals, verbose=True)
 
     col = "BOARD_POWER_LIMIT_CONTROL"
     if col not in totals.columns:
