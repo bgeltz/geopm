@@ -10,6 +10,7 @@ Outputs one hostname per line to stdout.
 """
 
 import argparse
+import code
 import glob
 import hashlib
 import json
@@ -54,6 +55,9 @@ def parse_args():
                              'Application Totals.')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Print additional diagnostic information to stderr.')
+    parser.add_argument('--interactive', action='store_true',
+                        help='Drop into an interactive Python session after '
+                             'loading and filtering data.')
     return parser.parse_args()
 
 
@@ -426,6 +430,11 @@ def main():
 
     # Validate dataset (remove hosts with incomplete sweeps or missing FOM)
     df = validate_dataset(df, verbose=args.verbose)
+
+    if args.interactive:
+        print('Dropping into interactive session. DataFrame is available as "df".',
+              file=sys.stderr)
+        code.interact(local=dict(globals(), **locals()))
 
     # Select nodes
     selected = select_uniform_nodes(df, args.board_power_limit,
