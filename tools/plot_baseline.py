@@ -21,6 +21,7 @@ import pandas as pd
 import seaborn as sns
 
 from compare import common_arg_parser, load_raw_host_data
+from select_uniform_nodes import load_cached_data
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -55,6 +56,12 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     p.add_argument(
         "--ylim", default=None,
         help="FOM axis limits as 'LOW,HIGH' (e.g. '6e6,9e6').",
+    )
+    p.add_argument(
+        "--cache", nargs="?", const=".compare_cache", default=None,
+        help="Load data from pre-built HDF5 cache files (cache_*.h5), "
+             "skipping report parsing. Optionally accepts a path to the "
+             "cache directory (default: .compare_cache).",
     )
     return p.parse_args(argv)
 
@@ -290,8 +297,8 @@ def _print_summary_table(trial_rows: List[dict], host: str, output_path: Optiona
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
 
-    if not args.baseline:
-        print("ERROR: --baseline is required.", file=sys.stderr)
+    if not args.baseline and not args.cache:
+        print("ERROR: --baseline or --cache is required.", file=sys.stderr)
         return 1
 
     if args.publication:
@@ -309,17 +316,20 @@ def main(argv: Optional[List[str]] = None) -> int:
         plt.style.use("seaborn-v0_8-darkgrid")
 
     # Load data
-    baseline_dirs = [Path(d).expanduser().resolve() for d in args.baseline]
-    cache_root = (
-        Path(args.cache_dir).expanduser().resolve()
-        if args.cache_dir
-        else Path(".compare_cache").resolve()
-    )
-    sections = load_raw_host_data(baseline_dirs, "baseline", cache_root)
+    if args.cache:
+        totals = load_cached_data(args.cache, verbose=True)
+    else:
+        baseline_dirs = [Path(d).expanduser().resolve() for d in args.baseline]
+        cache_root = (
+            Path(args.cache_dir).expanduser().resolve()
+            if args.cache_dir
+            else Path(".compare_cache").resolve()
+        )
+        sections = load_raw_host_data(baseline_dirs, "baseline", cache_root)
+        totals = sections.get("totals")
 
-    totals = sections.get("totals")
     if totals is None or totals.empty:
-        print("No totals data found in baseline directories.")
+        print("No totals data found.")
         return 1
 
     col = "BOARD_POWER_LIMIT_CONTROL"
