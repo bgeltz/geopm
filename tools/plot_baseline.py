@@ -25,6 +25,7 @@ from select_uniform_nodes import (
     apply_outlier_filter,
     load_cached_data,
     load_host_filter,
+    load_report_dirs,
     validate_dataset,
 )
 
@@ -86,6 +87,13 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Run dataset validation (remove hosts with incomplete "
              "sweeps or insufficient trials).",
     )
+    p.add_argument(
+        "--focus-node-dir", default=None,
+        help="Directory containing GEOPM report files for a single node. "
+             "The node's trials are overlaid on the population histogram "
+             "(from --cache/--baseline) without contributing to the "
+             "distribution. Hostname is extracted automatically.",
+    )
     return p.parse_args(argv)
 
 
@@ -98,6 +106,7 @@ def plot_fom_histogram(
     bins: int = 30,
     publication: bool = False,
     xlim: Optional[tuple] = None,
+    highlight_fom_override: Optional[pd.Series] = None,
 ) -> None:
     """Create a single FOM histogram for one BOARD_POWER_LIMIT_CONTROL value.
 
@@ -109,6 +118,10 @@ def plot_fom_histogram(
         The power limit value (used in title/filename).
     highlight_host : str or None
         If given, the bin containing this host's FOM is colored differently.
+    highlight_fom_override : pd.Series or None
+        If provided, use these FOM values for highlighting instead of
+        looking up *highlight_host* in *df*.  The values are overlaid on
+        the population histogram without contributing to the distribution.
     """
     metric = "FOM"
     if metric not in df.columns:
@@ -124,7 +137,25 @@ def plot_fom_histogram(
     # Resolve highlight host FOM before plotting
     host_fom = None
     host_stats = []
-    if highlight_host and "host" in df.columns:
+    if highlight_fom_override is not None and not highlight_fom_override.empty:
+        host_rows = highlight_fom_override.dropna()
+        from scipy import stats as sp_stats
+        host_fom = host_rows.mean()
+        fom_mean = fom_values.mean()
+        fom_std = fom_values.std()
+        for trial_num, trial_fom in enumerate(host_rows.values, start=1):
+            host_stats.append({
+                "Power (W)": power_limit,
+                "Trial": trial_num,
+                "Trial FOM": trial_fom,
+                "Percentile": sp_stats.percentileofscore(fom_values, trial_fom, kind="rank"),
+                "N": fom_values.shape[0],
+                "Dist Mean": fom_mean,
+                "Dist Median": fom_values.median(),
+                "Dist Std": fom_std,
+                "Z-score": (trial_fom - fom_mean) / fom_std if fom_std > 0 else float("nan"),
+            })
+    elif highlight_host and "host" in df.columns:
         host_rows = df.loc[df["host"] == highlight_host, metric].dropna()
         if host_rows.empty:
             print(f"WARNING: host '{highlight_host}' not found at "
@@ -154,7 +185,10 @@ def plot_fom_histogram(
     if host_fom is not None:
         counts, bin_edges = np.histogram(fom_values, bins=bins)
         # Find all bins that contain at least one trial from this host
-        host_trial_values = df.loc[df["host"] == highlight_host, metric].dropna()
+        if highlight_fom_override is not None and not highlight_fom_override.empty:
+            host_trial_values = highlight_fom_override.dropna()
+        else:
+            host_trial_values = df.loc[df["host"] == highlight_host, metric].dropna()
         highlight_indices = set()
         for trial_val in host_trial_values:
             idx = int(np.searchsorted(bin_edges[1:], trial_val, side="left"))
@@ -382,6 +416,33 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     totals[col] = totals[col].astype(int)
 
+    # Load focus node data (overlay only — not part of population)
+    focus_node_data = None
+    focus_host = args.highlight_host
+    if args.focus_node_dir:
+        focus_df = load_report_dirs([args.focus_node_dir], verbose=True)
+        if col not in focus_df.columns:
+            print(f"ERROR: focus node reports missing '{col}' column.",
+                  file=sys.stderr)
+            return 1
+        focus_df[col] = focus_df[col].astype(int)
+        # Extract hostname automatically
+        focus_hosts = focus_df["host"].unique()
+        if len(focus_hosts) == 1:
+            focus_host = focus_hosts[0]
+        elif focus_host and focus_host in focus_hosts:
+            focus_df = focus_df[focus_df["host"] == focus_host]
+        else:
+            focus_host = focus_hosts[0]
+            print(f"WARNING: multiple hosts in --focus-node-dir: "
+                  f"{list(focus_hosts)}; using '{focus_host}'",
+                  file=sys.stderr)
+            focus_df = focus_df[focus_df["host"] == focus_host]
+        focus_node_data = focus_df
+        print(f"Focus node: {focus_host} "
+              f"({len(focus_df)} trials from --focus-node-dir)",
+              file=sys.stderr)
+
     xlim = None
     if args.ylim:
         lo, hi = args.ylim.split(",")
@@ -390,15 +451,24 @@ def main(argv: Optional[List[str]] = None) -> int:
     stats_rows = []
     for power_limit in sorted(totals[col].unique()):
         subset = totals[totals[col] == power_limit]
+        # Get focus node FOM values at this power level (if any)
+        fom_override = None
+        if focus_node_data is not None:
+            focus_at_power = focus_node_data[
+                focus_node_data[col] == power_limit
+            ]
+            if not focus_at_power.empty:
+                fom_override = focus_at_power["FOM"].reset_index(drop=True)
         row_stats = plot_fom_histogram(
             subset,
             power_limit=power_limit,
             title=args.title,
             output=args.output,
-            highlight_host=args.highlight_host,
+            highlight_host=focus_host,
             bins=args.bins,
             publication=args.publication,
             xlim=xlim,
+            highlight_fom_override=fom_override,
         )
         if row_stats:
             stats_rows.extend(row_stats)
@@ -407,10 +477,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         stats_path = None
         if args.output:
             base, ext = args.output.rsplit(".", 1)
-            host_suffix = f"_{args.highlight_host}" if args.highlight_host else ""
+            host_suffix = f"_{focus_host}" if focus_host else ""
             stats_path = f"{base}{host_suffix}_stats.txt"
-        _print_stats_table(stats_rows, args.highlight_host, output_path=stats_path)
-        _print_summary_table(stats_rows, args.highlight_host, output_path=stats_path)
+        _print_stats_table(stats_rows, focus_host, output_path=stats_path)
+        _print_summary_table(stats_rows, focus_host, output_path=stats_path)
 
     return 0
 
