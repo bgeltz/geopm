@@ -112,6 +112,10 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
              "and LOWESS plots.  Highlighted hosts are drawn on top with "
              "thicker lines, markers, and a legend entry.",
     )
+    p.add_argument(
+        "--csv", default=None,
+        help="Export plot data to a CSV file at the given path.",
+    )
     return p.parse_args(argv)
 
 
@@ -1495,6 +1499,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         avg = not args.raw_trials
         tag = "raw" if args.raw_trials else "average_trials"
 
+        # Export data to CSV if requested
+        if args.csv:
+            sections["totals"].to_csv(args.csv, index=False)
+            print(f"Exported plot data to {args.csv}")
+
         def _out(suffix: str) -> Optional[str]:
             if not args.output:
                 return None
@@ -1556,6 +1565,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         if "host" in df.columns:
             node_count = df["host"].nunique()
             args.title += f" | {node_count} Nodes"
+
+        # Export data to CSV if requested
+        if args.csv:
+            df.to_csv(args.csv, index=False)
+            print(f"Exported plot data to {args.csv}")
 
         plot_fom_cap_compare(df, title=args.title, output=args.output,
                              publication=pub)
