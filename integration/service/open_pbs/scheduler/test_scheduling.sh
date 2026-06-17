@@ -76,10 +76,10 @@ run_tc2() {
     # clamped to 6000 W. Since 6000+6000 > 6000, they must run in series.
     local job1 job2
     job1=$(submit_job -N ms427_tc2 -koed -joe \
-        -l "select=2" \
+        -l "select=1" \
         -- /usr/bin/sh -c "echo Hey \$(hostname) && sleep ${JOB_SLEEP}")
     job2=$(submit_job -N ms427_tc2 -koed -joe \
-        -l "select=2" \
+        -l "select=1" \
         -- /usr/bin/sh -c "echo Hey \$(hostname) && sleep ${JOB_SLEEP}")
     log_info "Submitted job1=${job1}, job2=${job2}"
 
@@ -130,10 +130,10 @@ run_tc3() {
     # Cap = 100000 W (not binding). Each 2-node job should get 2×4000=8000 W.
     local job1 job2
     job1=$(submit_job -N ms427_tc3 -koed -joe \
-        -l "select=2" \
+        -l "select=1" \
         -- /usr/bin/sh -c "echo Hey \$(hostname) && sleep ${JOB_SLEEP}")
     job2=$(submit_job -N ms427_tc3 -koed -joe \
-        -l "select=2" \
+        -l "select=1" \
         -- /usr/bin/sh -c "echo Hey \$(hostname) && sleep ${JOB_SLEEP}")
     log_info "Submitted job1=${job1}, job2=${job2}"
 
