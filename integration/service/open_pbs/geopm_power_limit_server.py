@@ -255,12 +255,15 @@ def _get_resource(event, resource_name):
             queue_name = job_queue.name if hasattr(job_queue, 'name') else str(job_queue)
             queue = pbs.server().queue(queue_name)
             val = queue.resources_available[resource_name]
+            pbs.logmsg(pbs.LOG_DEBUG, f'{event.hook_name}: _get_resource({resource_name}) queue val={val}')
             if val is not None:
                 return val
         except Exception as e:
             pbs.logmsg(pbs.LOG_DEBUG, f'{event.hook_name}: _get_resource({resource_name}) queue lookup failed: {e}')
     # Fall back to server level
-    return pbs.server().resources_available[resource_name]
+    server_val = pbs.server().resources_available[resource_name]
+    pbs.logmsg(pbs.LOG_DEBUG, f'{event.hook_name}: _get_resource({resource_name}) server val={server_val}')
+    return server_val
 
 
 def do_power_limit_queuejob(event):
