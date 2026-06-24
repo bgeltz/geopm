@@ -697,6 +697,73 @@ def plot_power_sweep_fom_histogram(
         plt.close(fig)
 
 
+def plot_uniform_fom_boxplot_per_limit(
+    df: pd.DataFrame,
+    title: str = "Uniform FOM",
+    output: Optional[str] = None,
+    publication: bool = False,
+) -> None:
+    """Create one boxplot per uniform power limit, each in a separate file.
+
+    Only rows where ``cap_type == 'Uniform'`` are used.  FOM is normalized
+    against the best (max) FOM achieved across all trials at that specific
+    power limit.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Must contain ``cap_type``, ``BOARD_POWER_LIMIT_CONTROL``, and ``FOM``.
+    title : str
+        Base plot title (power limit is appended).
+    output : str or None
+        If provided, the power limit is inserted into the filename.
+    """
+    metric = "FOM"
+    col = "BOARD_POWER_LIMIT_CONTROL"
+    hue_col = "cap_type"
+
+    for required in (col, metric, hue_col):
+        if required not in df.columns:
+            raise KeyError(
+                f"Column '{required}' not found in DataFrame. "
+                f"Available columns: {list(df.columns)}"
+            )
+
+    udf = df.loc[df[hue_col] == "Uniform"].copy()
+    if udf.empty:
+        print("No Uniform data to plot.")
+        return
+
+    udf[col] = udf[col].astype(int)
+
+    for power_limit in sorted(udf[col].unique()):
+        subset = udf.loc[udf[col] == power_limit].copy()
+        fom_max = subset[metric].max()
+        if fom_max == 0:
+            continue
+        subset[metric] = subset[metric] / fom_max
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        sns.boxplot(data=subset, y=metric, ax=ax)
+        if not publication:
+            ax.set_title(f"{title} — {power_limit} W")
+        ax.set_ylabel("Normalized FOM (vs best at this limit)")
+        ax.set_xlabel("")
+
+        if publication:
+            ax.margins(x=0)
+        plt.tight_layout()
+
+        if output:
+            base, ext = output.rsplit(".", 1)
+            out_path = f"{base}_uniform_fom_{power_limit}.{ext}"
+            fig.savefig(out_path, dpi=150)
+            print(f"Saved figure to {out_path}")
+        else:
+            plt.show()
+        plt.close(fig)
+
+
 def plot_fom_cap_compare(
     df: pd.DataFrame,
     title: str = "Uniform vs Non-Uniform Power Cap FOM",
@@ -1594,6 +1661,12 @@ def main(argv: Optional[List[str]] = None) -> int:
             df,
             title=args.title + " — Power Compliance",
             output=compliance_out, publication=pub,
+        )
+
+        # Per-limit boxplots for uniform data only
+        plot_uniform_fom_boxplot_per_limit(
+            df, title=args.title + " — Uniform FOM",
+            output=args.output, publication=pub,
         )
     elif args.baseline and len(args.baseline) > 1:
         if args.cache:
