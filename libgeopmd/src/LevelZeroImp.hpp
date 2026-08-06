@@ -275,7 +275,13 @@ namespace geopm
 
             static constexpr uint32_t SAMPLING_PERIOD_NS = 500000; // 0.5 ms
             static constexpr size_t DEFAULT_REPORT_BUFFER_SIZE = 16 * 1024 * 1024; // 16 MB
-            static constexpr uint32_t DEFAULT_MAX_REPORTS_PER_READ = 30;
+            // Cap on the number of most-recent reports decoded per drain.
+            // zetMetricGroupCalculateMetricValues decodes the whole ComputeBasic
+            // group (~36 metrics) per report, so its cost scales with the report
+            // count; capping it bounds the per-read_batch decode cost while still
+            // smoothing over several 0.5 ms hardware samples.  Older reports in
+            // the FIFO are drained but skipped.
+            static constexpr uint32_t DEFAULT_MAX_REPORTS_PER_READ = 8;
             // Fixed cadence at which the background thread drains the metric
             // streamers, independent of the controller loop period.  Frequent
             // draining keeps the Intel metric streamer delivering continuously
